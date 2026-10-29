@@ -1,7 +1,7 @@
 # Hackathon Project
 
-## Team Members
-- Drashti
+## Team - AuraMinds
+- Drashti Bhanderi 
 - Dhruti Viradiya
 
 ## About the Project
