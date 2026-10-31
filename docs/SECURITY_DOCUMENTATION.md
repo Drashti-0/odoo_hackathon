@@ -33,7 +33,7 @@ Targeted source inspection found elevated calls in registration/onboarding, back
 
 - `.env` is ignored by Git and was not tracked in the checked repository state.
 - `.env.example` contains blank password fields rather than working credentials.
-- Compose requires password values via local environment configuration and binds the published Odoo port to loopback.
+- Compose requires password values via local environment configuration and binds the published Odoo port to loopback. The first inspected running container did not match that binding and used an invalid CLI option; it was recreated from the corrected Compose configuration. The actual binding was then confirmed as `127.0.0.1:8069`.
 - Do not paste local secrets into docs, source control, issue comments, screenshots, or presentation material.
 - The Odoo master password is supplied at runtime from local environment configuration; rotate it before hosting outside a development workstation.
 
@@ -46,12 +46,13 @@ These are repository/configuration checks only. They do not prove the local deve
 3. **Portal verification:** no authenticated customer with a known synthetic subscription was available for cross-customer testing.
 4. **Payment provider security:** no actual provider credentials, webhook signing, or gateway transaction was tested. Payment method labels do not imply an operational gateway integration.
 5. **Native Odoo test suite:** a previous run against the populated database had failures/errors and was not an isolated security regression run.
+6. **Dashboard runtime error:** the latest dashboard request raised `NameError: name 'inv_domain' is not defined`; do not present the dashboard as verified. This module is assigned to Developer 2 by the integration contract and was not edited without owner authorization.
 
 ## Live checks
 
 - Odoo 17 runtime was available.
 - Anonymous `/web`, `/my`, `/my/subscriptions`, `/my/plans`, `/my/invoices`, and `/my/billing-history` requests redirected to login.
-- Authenticated internal dashboard rendering and reload produced no observed browser console/page errors during the bounded check.
+- Odoo HTTP startup and loopback binding were checked after container recreation; this does not establish full application correctness.
 - No ACLs or record rules were modified during this final work.
 
 For general test status, see [TESTING_REPORT.md](TESTING_REPORT.md). For the exact demo boundary, see [FINAL_HACKATHON_DEMO.md](FINAL_HACKATHON_DEMO.md).

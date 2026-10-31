@@ -26,7 +26,8 @@ Subscription businesses need recurring product/plan pricing, customer contract l
 - Standalone suite: **PASS, 93 tests** on the latest run.
 - XML parse check: **PASS, 16 files**.
 - Module active in the inspected Odoo 17 local database: **PASS**.
-- Live admin dashboard rendering: **PASS, LIMITED**. The authenticated page rendered real KPI/filter/chart content, reload showed no browser console/page errors, and a screenshot was displayed in the task conversation. The screenshot could not be exported to a valid repository image file; the pre-existing tracked image shows only the Odoo form toolbar.
+- Live admin dashboard rendering: **FAIL** in the latest verification. The dashboard KPI compute raised `NameError: name 'inv_domain' is not defined` in monthly invoice aggregation. The post-restart browser capture was blank; no valid current dashboard screenshot is available. The file is Developer 2-owned and was not changed without owner authorization.
+- Odoo runtime configuration: **PASS after repair**. The invalid Odoo CLI master-password argument was replaced with a runtime config approach, and port 8069 was verified on loopback. Odoo/PostgreSQL containers were recreated; database volume and observed record counts were preserved.
 - Native Odoo suite on populated database: **FAIL / inconclusive**, 14 failed and 6 errors out of 132.
 - Authenticated portal visual verification, actual PDF download, actual cron side effects, actual external payment-provider flow, and real email delivery: **NOT TESTED** or unsupported as detailed in [TESTING_REPORT.md](TESTING_REPORT.md).
 
@@ -47,11 +48,11 @@ Subscription businesses need recurring product/plan pricing, customer contract l
 
 The source contains substantial end-to-end subscription functionality and demo fixtures, but the stated verification gaps prevent an unconditional claim of production-grade readiness. Use the synthetic local dataset, avoid claiming payments/emails occurred unless separately demonstrated, and verify portal and invoice output on an isolated local setup before presenting those flows.
 
-**Requirement coverage estimate: 60%.** This uses the 20 equally weighted areas in [FINAL_PROJECT_GAP_AUDIT.md](../FINAL_PROJECT_GAP_AUDIT.md): 5 COMPLETE (1 point each), 14 PARTIAL (0.5 point each), and 1 BROKEN (0 points), yielding `(5 + 14 × 0.5) / 20 = 60%`. This is a coverage estimate, not a quality score or test pass rate.
+**Requirement coverage estimate: 57.5%.** This uses the 20 equally weighted areas in [FINAL_PROJECT_GAP_AUDIT.md](../FINAL_PROJECT_GAP_AUDIT.md): 5 COMPLETE (1 point each), 13 PARTIAL (0.5 point each), and 2 BROKEN (0 points), yielding `(5 + 13 × 0.5) / 20 = 57.5%`. This is a coverage estimate, not a quality score or test pass rate.
 
 ## Final security and integration notes
 
-- **Configuration hygiene: PASS, source/config review.** `.env` is ignored and not tracked; `.env.example` contains blank password fields. Compose requires values through environment configuration, supplies the Odoo master password as a required runtime argument, and binds its published port to loopback. This review did not certify secrets in external deployment environments.
+- **Configuration hygiene: PASS, source/config review.** `.env` is ignored and not tracked; `.env.example` contains blank password fields. Compose requires values through local environment configuration and binds its published port to loopback. The actual runtime binding was verified after container recreation. This review did not certify local secret strength or secrets in external deployment environments.
 - **Portal access: PARTIAL.** Portal route lookups and record rules use partner scopes; no separate customer login was available for adversarial cross-customer testing. Two controllers declare `/my/subscriptions`; the portal owner should consolidate this duplicate route.
 - **Elevated access: PARTIAL.** Source inspection found `sudo()` in defined registration, cron/audit, report-rendering, and staff-activity flows. Route/model boundaries were reviewed selectively, not through a comprehensive security test or independent penetration review.
 - **Email action: BROKEN for actual delivery.** The invoice action writes a chatter message rather than sending an email.
@@ -64,7 +65,7 @@ The source contains substantial end-to-end subscription functionality and demo f
 | Subscription lifecycle timeline | Lifecycle states and chatter tracking exist; a dedicated chronological timeline widget was not confirmed. | PARTIAL |
 | Upcoming renewal/billing reminders | Daily notification cron is defined and enabled in the inspected database; execution and delivery were not tested. | PARTIAL |
 | Failed-payment and overdue alerts | Failed-payment actions write chatter; overdue fields/filters and dashboard metrics exist. Automated customer-facing alert delivery was not verified. | PARTIAL |
-| Subscription/MRR insights | Dashboard includes MRR/ARR, totals, filters, and chart actions and rendered live. Native aggregate tests were not clean on the populated database. | PARTIAL |
+| Subscription/MRR insights | Dashboard code includes MRR/ARR, totals, filters, and chart actions, but the latest live compute raises an undefined `inv_domain` error. | BROKEN |
 | Customer subscription overview | Portal routes and dashboard customer filters exist. A genuine portal-user session was unavailable; duplicate subscription-list route declarations remain. | PARTIAL |
 | Plan comparison and pricing | Plan list/detail and internal plan views exist; no dedicated side-by-side plan comparison workflow was verified. | PARTIAL |
 | Search, filters, and quick actions | Odoo action/search views and dashboard quick actions are present; only the dashboard was visually inspected in the final browser pass. | PARTIAL |

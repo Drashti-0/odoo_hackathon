@@ -29,7 +29,7 @@ Modern businesses are transitioning from one-time transactions to recurring subs
 - **Eliminates Manual Billing Overhead**: Automates recurring invoice generation via a resilient cron engine, including automatic catch-up for system downtime without invoice gaps or duplicate charges.
 - **Prevents Revenue Leakage**: Enforces strict financial constraints against negative totals, overpayments, expired discounts, and uncollected overdue receivables.
 - **Ensures Data Isolation**: Implements strict row-level security so that enterprise customers can never view or tamper with other customers' financial records.
-- **Provides Instant Financial Visibility**: Replaces slow manual spreadsheet consolidation with a database-aggregated real-time dashboard delivering Monthly Recurring Revenue (MRR), Annual Recurring Revenue (ARR), and collections aging in under 0.05 seconds.
+- **Provides Financial Visibility**: Dashboard code includes database-backed recurring-revenue and receivables metrics. Final runtime verification found a dashboard aggregation error; do not demonstrate or claim those metrics work until the dashboard owner fixes and retests it.
 
 ### D. Main User Roles
 1. **Subscription Administrator (`group_subscription_manager`)**:
