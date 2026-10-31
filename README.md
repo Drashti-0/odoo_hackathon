@@ -1,17 +1,17 @@
 # Brightloop Subscription Management System
 ## Enterprise SaaS Contract Lifecycle, Intelligent Recurring Billing & Financial Analytics
 
-[![Platform](https://img.shields.io/badge/Odoo-17.0%20%7C%2018.0-714B67?logo=odoo)](https://www.odoo.com)
+[![Platform](https://img.shields.io/badge/Odoo-17.0-714B67?logo=odoo)](https://www.odoo.com)
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue?logo=python)](https://python.org)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-14%2B-336791?logo=postgresql)](https://www.postgresql.org)
 [![License](https://img.shields.io/badge/License-LGPL--3-green.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/Tests-91%20Passed-brightgreen)](tests/run_standalone_verification.py)
+[![Tests](https://img.shields.io/badge/Standalone%20mock%20tests-93%20passed-brightgreen)](tests/run_standalone_verification.py)
 
 ---
 
 ## 1. Project Overview
 
-The **Brightloop Subscription Management System** is a production-grade Odoo application developed by **Team AuraMinds** for the Odoo Hackathon. It provides a complete subscription lifecycle, automated periodic billing engine, promotional discount management, multi-gateway payment reconciliation, and real-time executive financial analytics.
+The **Brightloop Subscription Management System** is an Odoo 17 addon and standalone browser demo developed by **Team AuraMinds** for the Odoo Hackathon. The addon contains subscription lifecycle, recurring billing, discounts, manual payment recording, and reporting code. The browser demo uses local sample data and simulated authentication; it is not connected to Odoo. Live Odoo installation and behavior have not been verified in this environment.
 
 ### Team Members & Separation of Concerns
 - **Developer 1 (Dhruti Viradiya)**: Modules 1–4 (Product & Variants, Subscription Plans, Contract Lifecycle, Recurring Billing Engine).
@@ -33,8 +33,8 @@ Traditional ERP systems operate on single-transaction purchase orders and static
 - Automate contract state transitions: `Draft` $\rightarrow$ `Quotation` $\rightarrow$ `Confirmed` $\rightarrow$ `Active` $\rightarrow$ `Closed`.
 - Deliver an autonomous, catch-up-capable recurring billing cron engine that leaves zero billing gaps and avoids duplicate charges.
 - Implement an idempotent promotional discount engine with boundary clamping to prevent negative invoice balances.
-- Support multi-payment settlement (Card, Bank Wire, UPI, Stripe, PayPal) with automatic residual balance reconciliation.
-- Enforce multi-tenant customer isolation at the PostgreSQL database layer using Odoo record rules.
+- Reconcile manually recorded payments and prevent overpayments. Payment-method labels do not connect to payment gateways.
+- Configure customer record rules through Odoo access controls; the standalone demo's role filtering is only a UI simulation.
 - Provide sub-second executive analytics using database-level SQL aggregation (`read_group`).
 
 ---
@@ -49,14 +49,14 @@ Traditional ERP systems operate on single-transaction purchase orders and static
 | **Automated Billing Engine** | Cron-driven recurring billing with catch-up for past cycles, transactional savepoints (`cr.savepoint()`), and billing audit logs. |
 | **User & Portal Security** | Multi-role security (Admin, Staff, Portal Customer), RFC email validation, password complexity enforcement, enumeration-safe password resets. |
 | **Discount Management** | Fixed and percentage coupons, subtotal clamping, minimum purchase/quantity thresholds, start/end dates, global usage caps. |
-| **Payment Reconciliation** | Settlement across 7 payment methods, overpayment prevention, dynamic residual balances, and automated `Paid` status synchronization. |
+| **Payment Recording** | Manual transaction records, overpayment validation, residual balances, and payment-state synchronization. No Stripe, PayPal, bank, or card gateway is connected. |
 | **Executive Dashboard** | 5 core KPIs (Active Contracts, Revenue Received, Receivables, Overdue Invoices, Confirmed Payments), MRR/ARR metrics, monthly revenue trends, and pivot analytics. |
 
 ---
 
 ## 4. Technical Architecture & Technologies
 
-- **Framework**: Odoo 17.0 / 18.0 (Community and Enterprise).
+- **Framework**: Odoo 17.0 addon; live installation is pending.
 - **Backend Language**: Python 3.10+ (tested through Python 3.14).
 - **ORM**: Odoo Object-Relational Mapping (PostgreSQL driver with transactional savepoints).
 - **Database**: PostgreSQL 14+ (relational schema, composite indices, foreign keys).
@@ -71,6 +71,7 @@ Traditional ERP systems operate on single-transaction purchase orders and static
 ```text
 odoo_hackathon/
 ├── README.md                               # Project overview and quickstart guide
+├── TESTING_REPORT.md                       # Current test evidence and limitations
 ├── INTEGRATION_CONTRACT.md                 # Shared architectural interface contract
 ├── USER_MANAGEMENT.md                      # Module 1 documentation
 ├── DISCOUNT_MANAGEMENT.md                  # Module 2 documentation
@@ -79,6 +80,10 @@ odoo_hackathon/
 ├── DEMO_GUIDE.md                           # 10-step evaluator demonstration script
 ├── odoo.conf                               # Odoo server runtime configuration
 ├── docker-compose.yml                      # Containerized Odoo & PostgreSQL stack
+├── demo_portal/                             # Standalone local-data browser simulation
+│   ├── index.html
+│   ├── assets/app.js
+│   └── DEMO_VIDEO_SCRIPT.md
 ├── docs/                                   # Comprehensive technical documentation suite
 │   ├── PROJECT_OVERVIEW.md
 │   ├── SYSTEM_ARCHITECTURE.md
@@ -126,7 +131,7 @@ odoo_hackathon/
 │   ├── reports/                            # QWeb PDF reports
 │   └── tests/                              # Native Odoo TransactionCase test suites
 └── tests/                                  # Pure Python standalone verification suite
-    ├── run_standalone_verification.py       # Master regression runner (91/91 tests)
+    ├── run_standalone_verification.py       # Standalone mock regression runner
     ├── test_user_management_standalone.py  # User & security standalone tests
     ├── test_discount_management_standalone.py # Discount standalone tests
     ├── test_payment_management_standalone.py  # Payment reconciliation standalone tests
@@ -138,49 +143,40 @@ odoo_hackathon/
 ## 6. Installation & Setup Instructions
 
 ### Prerequisites
-- Python 3.10+
-- PostgreSQL 14+
-- Odoo 17.0 or 18.0 Community / Enterprise source code or Docker
+- Docker Desktop with Docker Compose v2 (for Odoo deployment)
+- A private `.env` file with unique values for both required passwords
+- No Odoo server or database is bundled into the standalone browser demo
 
 ### Option A: Running with Docker (Recommended)
-```bash
-# Clone the repository
-git clone https://github.com/Drashti-0/odoo_hackathon.git
-cd odoo_hackathon
-
-# Checkout Developer 2 branch
-git checkout developer-2-operations
-
-# Start Odoo and PostgreSQL containers
-docker-compose up -d
-
-# Access Odoo in your browser at http://localhost:8069
+```powershell
+Copy-Item .env.example .env
+notepad .env
+# Set non-empty, unique POSTGRES_PASSWORD and ODOO_ADMIN_PASSWORD values.
+docker compose up -d
+docker compose ps
 ```
 
-### Option B: Native Installation
-```bash
-# Ensure subscription_management is in your Odoo addons path
-odoo-bin -c odoo.conf -d brightloop_db -i subscription_management --stop-after-init
+The Compose file binds Odoo to `127.0.0.1` and does not publish PostgreSQL. Do not share `.env` or terminal output containing resolved configuration.
 
-# Start Odoo server
-odoo-bin -c odoo.conf -d brightloop_db
-```
+Open `http://localhost:8069/web/database/manager`, create a database, and use the `ODOO_ADMIN_PASSWORD` value from your private `.env` as the master password. Then sign in as the database administrator, update the Apps list, find **Brightloop Subscription Management**, and install it. These deployment steps still require Docker and live Odoo verification; neither was available during the latest audit.
+
+To run the standalone demo instead, open `demo_portal\index.html` in a browser. Demo accounts are shown on its sign-in screen; this demo does not use Odoo.
 
 ---
 
 ## 7. Testing Instructions
 
-### A. Run Complete Standalone Verification Suite (Zero Dependencies)
-The standalone suite requires only standard Python and validates all business logic, constraints, security rules, and calculations:
+### A. Run Standalone Mock Verification
+This dependency-light suite exercises standalone test doubles; it does not import or execute the Odoo addon and is not proof of Odoo ORM, access-rule, or database behavior.
 
 ```bash
-# Run all 91 tests across all modules
+# Run all standalone mock tests
 python tests/run_standalone_verification.py -v
 ```
 
 ### B. Run Module-Specific Test Suites
 ```bash
-# 1. User Management & Authentication (17 tests)
+# 1. User Management & Authentication (18 tests)
 python tests/test_user_management_standalone.py -v
 
 # 2. Discount Management (28 tests)
@@ -202,7 +198,7 @@ python -m py_compile subscription_management/**/*.py tests/**/*.py
 python -c "import glob, xml.etree.ElementTree as ET; [ET.parse(f) for f in glob.glob('subscription_management/**/*.xml', recursive=True)]; print('All XMLs Valid!')"
 ```
 
-### D. Run Native Odoo Tests (Requires Active Odoo Server & PostgreSQL)
+### D. Run Native Odoo Tests (Requires Odoo 17 and PostgreSQL)
 ```bash
 odoo-bin -c odoo.conf -d brightloop_db --test-enable --stop-after-init -i subscription_management
 ```
@@ -211,17 +207,18 @@ odoo-bin -c odoo.conf -d brightloop_db --test-enable --stop-after-init -i subscr
 
 ## 8. Known Limitations & Technical Notes
 
-1. **Host Environment**: On developer machines lacking a running PostgreSQL daemon or `odoo-bin` executable, native Odoo tests cannot be run directly; the standalone verification suite provides 100% equivalent logical verification.
-2. **Payment Gateways**: Stripe, PayPal, and UPI workflows record and reconcile transactions using native state modeling without requiring live external merchant API keys.
-3. **Mail Spooler**: Automated emails are captured in Odoo Chatter (`mail.message`), enabling demonstration without an active SMTP relay.
+1. **Live Odoo**: The addon and its TransactionCase tests have not been run against an Odoo 17 server/database in the audited environment.
+2. **Accounting and Payments**: `subscription.invoice` is a custom addon model, not an `account.move`. Payment records are manual state entries; payment-method choices are labels only and do not process real payments.
+3. **Standalone Demo**: Authentication, subscriptions, invoices, discounts, payments, and reporting in `demo_portal/` are local browser simulations. UI role filters are not a security boundary.
+4. **External Assets**: The standalone page loads styling, icons, and charts from CDNs; internet access is required for those assets. Tailwind's CDN build reports a production-use warning.
 
 ---
 
 ## Local Hackathon Demo Data
 
-The demo loader creates five synthetic customers, five subscription services, three
+The Odoo demo loader is code for creating five synthetic customers, five subscription services, three
 recurring plans, four pending quotations, one active subscription, and one invoice
-generated by the subscription billing action. It uses stable Odoo external IDs, so
+generated by the subscription billing action. The loader has not been run in a live database. It uses stable Odoo external IDs, so
 rerunning it does not duplicate its records. Demo customer email addresses use the
 reserved `.test` domain. No payments or payment-success records are created.
 
@@ -243,7 +240,7 @@ Subscriptions app:
 3. **Subscriptions → Quotations**: open a pending customer quotation and review its product line.
 4. Use **Confirm Order**, then **Activate Subscription** to exercise the lifecycle.
 5. **Subscriptions → Contracts & Subscriptions**: check the active status and next billing date.
-6. **Billing & Invoices → Recurring Invoices**: inspect the real, unpaid invoice generated for the active Northstar demo subscription.
+6. **Billing & Invoices → Recurring Invoices**: inspect the custom-model invoice generated for the active Northstar demo subscription; it is not an `account.move`.
 7. **Dashboard**: review live KPIs, recent activity, upcoming billing, and open the status, growth, invoice, revenue, and plan charts.
 
 The dashboard is available to Subscription Staff and Administrators. Dashboard filters

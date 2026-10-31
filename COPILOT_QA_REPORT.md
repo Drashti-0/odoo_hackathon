@@ -1,5 +1,7 @@
 # Backend QA Report — Brightloop Subscription Management
 
+> **Historical report — superseded by the repository-root [TESTING_REPORT.md](TESTING_REPORT.md).** Rechecking current source disproved several listed findings: the plan trial/grace fields exist, invoice-line `product_id` is optional, product/plan eligibility is checked in `_check_plan_min_quantity`, the coupon application flow zeros the generic subscription discount rate and recurring invoice creation inherits the coupon, and the 12-step standalone test now passes. Do not treat the defect list below as current without independently verifying it.
+
 **Branch:** `developer-2-operations`  
 **Scope:** Read-only backend inspection and safe validation. No application, UI, configuration, or existing documentation files were changed.
 

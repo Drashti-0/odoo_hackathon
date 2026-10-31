@@ -1,6 +1,8 @@
 # Brightloop Software – Subscription Management System
 # Comprehensive Demonstration & Presentation Guide
 
+> **Verification notice (2026-10-31):** This guide contains historical Odoo workflows and claims; those workflows have not been tested against a live Odoo 17 database in the current environment. Payment-method labels are not payment-gateway integrations. Use [demo_portal/DEMO_VIDEO_SCRIPT.md](demo_portal/DEMO_VIDEO_SCRIPT.md) for a browser-only demo and the root [TESTING_REPORT.md](TESTING_REPORT.md) for current evidence.
+
 **Team:** AuraMinds  
 **Developer 1:** Dhruti Viradiya (Core Modules: Product & Variants, Plans, Subscriptions, Recurring Billing Engine)  
 **Developer 2:** Drashti Bhanderi (Operational Modules: User Management, Discounts, Payments, Financial Dashboard)  

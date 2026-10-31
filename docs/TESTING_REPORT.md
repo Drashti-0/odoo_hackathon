@@ -1,6 +1,8 @@
 # Testing Report & Verification Matrix
 ## Brightloop Subscription Management System
 
+> **Historical report — superseded.** The counts, timings, and validation claims below are not current verification. See the repository-root [TESTING_REPORT.md](../TESTING_REPORT.md) for the latest observed results and environment limitations. The standalone suite is a mock/test-double suite, not a substitute for live Odoo tests.
+
 **Project:** Subscription Management System – Brightloop Software  
 **Team:** AuraMinds  
 **Target Version:** Odoo 17.0 / 18.0  
