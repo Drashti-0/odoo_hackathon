@@ -150,6 +150,12 @@ class SubscriptionPlan(models.Model):
             if plan.billing_interval_count < 1:
                 raise ValidationError(_("Billing interval count must be at least 1."))
 
+    @api.constrains('auto_close_days')
+    def _check_auto_close_days(self):
+        for plan in self:
+            if plan.auto_close_days < 0:
+                raise ValidationError(_("Auto-close grace period days cannot be negative."))
+
     @api.constrains('start_date', 'end_date')
     def _check_dates(self):
         for plan in self:
@@ -159,12 +165,14 @@ class SubscriptionPlan(models.Model):
     def is_available_on(self, check_date=None):
         """Validates if the plan is eligible for use on the specified date."""
         self.ensure_one()
-        target = check_date or fields.Date.today()
+        if not self.active:
+            return False
+        target = fields.Date.to_date(check_date) if check_date else fields.Date.today()
         if self.start_date and target < self.start_date:
             return False
         if self.end_date and target > self.end_date:
             return False
-        return self.active
+        return True
 
     def calculate_next_billing_date(self, current_date):
         """
@@ -172,21 +180,20 @@ class SubscriptionPlan(models.Model):
         Handles daily, weekly, monthly (including end-of-month), and yearly (including leap years).
         """
         self.ensure_one()
-        if not current_date:
-            current_date = fields.Date.today()
+        c_date = fields.Date.to_date(current_date) if current_date else fields.Date.today()
 
         count = self.billing_interval_count or 1
         unit = self.billing_interval_unit
 
         if unit == 'daily':
-            return current_date + relativedelta(days=count)
+            return c_date + relativedelta(days=count)
         elif unit == 'weekly':
-            return current_date + relativedelta(weeks=count)
+            return c_date + relativedelta(weeks=count)
         elif unit == 'monthly':
-            return current_date + relativedelta(months=count)
+            return c_date + relativedelta(months=count)
         elif unit == 'yearly':
-            return current_date + relativedelta(years=count)
-        return current_date + relativedelta(months=1)
+            return c_date + relativedelta(years=count)
+        return c_date + relativedelta(months=1)
 
     def _compute_subscription_count(self):
         # We can dynamically count linked subscriptions

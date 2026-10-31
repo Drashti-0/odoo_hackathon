@@ -16,6 +16,8 @@
                     <button name="action_resume" string="Resume Subscription" type="object" class="btn-success" invisible="state != 'paused'"/>
                     <button name="action_renew" string="Renew Contract" type="object" class="btn-outline-primary" invisible="state not in ('active', 'expired', 'closed')"/>
                     <button name="action_close" string="Terminate / Close" type="object" class="btn-outline-danger" invisible="state not in ('active', 'paused')"/>
+                    <button name="action_cancel" string="Cancel Quotation" type="object" invisible="state not in ('draft', 'quotation')"/>
+                    <button name="action_draft" string="Set to Draft" type="object" invisible="state not in ('quotation', 'closed')"/>
 
                     <field name="state" widget="statusbar" statusbar_visible="draft,quotation,confirmed,active,closed"/>
                 </header>
@@ -36,7 +38,7 @@
                     <group>
                         <group string="Subscriber &amp; Plan Configuration">
                             <field name="partner_id" widget="res_partner_many2one" context="{'show_address': 1}" options="{'always_reload': True}" readonly="state in ('closed', 'expired')"/>
-                            <field name="plan_id" readonly="state in ('closed', 'expired')"/>
+                            <field name="plan_id" domain="[('active', '=', True)]" readonly="state in ('closed', 'expired')"/>
                             <field name="template_id" invisible="state != 'draft'"/>
                             <field name="user_id" widget="many2one_avatar_user"/>
                             <field name="company_id" groups="base.group_multi_company"/>
@@ -105,6 +107,10 @@
                                     <field name="discount_rate"/>
                                 </group>
                             </group>
+                        </page>
+
+                        <page name="terms" string="Terms &amp; Conditions">
+                            <field name="terms_and_conditions" placeholder="Terms and contractual clauses applicable to this quotation..." readonly="state in ('closed', 'expired')"/>
                         </page>
                     </notebook>
                 </sheet>

@@ -34,6 +34,12 @@ class SubscriptionQuotationTemplate(models.Model):
         string="Default Terms & Conditions"
     )
 
+    @api.constrains('validity_days')
+    def _check_validity_days(self):
+        for tmpl in self:
+            if tmpl.validity_days < 0:
+                raise ValidationError(_("Quotation validity days cannot be negative."))
+
 
 class SubscriptionQuotationTemplateLine(models.Model):
     _name = 'subscription.quotation.template.line'
@@ -60,10 +66,17 @@ class SubscriptionQuotationTemplateLine(models.Model):
         digits='Product Price'
     )
 
+    @api.constrains('quantity')
+    def _check_quantity(self):
+        for line in self:
+            if line.quantity <= 0:
+                raise ValidationError(_("Template line quantity must be strictly greater than 0."))
+
     @api.onchange('product_id')
     def _onchange_product_id(self):
         if self.product_id:
-            self.unit_price = self.product_id.get_subscription_price()
+            plan = self.template_id.plan_id if self.template_id else False
+            self.unit_price = self.product_id.get_subscription_price(plan=plan)
 
 
 class SubscriptionSubscription(models.Model):
@@ -139,6 +152,10 @@ class SubscriptionSubscription(models.Model):
         string="Payment Terms",
         default="Immediate Payment",
         help="Terms of payment for generated invoices."
+    )
+    terms_and_conditions = fields.Html(
+        string="Terms & Conditions",
+        help="Terms and contractual clauses applicable to this subscription quotation."
     )
     next_billing_date = fields.Date(
         string="Next Billing Date",
@@ -276,13 +293,15 @@ class SubscriptionSubscription(models.Model):
             self.plan_id = self.template_id.plan_id
             if self.template_id.validity_days:
                 self.quotation_validity_date = fields.Date.today() + relativedelta(days=self.template_id.validity_days)
+            if self.template_id.terms_and_conditions:
+                self.terms_and_conditions = self.template_id.terms_and_conditions
             new_lines = []
             for t_line in self.template_id.line_ids:
                 new_lines.append((0, 0, {
                     'product_id': t_line.product_id.id,
                     'name': t_line.product_id.display_name,
                     'quantity': t_line.quantity,
-                    'unit_price': t_line.unit_price or t_line.product_id.get_subscription_price(),
+                    'unit_price': t_line.unit_price or t_line.product_id.get_subscription_price(plan=self.plan_id),
                 }))
             self.line_ids = [(5, 0, 0)] + new_lines
 
@@ -383,13 +402,42 @@ class SubscriptionSubscription(models.Model):
                 sub.quotation_validity_date = fields.Date.today() + relativedelta(days=30)
             sub.state = 'quotation'
             sub.message_post(body=_("Quotation created and sent to customer %s.") % sub.partner_id.name)
+        return True
+
+    def action_draft(self):
+        """Transitions: Quotation / Closed -> Draft (Only if no active invoices)"""
+        for sub in self:
+            if sub.state not in ('quotation', 'closed'):
+                raise UserError(_("Only quotations or closed contracts can be reset to draft."))
+            if any(inv.state != 'cancel' for inv in sub.invoice_ids):
+                raise UserError(_("Cannot reset to draft a subscription with active invoices."))
+            sub.state = 'draft'
+            sub.message_post(body=_("Subscription reset to draft stage."))
+        return True
+
+    def action_cancel(self):
+        """Transitions: Draft / Quotation -> Closed (Cancellation)"""
+        for sub in self:
+            if sub.state not in ('draft', 'quotation'):
+                raise UserError(_("Only draft or sent quotations can be cancelled."))
+            sub.state = 'closed'
+            sub.close_date = fields.Date.today()
+            sub.close_reason = _("Quotation was cancelled.")
+            sub.message_post(body=_("Quotation was cancelled."))
+        return True
 
     def action_confirm(self):
-        """Transitions: Quotation -> Confirmed"""
+        """Transitions: Draft / Quotation -> Confirmed"""
         for sub in self:
             if sub.state not in ('draft', 'quotation'):
                 raise UserError(_("Only draft or quotation records can be confirmed."))
-            
+
+            if not sub.line_ids and not (sub.plan_id and sub.plan_id.price > 0):
+                raise ValidationError(_("Cannot confirm a subscription with no product lines and a zero-priced plan."))
+
+            # Validate plan minimum quantity
+            sub._check_plan_min_quantity()
+
             # Validate plan availability
             if not sub.plan_id.is_available_on(sub.start_date or fields.Date.today()):
                 raise ValidationError(_("Plan '%s' is not active or outside its availability window.") % sub.plan_id.name)
@@ -400,13 +448,14 @@ class SubscriptionSubscription(models.Model):
 
             sub.state = 'confirmed'
             sub.message_post(body=_("Subscription confirmed. Formal contract generated with code %s.") % sub.name)
+        return True
 
     def action_activate(self):
         """Transitions: Confirmed -> Active"""
         for sub in self:
             if sub.state != 'confirmed':
                 raise UserError(_("Only confirmed subscriptions can be activated."))
-            
+
             sub.state = 'active'
             if not sub.start_date:
                 sub.start_date = fields.Date.today()
@@ -414,6 +463,7 @@ class SubscriptionSubscription(models.Model):
                 sub.next_billing_date = sub.start_date
 
             sub.message_post(body=_("Subscription activated on %s. Next scheduled billing date is %s.") % (sub.start_date, sub.next_billing_date))
+        return True
 
     def action_pause(self):
         """Transitions: Active -> Paused (Requires plan.allow_pause)"""
@@ -426,6 +476,7 @@ class SubscriptionSubscription(models.Model):
             sub.state = 'paused'
             sub.pause_date = fields.Date.today()
             sub.message_post(body=_("Subscription paused on %s. Automated recurring billing is suspended.") % sub.pause_date)
+        return True
 
     def action_resume(self):
         """Transitions: Paused -> Active (Adjusts next_billing_date)"""
@@ -435,7 +486,7 @@ class SubscriptionSubscription(models.Model):
                 raise UserError(_("Only paused subscriptions can be resumed."))
 
             # If paused for X days, shift next_billing_date forward by paused duration
-            if sub.pause_date and sub.next_billing_date and sub.next_billing_date >= sub.pause_date:
+            if sub.pause_date and sub.next_billing_date:
                 paused_days = (today - sub.pause_date).days
                 if paused_days > 0:
                     sub.next_billing_date = sub.next_billing_date + relativedelta(days=paused_days)
@@ -443,11 +494,14 @@ class SubscriptionSubscription(models.Model):
             sub.pause_date = False
             sub.state = 'active'
             sub.message_post(body=_("Subscription resumed on %s. Next billing date scheduled for %s.") % (today, sub.next_billing_date))
+        return True
 
     def action_renew(self):
         """Transitions: Active / Expired / Closed -> Renewed (Requires plan.allow_renewal)"""
         today = fields.Date.today()
         for sub in self:
+            if sub.state in ('draft', 'quotation'):
+                raise UserError(_("Quotations cannot be renewed before confirmation."))
             if not sub.plan_id.allow_renewal:
                 raise UserError(_("The plan '%s' does not permit renewal.") % sub.plan_id.name)
 
@@ -459,13 +513,19 @@ class SubscriptionSubscription(models.Model):
             if sub.state in ('closed', 'expired'):
                 sub.state = 'active'
                 sub.next_billing_date = today
+                sub.close_date = False
+                sub.close_reason = False
 
             sub.message_post(body=_("Subscription renewed. Contract extended until %s.") % new_expiry)
+        return True
 
     def action_close(self, reason=None):
-        """Transitions: Active / Paused -> Closed (Checks plan.allow_early_close)"""
+        """Transitions: Active / Paused / Confirmed -> Closed (Checks plan.allow_early_close)"""
         today = fields.Date.today()
         for sub in self:
+            if sub.state in ('closed', 'expired'):
+                raise UserError(_("Subscription is already terminated."))
+
             is_early = sub.expiry_date and today < sub.expiry_date
             if is_early and not sub.plan_id.allow_early_close:
                 # Check if current user is manager
@@ -477,6 +537,7 @@ class SubscriptionSubscription(models.Model):
             if reason:
                 sub.close_reason = reason
             sub.message_post(body=_("Subscription closed on %s. Reason: %s") % (today, sub.close_reason or "Customer request / Standard termination"))
+        return True
 
     def action_check_expiry(self):
         """Automated check for expiring contracts."""
@@ -497,6 +558,7 @@ class SubscriptionSubscription(models.Model):
             else:
                 sub.state = 'expired'
                 sub.message_post(body=_("Subscription reached contractual expiry date on %s.") % sub.expiry_date)
+        return True
 
     def action_view_invoices(self):
         self.ensure_one()
@@ -517,7 +579,60 @@ class SubscriptionSubscription(models.Model):
         for vals in vals_list:
             if not vals.get('name') or vals.get('name') == _('New'):
                 vals['name'] = self.env['ir.sequence'].next_by_code('subscription.quotation') or _('SQ-NEW')
+            if not vals.get('plan_id') and vals.get('template_id'):
+                tmpl = self.env['subscription.quotation.template'].browse(vals['template_id'])
+                if tmpl.plan_id:
+                    vals['plan_id'] = tmpl.plan_id.id
+            if 'line_ids' not in vals and vals.get('template_id'):
+                tmpl = self.env['subscription.quotation.template'].browse(vals['template_id'])
+                if tmpl.line_ids:
+                    plan = tmpl.plan_id
+                    vals['line_ids'] = [
+                        (0, 0, {
+                            'product_id': tl.product_id.id,
+                            'name': tl.product_id.display_name,
+                            'quantity': tl.quantity,
+                            'unit_price': tl.unit_price or tl.product_id.get_subscription_price(plan=plan),
+                        }) for tl in tmpl.line_ids
+                    ]
+            if not vals.get('terms_and_conditions') and vals.get('template_id'):
+                tmpl = self.env['subscription.quotation.template'].browse(vals['template_id'])
+                if tmpl.terms_and_conditions:
+                    vals['terms_and_conditions'] = tmpl.terms_and_conditions
         return super(SubscriptionSubscription, self).create(vals_list)
+
+    def write(self, vals):
+        if 'state' in vals and not self.env.context.get('bypass_state_validation'):
+            new_state = vals['state']
+            valid_transitions = {
+                'draft': {'quotation', 'confirmed', 'closed'},
+                'quotation': {'draft', 'confirmed', 'closed'},
+                'confirmed': {'active', 'closed'},
+                'active': {'paused', 'closed', 'expired'},
+                'paused': {'active', 'closed'},
+                'expired': {'active', 'closed'},
+                'closed': {'active', 'draft'},
+            }
+            for sub in self:
+                if sub.state != new_state:
+                    allowed = valid_transitions.get(sub.state, set())
+                    if new_state not in allowed:
+                        raise UserError(_("Direct transition from '%s' to '%s' is not permitted.") % (sub.state, new_state))
+
+                    # Guard early close if state is manually written
+                    if new_state == 'closed' and sub.expiry_date and fields.Date.today() < sub.expiry_date and not sub.plan_id.allow_early_close:
+                        if not self.env.user.has_group('subscription_management.group_subscription_manager'):
+                            raise UserError(_("Early termination is disallowed by plan '%s'. Administrator override required.") % sub.plan_id.name)
+
+                    # Guard pause if state is manually written
+                    if new_state == 'paused' and not sub.plan_id.allow_pause:
+                        raise UserError(_("The plan '%s' does not permit pausing subscriptions.") % sub.plan_id.name)
+
+                    # Guard renewal if state is manually written from closed/expired to active
+                    if sub.state in ('closed', 'expired') and new_state == 'active' and not sub.plan_id.allow_renewal:
+                        raise UserError(_("The plan '%s' does not permit renewal.") % sub.plan_id.name)
+
+        return super(SubscriptionSubscription, self).write(vals)
 
 
 class SubscriptionLine(models.Model):
@@ -586,6 +701,21 @@ class SubscriptionLine(models.Model):
         depends=['subscription_id.currency_id']
     )
 
+    @api.model_create_multi
+    def create(self, vals_list):
+        for vals in vals_list:
+            if vals.get('product_id'):
+                product = self.env['product.product'].browse(vals['product_id'])
+                if not vals.get('name'):
+                    vals['name'] = product.display_name or product.name
+                if 'unit_price' not in vals:
+                    sub_plan = False
+                    if vals.get('subscription_id'):
+                        sub_rec = self.env['subscription.subscription'].browse(vals['subscription_id'])
+                        sub_plan = sub_rec.plan_id
+                    vals['unit_price'] = product.get_subscription_price(plan=sub_plan)
+        return super(SubscriptionLine, self).create(vals_list)
+
     @api.onchange('product_id')
     def _onchange_product_id(self):
         if self.product_id:
@@ -600,7 +730,6 @@ class SubscriptionLine(models.Model):
         for line in self:
             price = line.unit_price * (1.0 - (line.discount_rate or 0.0) / 100.0)
             subtotal = line.quantity * price
-            line.price_subtotal = subtotal
 
             if line.tax_ids:
                 currency = (
@@ -617,8 +746,10 @@ class SubscriptionLine(models.Model):
                     product=line.product_id,
                     partner=partner
                 )
+                line.price_subtotal = taxes['total_excluded']
                 line.price_tax = taxes['total_included'] - taxes['total_excluded']
                 line.price_total = taxes['total_included']
             else:
+                line.price_subtotal = subtotal
                 line.price_tax = 0.0
                 line.price_total = subtotal

@@ -47,19 +47,68 @@
         </field>
     </record>
 
+    <!-- Product Product (Variant) Tree View Extension -->
+    <record id="view_product_product_tree_subscription" model="ir.ui.view">
+        <field name="name">product.product.tree.subscription</field>
+        <field name="model">product.product</field>
+        <field name="inherit_id" ref="product.product_product_tree_view"/>
+        <field name="arch" type="xml">
+            <field name="lst_price" position="after">
+                <field name="brand_name" optional="show"/>
+                <field name="brand_surcharge" optional="show" widget="monetary"/>
+                <field name="subscription_price" optional="show" widget="monetary"/>
+            </field>
+        </field>
+    </record>
+
+    <!-- Product Template Search View Extension -->
+    <record id="view_product_template_search_subscription" model="ir.ui.view">
+        <field name="name">product.template.search.subscription</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="product.product_template_search_view"/>
+        <field name="arch" type="xml">
+            <filter name="services" position="before">
+                <filter string="Subscription Products" name="filter_is_subscription" domain="[('is_subscription', '=', True)]"/>
+                <filter string="Odoo Brand (+560)" name="filter_brand_odoo" domain="[('brand_name', '=', 'odoo')]"/>
+                <separator/>
+            </filter>
+            <filter name="type" position="after">
+                <filter string="Brand / Edition" name="group_by_brand" context="{'group_by': 'brand_name'}"/>
+            </filter>
+        </field>
+    </record>
+
     <!-- Subscription Products Action -->
     <record id="action_subscription_products" model="ir.actions.act_window">
         <field name="name">Subscription Products</field>
         <field name="res_model">product.template</field>
         <field name="view_mode">tree,form</field>
         <field name="domain">[('is_subscription', '=', True)]</field>
-        <field name="context">{'default_is_subscription': True}</field>
+        <field name="context">{'default_is_subscription': True, 'search_default_filter_is_subscription': 1}</field>
+        <field name="search_view_id" ref="view_product_template_search_subscription"/>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">
                 Define your subscription products and software packages.
             </p>
             <p>
                 Configure variant surcharges such as adding 560 for the Odoo brand variant.
+            </p>
+        </field>
+    </record>
+
+    <!-- Subscription Product Variants Action -->
+    <record id="action_subscription_product_variants" model="ir.actions.act_window">
+        <field name="name">Subscription Product Variants</field>
+        <field name="res_model">product.product</field>
+        <field name="view_mode">tree,form</field>
+        <field name="domain">[('is_subscription', '=', True)]</field>
+        <field name="context">{'default_is_subscription': True}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Manage specific variants of your subscription services and add-ons.
+            </p>
+            <p>
+                View variant-specific pricing, including base list price, edition surcharge (+560 for Odoo brand), and attribute extra costs.
             </p>
         </field>
     </record>

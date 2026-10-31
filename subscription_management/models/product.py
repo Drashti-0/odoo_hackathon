@@ -60,13 +60,25 @@ class ProductTemplate(models.Model):
         for template in self:
             template.subscription_price = (template.list_price or 0.0) + (template.brand_surcharge or 0.0)
 
-    @api.constrains('list_price', 'standard_price')
+    @api.constrains('list_price', 'standard_price', 'brand_surcharge')
     def _check_product_prices(self):
         for template in self:
             if template.list_price < 0.0:
                 raise ValidationError(_("Sales price cannot be negative."))
             if template.standard_price < 0.0:
                 raise ValidationError(_("Cost price cannot be negative."))
+            if template.brand_surcharge and template.brand_surcharge < 0.0:
+                raise ValidationError(_("Brand surcharge cannot be negative."))
+
+    def get_subscription_price(self, plan=None, partner=None):
+        """
+        Public pricing engine API on product.template.
+        Returns the unit subscription price factoring in list price and brand surcharge.
+        """
+        self.ensure_one()
+        if self.subscription_price is not False and self.subscription_price is not None:
+            return self.subscription_price
+        return (self.list_price or 0.0) + (self.brand_surcharge or 0.0)
 
 
 class ProductProduct(models.Model):
@@ -75,16 +87,19 @@ class ProductProduct(models.Model):
     brand_name = fields.Selection(
         related='product_tmpl_id.brand_name',
         string="Brand / Edition Variant",
-        readonly=True
+        readonly=True,
+        store=True
     )
     brand_surcharge = fields.Float(
         related='product_tmpl_id.brand_surcharge',
         string="Brand Extra Surcharge",
-        readonly=True
+        readonly=True,
+        store=True
     )
     subscription_price = fields.Float(
         string="Calculated Subscription Price",
         compute="_compute_variant_subscription_price",
+        store=True,
         digits='Product Price',
         help="Calculated sales price including base template price, variant attribute surcharges, and brand surcharge."
     )
@@ -93,7 +108,8 @@ class ProductProduct(models.Model):
         'product_tmpl_id.list_price',
         'product_tmpl_id.brand_name',
         'product_tmpl_id.brand_surcharge',
-        'product_template_attribute_value_ids.price_extra'
+        'product_template_attribute_value_ids.price_extra',
+        'product_template_attribute_value_ids.name'
     )
     def _compute_variant_subscription_price(self):
         for product in self:
