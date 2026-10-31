@@ -147,8 +147,11 @@
                 <field name="name"/>
                 <field name="partner_id"/>
                 <field name="plan_id"/>
+                <field name="start_date" optional="show"/>
                 <field name="next_billing_date"/>
                 <field name="expiry_date" optional="show"/>
+                <field name="user_id" optional="hide"/>
+                <field name="quotation_validity_date" optional="hide"/>
                 <field name="amount_untaxed" widget="monetary" options="{'currency_field': 'currency_id'}" optional="hide"/>
                 <field name="amount_total" widget="monetary" options="{'currency_field': 'currency_id'}"/>
                 <field name="mrr" widget="monetary" options="{'currency_field': 'currency_id'}" optional="show"/>
@@ -167,16 +170,24 @@
                 <field name="name" string="Subscription or Customer" filter_domain="['|', ('name', 'ilike', self), ('partner_id', 'ilike', self)]"/>
                 <field name="partner_id"/>
                 <field name="plan_id"/>
+                <field name="user_id"/>
                 <filter string="Quotations" name="filter_quotations" domain="[('state', 'in', ('draft', 'quotation'))]"/>
+                <filter string="Draft" name="filter_draft" domain="[('state', '=', 'draft')]"/>
                 <filter string="Active Contracts" name="filter_active" domain="[('state', '=', 'active')]"/>
                 <filter string="Paused" name="filter_paused" domain="[('state', '=', 'paused')]"/>
                 <filter string="Closed" name="filter_closed" domain="[('state', '=', 'closed')]"/>
                 <filter string="Expired" name="filter_expired" domain="[('state', '=', 'expired')]"/>
                 <separator/>
-                <filter string="Due for Recurring Billing" name="filter_billing_due" domain="[('state', '=', 'active'), ('next_billing_date', '&lt;=', context_today())]"/>
+                <filter string="Due Today" name="filter_billing_due_today" domain="[('state', '=', 'active'), ('next_billing_date', '=', context_today())]"/>
+                <filter string="Due Within 3 Days" name="filter_billing_due_3_days" domain="[('state', '=', 'active'), ('next_billing_date', '&gt;', context_today()), ('next_billing_date', '&lt;=', context_today() + relativedelta(days=3))]"/>
+                <filter string="Due Within 7 Days" name="filter_billing_due_7_days" domain="[('state', '=', 'active'), ('next_billing_date', '&gt;', context_today()), ('next_billing_date', '&lt;=', context_today() + relativedelta(days=7))]"/>
+                <filter string="Overdue Billing" name="filter_billing_overdue" domain="[('state', '=', 'active'), ('next_billing_date', '&lt;', context_today())]"/>
+                <filter string="Renewal Due" name="filter_renewal_due" domain="[('state', 'in', ('active', 'expired')), ('expiry_date', '!=', False), ('expiry_date', '&lt;=', context_today()), ('plan_id.allow_renewal', '=', True)]"/>
+                <filter string="Expiring Within 7 Days" name="filter_expiring_7_days" domain="[('state', '=', 'active'), ('expiry_date', '&gt;=', context_today()), ('expiry_date', '&lt;=', context_today() + relativedelta(days=7))]"/>
                 <group expand="0" string="Group By">
                     <filter string="Customer" name="group_partner" context="{'group_by': 'partner_id'}"/>
                     <filter string="Subscription Plan" name="group_plan" context="{'group_by': 'plan_id'}"/>
+                    <filter string="Salesperson" name="group_user" context="{'group_by': 'user_id'}"/>
                     <filter string="Stage / Status" name="group_state" context="{'group_by': 'state'}"/>
                     <filter string="Next Billing Date" name="group_next_billing" context="{'group_by': 'next_billing_date:month'}"/>
                 </group>
@@ -190,7 +201,14 @@
         <field name="res_model">subscription.subscription</field>
         <field name="view_mode">tree,form</field>
         <field name="search_view_id" ref="view_subscription_subscription_search"/>
-        <field name="context">{'search_default_filter_active': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Create a subscription quotation to start a customer contract.
+            </p>
+            <p>
+                Follow each contract from quotation through confirmation, activation, recurring billing, and renewal.
+            </p>
+        </field>
     </record>
 
     <!-- Action: Quotations -->
@@ -201,6 +219,14 @@
         <field name="search_view_id" ref="view_subscription_subscription_search"/>
         <field name="domain">[('state', 'in', ('draft', 'quotation'))]</field>
         <field name="context">{'default_state': 'draft'}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Prepare a subscription quotation for a customer.
+            </p>
+            <p>
+                Choose a plan, add subscription products, review the terms, then use Send Quotation to advance its lifecycle.
+            </p>
+        </field>
     </record>
 
     <!-- Quotation Template Form View -->
@@ -256,11 +282,35 @@
         </field>
     </record>
 
+    <!-- Quotation Template Search View -->
+    <record id="view_subscription_quotation_template_search" model="ir.ui.view">
+        <field name="name">subscription.quotation.template.search</field>
+        <field name="model">subscription.quotation.template</field>
+        <field name="arch" type="xml">
+            <search string="Search Quotation Templates">
+                <field name="name"/>
+                <field name="plan_id"/>
+                <group expand="0" string="Group By">
+                    <filter string="Subscription Plan" name="group_plan" context="{'group_by': 'plan_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
     <!-- Action: Quotation Templates -->
     <record id="action_subscription_quotation_templates" model="ir.actions.act_window">
         <field name="name">Quotation Templates</field>
         <field name="res_model">subscription.quotation.template</field>
         <field name="view_mode">tree,form</field>
+        <field name="search_view_id" ref="view_subscription_quotation_template_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Create a reusable quotation template.
+            </p>
+            <p>
+                Add a default plan, product lines, validity period, and terms to speed up future quotations.
+            </p>
+        </field>
     </record>
 
 </odoo>

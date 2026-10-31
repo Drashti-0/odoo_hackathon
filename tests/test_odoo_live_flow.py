@@ -102,11 +102,15 @@ def run_live_verification(host="http://localhost:8069", db="brightloop_test_db",
     print(f" [PASS] Subscription Plan created: {plan_data['name']} (Code: {plan_data['code']})")
 
     # Step 4.3: Create Customer
-    partner_id = call('res.partner', 'create', [{
-        'name': 'Acme Global Software Corp',
-        'email': 'billing@acmeglobal.com',
-    }])
-    print(f" [PASS] Customer created: Acme Global Software Corp (ID {partner_id})")
+    existing_partners = call('res.partner', 'search', [('email', '=', 'billing@acmeglobal.com')])
+    if existing_partners:
+        partner_id = existing_partners[0]
+    else:
+        partner_id = call('res.partner', 'create', [{
+            'name': 'Acme Global Software Corp',
+            'email': 'billing@acmeglobal.com',
+        }])
+    print(f" [PASS] Customer ready: Acme Global Software Corp (ID {partner_id})")
 
     # Step 4.4: Create Subscription Quotation
     today_str = str(date.today())

@@ -220,7 +220,7 @@ class SubscriptionPlan(models.Model):
             fields=['plan_id'],
             groupby=['plan_id']
         )
-        data_dict = {d['plan_id'][0]: d['plan_id_count'] for d in sub_data}
+        data_dict = {d['plan_id'][0]: d.get('plan_id_count', d.get('__count', 0)) for d in sub_data}
         for plan in self:
             plan.subscription_count = data_dict.get(plan.id, 0)
 

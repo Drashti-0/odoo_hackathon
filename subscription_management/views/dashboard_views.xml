@@ -9,12 +9,13 @@
         <field name="name">subscription.dashboard.console.form</field>
         <field name="model">subscription.dashboard.console</field>
         <field name="arch" type="xml">
-            <form string="Subscription Analytics &amp; Financial Dashboard" create="false" delete="false">
+            <form string="Subscription Analytics &amp; Financial Dashboard" delete="false">
                 <header>
+                    <button name="action_create_product" string="Create Product" type="object" class="oe_highlight"/>
+                    <button name="action_create_plan" string="Create Plan" type="object" groups="subscription_management.group_subscription_manager"/>
+                    <button name="action_create_quotation" string="Create Quotation" type="object"/>
                     <button name="action_view_active_subscriptions" string="View Active Subscriptions" type="object" class="btn-primary"/>
-                    <button name="action_view_received_payments" string="View Settled Payments" type="object" class="btn-success"/>
-                    <button name="action_view_outstanding_invoices" string="View Unpaid Invoices" type="object" class="btn-warning"/>
-                    <button name="action_view_overdue_invoices" string="View Overdue Invoices" type="object" class="btn-danger"/>
+                    <button name="action_view_invoices" string="View Invoices" type="object"/>
                 </header>
 
                 <sheet>
@@ -34,88 +35,148 @@
                         <field name="date_from" invisible="date_range_type == 'all'"/>
                         <field name="date_to" invisible="date_range_type == 'all'"/>
                         <field name="subscription_status"/>
+                        <field name="billing_frequency"/>
+                        <field name="invoice_status"/>
                         <field name="payment_method"/>
                         <field name="currency_id" invisible="1"/>
                     </group>
 
-                    <separator string="Core Business Key Performance Indicators (KPIs)"/>
+                    <separator string="Business Overview"/>
 
-                    <!-- Metric KPI Cards -->
                     <div class="row o_dashboard_kpis mt-3 mb-4">
-                        <!-- Metric 1: Active Subscriptions -->
-                        <div class="col-md-4 col-sm-6 mb-3">
+                        <div class="col-xl-4 col-md-6 mb-3">
                             <div class="card shadow-sm border-primary text-center p-3 h-100">
-                                <h6 class="text-muted text-uppercase mb-1">Active Subscriptions</h6>
-                                <h2 class="text-primary fw-bold mb-2">
-                                    <field name="active_subscriptions"/>
-                                </h2>
-                                <button name="action_view_active_subscriptions" string="Explore Contracts →" type="object" class="btn btn-sm btn-outline-primary"/>
+                                <h6 class="text-muted text-uppercase mb-1">Total Customers</h6>
+                                <h2 class="text-primary fw-bold mb-0"><field name="total_customers"/></h2>
                             </div>
                         </div>
-
-                        <!-- Metric 2: Revenue Received -->
-                        <div class="col-md-4 col-sm-6 mb-3">
+                        <div class="col-xl-4 col-md-6 mb-3">
+                            <div class="card shadow-sm border-info text-center p-3 h-100">
+                                <h6 class="text-muted text-uppercase mb-1">Subscription Products</h6>
+                                <h2 class="text-info fw-bold mb-0"><field name="total_products"/></h2>
+                            </div>
+                        </div>
+                        <div class="col-xl-4 col-md-6 mb-3">
+                            <div class="card shadow-sm border-secondary text-center p-3 h-100">
+                                <h6 class="text-muted text-uppercase mb-1">Subscription Plans</h6>
+                                <h2 class="text-secondary fw-bold mb-0"><field name="total_plans"/></h2>
+                            </div>
+                        </div>
+                        <div class="col-xl-4 col-md-6 mb-3">
                             <div class="card shadow-sm border-success text-center p-3 h-100">
-                                <h6 class="text-muted text-uppercase mb-1">Revenue Received</h6>
-                                <h2 class="text-success fw-bold mb-2">
-                                    <field name="revenue_received" widget="monetary" options="{'currency_field': 'currency_id'}"/>
-                                </h2>
-                                <button name="action_view_received_payments" string="View Payments →" type="object" class="btn btn-sm btn-outline-success"/>
+                                <h6 class="text-muted text-uppercase mb-1">Active Subscriptions</h6>
+                                <h2 class="text-success fw-bold mb-0"><field name="active_subscriptions"/></h2>
                             </div>
                         </div>
-
-                        <!-- Metric 3: Outstanding Receivables -->
-                        <div class="col-md-4 col-sm-6 mb-3">
+                        <div class="col-xl-4 col-md-6 mb-3">
                             <div class="card shadow-sm border-warning text-center p-3 h-100">
-                                <h6 class="text-muted text-uppercase mb-1">Outstanding Balance</h6>
-                                <h2 class="text-warning fw-bold mb-2">
+                                <h6 class="text-muted text-uppercase mb-1">Pending Subscriptions</h6>
+                                <h2 class="text-warning fw-bold mb-0"><field name="pending_subscriptions"/></h2>
+                            </div>
+                        </div>
+                        <div class="col-xl-4 col-md-6 mb-3">
+                            <div class="card shadow-sm border-danger text-center p-3 h-100">
+                                <h6 class="text-muted text-uppercase mb-1">Closed / Cancelled</h6>
+                                <h2 class="text-danger fw-bold mb-0"><field name="cancelled_subscriptions"/></h2>
+                            </div>
+                        </div>
+                        <div class="col-xl-4 col-md-6 mb-3">
+                            <div class="card shadow-sm border-primary text-center p-3 h-100">
+                                <h6 class="text-muted text-uppercase mb-1">Total Invoices</h6>
+                                <h2 class="text-primary fw-bold mb-0"><field name="total_invoices"/></h2>
+                            </div>
+                        </div>
+                        <div class="col-xl-4 col-md-6 mb-3">
+                            <div class="card shadow-sm border-warning text-center p-3 h-100">
+                                <h6 class="text-muted text-uppercase mb-1">Outstanding Invoice Amount</h6>
+                                <h2 class="text-warning fw-bold mb-0">
                                     <field name="outstanding_amount" widget="monetary" options="{'currency_field': 'currency_id'}"/>
                                 </h2>
-                                <button name="action_view_outstanding_invoices" string="View Receivables →" type="object" class="btn btn-sm btn-outline-warning"/>
                             </div>
                         </div>
-
-                        <!-- Metric 4: Overdue Invoices -->
-                        <div class="col-md-4 col-sm-6 mb-3">
-                            <div class="card shadow-sm border-danger text-center p-3 h-100">
-                                <h6 class="text-muted text-uppercase mb-1">Overdue Invoices</h6>
-                                <h2 class="text-danger fw-bold mb-1">
-                                    <field name="overdue_invoices"/>
+                        <div class="col-xl-4 col-md-6 mb-3">
+                            <div class="card shadow-sm border-success text-center p-3 h-100">
+                                <h6 class="text-muted text-uppercase mb-1">Revenue Received</h6>
+                                <h2 class="text-success fw-bold mb-0">
+                                    <field name="total_revenue" widget="monetary" options="{'currency_field': 'currency_id'}"/>
                                 </h2>
-                                <small class="text-danger mb-2 d-block">
-                                    Past Due: <field name="overdue_amount" widget="monetary" options="{'currency_field': 'currency_id'}"/>
-                                </small>
-                                <button name="action_view_overdue_invoices" string="Resolve Overdue →" type="object" class="btn btn-sm btn-outline-danger"/>
-                            </div>
-                        </div>
-
-                        <!-- Metric 5: Total Confirmed Payments -->
-                        <div class="col-md-4 col-sm-6 mb-3">
-                            <div class="card shadow-sm border-info text-center p-3 h-100">
-                                <h6 class="text-muted text-uppercase mb-1">Confirmed Payments</h6>
-                                <h2 class="text-info fw-bold mb-1">
-                                    <field name="total_payments_count"/>
-                                </h2>
-                                <small class="text-muted mb-2 d-block">
-                                    Total Value: <field name="total_payments_amount" widget="monetary" options="{'currency_field': 'currency_id'}"/>
-                                </small>
-                                <button name="action_view_received_payments" string="Payment Audit →" type="object" class="btn btn-sm btn-outline-info"/>
-                            </div>
-                        </div>
-
-                        <!-- Metric 6: MRR / ARR -->
-                        <div class="col-md-4 col-sm-6 mb-3">
-                            <div class="card shadow-sm border-secondary text-center p-3 h-100">
-                                <h6 class="text-muted text-uppercase mb-1">Recurring Run-Rate</h6>
-                                <h4 class="text-secondary fw-bold mb-0">
-                                    MRR: <field name="mrr_total" widget="monetary" options="{'currency_field': 'currency_id'}"/>
-                                </h4>
-                                <small class="text-muted mt-1 d-block">
-                                    ARR: <field name="arr_total" widget="monetary" options="{'currency_field': 'currency_id'}"/>
-                                </small>
                             </div>
                         </div>
                     </div>
+
+                    <group string="Recurring Run Rate">
+                        <group>
+                            <field name="mrr_total" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                            <field name="arr_total" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                        </group>
+                        <group>
+                            <field name="total_payments_count"/>
+                            <field name="total_payments_amount" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                        </group>
+                    </group>
+
+                    <separator string="Analytics"/>
+                    <div class="d-flex flex-wrap gap-2 mb-3">
+                        <button name="action_open_dashboard_chart" string="Active vs Closed" type="object" context="{'dashboard_chart': 'status'}" class="btn btn-outline-primary"/>
+                        <button name="action_open_dashboard_chart" string="Subscription Growth" type="object" context="{'dashboard_chart': 'growth'}" class="btn btn-outline-primary"/>
+                        <button name="action_open_dashboard_chart" string="Invoice Generation" type="object" context="{'dashboard_chart': 'invoices'}" class="btn btn-outline-primary"/>
+                        <button name="action_open_dashboard_chart" string="Revenue Trends" type="object" context="{'dashboard_chart': 'revenue'}" class="btn btn-outline-primary"/>
+                        <button name="action_open_dashboard_chart" string="Plan Popularity" type="object" context="{'dashboard_chart': 'plans'}" class="btn btn-outline-primary"/>
+                    </div>
+
+                    <notebook>
+                        <page name="recent_subscriptions" string="Recent Subscriptions">
+                            <field name="recent_subscription_ids" nolabel="1" readonly="1">
+                                <tree create="false" delete="false">
+                                    <field name="name"/>
+                                    <field name="partner_id"/>
+                                    <field name="plan_id"/>
+                                    <field name="create_date"/>
+                                    <field name="state" widget="badge" decoration-success="state == 'active'" decoration-info="state in ('draft', 'quotation', 'confirmed')" decoration-warning="state == 'paused'" decoration-danger="state in ('closed', 'expired')"/>
+                                    <field name="next_billing_date"/>
+                                    <field name="amount_total" sum="Total" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                                </tree>
+                            </field>
+                        </page>
+                        <page name="recent_confirmations" string="Recent Confirmations">
+                            <field name="recently_confirmed_ids" nolabel="1" readonly="1">
+                                <tree create="false" delete="false">
+                                    <field name="name"/>
+                                    <field name="partner_id"/>
+                                    <field name="plan_id"/>
+                                    <field name="write_date" string="Last Updated"/>
+                                    <field name="state" widget="badge" decoration-info="state == 'confirmed'"/>
+                                    <field name="amount_total" sum="Total" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                                </tree>
+                            </field>
+                        </page>
+                        <page name="latest_invoices" string="Latest Invoices">
+                            <field name="latest_invoice_ids" nolabel="1" readonly="1">
+                                <tree create="false" delete="false">
+                                    <field name="name"/>
+                                    <field name="partner_id"/>
+                                    <field name="subscription_id"/>
+                                    <field name="invoice_date"/>
+                                    <field name="due_date"/>
+                                    <field name="state" widget="badge"/>
+                                    <field name="amount_total" sum="Total" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                                    <field name="amount_residual" sum="Outstanding" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                                </tree>
+                            </field>
+                        </page>
+                        <page name="upcoming_billing" string="Upcoming Billing">
+                            <field name="upcoming_billing_ids" nolabel="1" readonly="1">
+                                <tree create="false" delete="false">
+                                    <field name="next_billing_date"/>
+                                    <field name="name"/>
+                                    <field name="partner_id"/>
+                                    <field name="plan_id"/>
+                                    <field name="amount_total" sum="Total" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                                    <field name="state" widget="badge"/>
+                                </tree>
+                            </field>
+                        </page>
+                    </notebook>
                 </sheet>
             </form>
         </field>
@@ -126,12 +187,80 @@
         <field name="name">Dashboard &amp; Intelligence</field>
         <field name="res_model">subscription.dashboard.console</field>
         <field name="view_mode">form</field>
-        <field name="target">inline</field>
+        <field name="target">current</field>
     </record>
 
     <!-- ============================================== -->
     <!-- VISUAL CHARTS & MULTI-DIMENSIONAL PIVOT VIEWS -->
     <!-- ============================================== -->
+
+    <record id="view_subscription_status_chart" model="ir.ui.view">
+        <field name="name">subscription.subscription.status.chart</field>
+        <field name="model">subscription.subscription</field>
+        <field name="arch" type="xml">
+            <graph string="Active vs Closed Subscriptions" type="pie" sample="1">
+                <field name="state"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="view_subscription_growth_chart" model="ir.ui.view">
+        <field name="name">subscription.subscription.growth.chart</field>
+        <field name="model">subscription.subscription</field>
+        <field name="arch" type="xml">
+            <graph string="Monthly Subscription Growth" type="bar" sample="1">
+                <field name="create_date" interval="month"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="view_subscription_plan_popularity_chart" model="ir.ui.view">
+        <field name="name">subscription.subscription.plan.popularity.chart</field>
+        <field name="model">subscription.subscription</field>
+        <field name="arch" type="xml">
+            <graph string="Subscription Plan Popularity" type="bar" sample="1">
+                <field name="plan_id"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="view_subscription_invoice_generation_chart" model="ir.ui.view">
+        <field name="name">subscription.invoice.generation.chart</field>
+        <field name="model">subscription.invoice</field>
+        <field name="arch" type="xml">
+            <graph string="Monthly Invoice Generation" type="bar" sample="1">
+                <field name="invoice_date" interval="month"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="action_subscription_status_chart" model="ir.actions.act_window">
+        <field name="name">Active vs Closed Subscriptions</field>
+        <field name="res_model">subscription.subscription</field>
+        <field name="view_mode">graph,tree</field>
+        <field name="view_id" ref="view_subscription_status_chart"/>
+    </record>
+
+    <record id="action_subscription_growth_chart" model="ir.actions.act_window">
+        <field name="name">Monthly Subscription Growth</field>
+        <field name="res_model">subscription.subscription</field>
+        <field name="view_mode">graph,tree</field>
+        <field name="view_id" ref="view_subscription_growth_chart"/>
+    </record>
+
+    <record id="action_subscription_plan_popularity_chart" model="ir.actions.act_window">
+        <field name="name">Subscription Plan Popularity</field>
+        <field name="res_model">subscription.subscription</field>
+        <field name="view_mode">graph,tree</field>
+        <field name="view_id" ref="view_subscription_plan_popularity_chart"/>
+    </record>
+
+    <record id="action_subscription_invoice_generation_chart" model="ir.actions.act_window">
+        <field name="name">Monthly Invoice Generation</field>
+        <field name="res_model">subscription.invoice</field>
+        <field name="view_mode">graph,tree</field>
+        <field name="view_id" ref="view_subscription_invoice_generation_chart"/>
+    </record>
 
     <!-- 1. Subscription Graph & Pivot Views -->
     <record id="view_subscription_subscription_graph" model="ir.ui.view">
@@ -170,6 +299,14 @@
                 <field name="amount" type="measure"/>
             </graph>
         </field>
+    </record>
+
+    <record id="action_subscription_revenue_trend_chart" model="ir.actions.act_window">
+        <field name="name">Revenue Trends</field>
+        <field name="res_model">subscription.payment</field>
+        <field name="view_mode">graph,tree,pivot</field>
+        <field name="view_id" ref="view_subscription_payment_graph"/>
+        <field name="domain">[('state', '=', 'success')]</field>
     </record>
 
     <record id="view_subscription_payment_pivot" model="ir.ui.view">

@@ -43,6 +43,7 @@
                 <field name="brand_name" optional="show"/>
                 <field name="brand_surcharge" optional="show"/>
                 <field name="subscription_price" optional="show"/>
+                <field name="is_subscription" optional="hide"/>
             </field>
         </field>
     </record>
@@ -91,7 +92,7 @@
                 Define your subscription products and software packages.
             </p>
             <p>
-                Configure variant surcharges such as adding 560 for the Odoo brand variant.
+                Review the base price, brand surcharge, and calculated recurring price together. The Odoo brand applies its 560.00 surcharge automatically.
             </p>
         </field>
     </record>

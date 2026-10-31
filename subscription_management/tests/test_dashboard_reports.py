@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from datetime import date, datetime, timedelta
 from dateutil.relativedelta import relativedelta
+from odoo import fields
 from odoo.tests.common import TransactionCase, tagged
 from odoo.exceptions import AccessError, ValidationError, UserError
 
@@ -25,7 +26,7 @@ class TestDashboardReports(TransactionCase):
         })
 
         # Staff User
-        cls.staff_user = cls.env['res.users'].with_user(cls.admin_user).create({
+        cls.staff_user = cls.env['res.users'].sudo().create({
             'name': 'Dashboard Staff',
             'login': 'dashboard_staff@brightloop.com',
             'email': 'dashboard_staff@brightloop.com',
@@ -115,6 +116,8 @@ class TestDashboardReports(TransactionCase):
             'subscription_id': cls.sub_active_1.id,
             'invoice_date': date.today() - timedelta(days=20),
             'due_date': date.today() + timedelta(days=10),
+            'billing_period_start': date.today() - timedelta(days=20),
+            'billing_period_end': date.today() + timedelta(days=10),
             'state': 'confirmed',
             'line_ids': [(0, 0, {
                 'product_id': cls.product.id,
@@ -138,6 +141,8 @@ class TestDashboardReports(TransactionCase):
             'subscription_id': cls.sub_active_2.id,
             'invoice_date': date.today() - timedelta(days=5),
             'due_date': date.today() + timedelta(days=15),
+            'billing_period_start': date.today() - timedelta(days=5),
+            'billing_period_end': date.today() + timedelta(days=25),
             'state': 'confirmed',
             'line_ids': [(0, 0, {
                 'product_id': cls.product.id,
@@ -153,6 +158,8 @@ class TestDashboardReports(TransactionCase):
             'subscription_id': cls.sub_active_1.id,
             'invoice_date': date.today() - timedelta(days=40),
             'due_date': date.today() - timedelta(days=10),
+            'billing_period_start': date.today() - timedelta(days=40),
+            'billing_period_end': date.today() - timedelta(days=10),
             'state': 'confirmed',
             'line_ids': [(0, 0, {
                 'product_id': cls.product.id,
@@ -346,6 +353,8 @@ class TestDashboardReports(TransactionCase):
             'subscription_id': self.sub_active_2.id,
             'invoice_date': date.today(),
             'due_date': date.today() + timedelta(days=15),
+            'billing_period_start': date.today(),
+            'billing_period_end': date.today() + timedelta(days=30),
             'state': 'confirmed',
             'line_ids': [(0, 0, {
                 'product_id': self.product.id,
@@ -370,3 +379,103 @@ class TestDashboardReports(TransactionCase):
         metrics = self.env['subscription.dashboard'].with_user(self.staff_user).get_dashboard_metrics()
         self.assertEqual(metrics['mrr_total'], 600.0)
         self.assertEqual(metrics['arr_total'], 7200.0)
+
+    def test_16_dashboard_overview_matches_live_records(self):
+        dashboard = self.env['subscription.dashboard'].with_user(self.staff_user)
+        metrics = dashboard.get_dashboard_metrics()
+        subscriptions = self.env['subscription.subscription'].with_user(self.staff_user)
+        invoices = self.env['subscription.invoice'].with_user(self.staff_user)
+        products = self.env['product.template'].with_user(self.staff_user)
+        plans = self.env['subscription.plan'].with_user(self.staff_user)
+
+        customer_groups = subscriptions.read_group([], ['partner_id'], ['partner_id'])
+        self.assertEqual(metrics['total_customers'], len(customer_groups))
+        self.assertEqual(
+            metrics['total_products'],
+            products.search_count([('is_subscription', '=', True)]),
+        )
+        self.assertEqual(
+            metrics['total_plans'],
+            plans.with_context(active_test=False).search_count([]),
+        )
+        self.assertEqual(
+            metrics['total_invoices'],
+            invoices.search_count([]),
+        )
+        self.assertEqual(
+            metrics['pending_subscriptions'],
+            subscriptions.search_count([('state', 'in', ('draft', 'quotation', 'confirmed'))]),
+        )
+        self.assertEqual(
+            metrics['cancelled_subscriptions'],
+            subscriptions.search_count([('state', '=', 'closed')]),
+        )
+        self.assertEqual(metrics['total_revenue'], metrics['revenue_received'])
+
+    def test_17_subscription_status_and_frequency_filters(self):
+        dashboard = self.env['subscription.dashboard'].with_user(self.staff_user)
+        active_metrics = dashboard.get_dashboard_metrics(subscription_status='active')
+        active_count = self.env['subscription.subscription'].search_count([
+            ('state', '=', 'active'),
+        ])
+        self.assertEqual(active_metrics['total_subscriptions'], active_count)
+        self.assertEqual(active_metrics['active_subscriptions'], active_count)
+        self.assertEqual(active_metrics['pending_subscriptions'], 0)
+        self.assertEqual(active_metrics['cancelled_subscriptions'], 0)
+
+        monthly_metrics = dashboard.get_dashboard_metrics(billing_frequency='monthly')
+        expected_monthly = self.env['subscription.subscription'].search_count([
+            ('plan_id.billing_interval_unit', '=', 'monthly'),
+        ])
+        self.assertEqual(monthly_metrics['total_subscriptions'], expected_monthly)
+
+    def test_18_dashboard_empty_customer_filter_returns_zero_activity(self):
+        partner = self.env['res.partner'].create({'name': 'Dashboard Empty Customer'})
+        metrics = self.env['subscription.dashboard'].with_user(self.staff_user).get_dashboard_metrics(
+            partner_id=partner.id
+        )
+        self.assertEqual(metrics['total_customers'], 0)
+        self.assertEqual(metrics['total_subscriptions'], 0)
+        self.assertEqual(metrics['total_invoices'], 0)
+        self.assertEqual(metrics['outstanding_amount'], 0.0)
+        self.assertEqual(metrics['total_revenue'], 0.0)
+
+    def test_19_dashboard_console_activity_and_quick_actions(self):
+        dashboard = self.env['subscription.dashboard.console'].with_user(self.staff_user).create({
+            'date_range_type': 'all',
+            'subscription_status': 'all',
+            'billing_frequency': 'all',
+            'invoice_status': 'all',
+            'payment_method': 'all',
+        })
+        self.assertEqual(
+            dashboard.active_subscriptions,
+            self.env['subscription.subscription'].search_count([('state', '=', 'active')]),
+        )
+        self.assertIn(self.sub_active_1, dashboard.recent_subscription_ids)
+        self.assertTrue(dashboard.latest_invoice_ids)
+        self.assertTrue(all(invoice._name == 'subscription.invoice' for invoice in dashboard.latest_invoice_ids))
+
+        expected_models = {
+            'action_create_product': 'product.template',
+            'action_create_plan': 'subscription.plan',
+            'action_create_quotation': 'subscription.subscription',
+            'action_view_invoices': 'subscription.invoice',
+        }
+        for method_name, model_name in expected_models.items():
+            action = getattr(dashboard, method_name)()
+            self.assertEqual(action['res_model'], model_name)
+
+        chart_action = dashboard.with_context(
+            dashboard_chart='status'
+        ).action_open_dashboard_chart()
+        self.assertEqual(chart_action['res_model'], 'subscription.subscription')
+        self.assertIn(('state', 'in', ('active', 'closed')), chart_action['domain'])
+
+    def test_20_dashboard_custom_date_range_validation(self):
+        with self.assertRaises(ValidationError):
+            self.env['subscription.dashboard'].with_user(self.staff_user).get_dashboard_metrics(
+                date_range='custom',
+                date_from=date.today(),
+                date_to=date.today() - timedelta(days=1),
+            )
