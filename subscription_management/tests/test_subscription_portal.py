@@ -15,7 +15,7 @@ class TestSubscriptionCustomerPortal(HttpCase):
         cls.env['subscription.subscription'].sudo().search([('partner_id.email', 'in', ['portal.customer@example.test', 'portal.other@example.test'])]).unlink()
         cls.env['res.users'].sudo().search([('login', 'in', ['portal.customer@example.test', 'portal.other@example.test'])]).unlink()
         cls.env['res.partner'].sudo().search([('email', 'in', ['portal.customer@example.test', 'portal.other@example.test'])]).unlink()
-        cls.env['subscription.plan'].sudo().search([('code', 'in', ['PORTAL-MONTHLY-TEST', 'PORTAL-MONTHLY-DUPLICATE-TEST', 'PORTAL-UNAVAILABLE-TEST'])]).unlink()
+        cls.env['subscription.plan'].sudo().with_context(active_test=False).search([('code', 'in', ['PORTAL-MONTHLY-TEST', 'PORTAL-MONTHLY-DUPLICATE-TEST', 'PORTAL-UNAVAILABLE-TEST'])]).unlink()
         cls.env['product.product'].sudo().search([('name', '=', 'Portal Test Service')]).unlink()
         cls.env.cr.commit()
 
@@ -53,6 +53,23 @@ class TestSubscriptionCustomerPortal(HttpCase):
             'min_quantity': 1.0,
             'allow_renewal': True,
             'allow_early_close': True,
+        })
+        cls.duplicate_plan = cls.env['subscription.plan'].create({
+            'name': cls.plan.name,
+            'code': 'PORTAL-MONTHLY-DUPLICATE-TEST',
+            'sequence': -998,
+            'price': cls.plan.price,
+            'currency_id': cls.plan.currency_id.id,
+            'billing_interval_unit': cls.plan.billing_interval_unit,
+            'billing_interval_count': cls.plan.billing_interval_count,
+            'min_quantity': cls.plan.min_quantity,
+            'description': cls.plan.description,
+        })
+        cls.unavailable_plan = cls.env['subscription.plan'].create({
+            'name': 'Unavailable Portal Plan',
+            'code': 'PORTAL-UNAVAILABLE-TEST',
+            'price': 99.0,
+            'active': False,
         })
         cls.product = cls.env['product.product'].create({
             'name': 'Portal Test Service',
@@ -133,18 +150,6 @@ class TestSubscriptionCustomerPortal(HttpCase):
         self.assertNotIn(self.other_invoice.name.encode(), invoices.content)
 
     def test_plan_list_deduplicates_identical_customer_offers(self):
-        self.env['subscription.plan'].create({
-            'name': self.plan.name,
-            'code': 'PORTAL-MONTHLY-DUPLICATE-TEST',
-            'sequence': self.plan.sequence + 1,
-            'price': self.plan.price,
-            'currency_id': self.plan.currency_id.id,
-            'billing_interval_unit': self.plan.billing_interval_unit,
-            'billing_interval_count': self.plan.billing_interval_count,
-            'min_quantity': self.plan.min_quantity,
-            'description': self.plan.description,
-        })
-        self.env.cr.commit()
         self.assertTrue(self.authenticate(self.login, self.password))
 
         plans = self.url_open('/my/plans')
@@ -153,17 +158,10 @@ class TestSubscriptionCustomerPortal(HttpCase):
         self.assertEqual(plans.content.count(self.plan.name.encode()), 1)
 
     def test_available_plan_details_are_scoped_to_available_plans(self):
-        unavailable_plan = self.env['subscription.plan'].create({
-            'name': 'Unavailable Portal Plan',
-            'code': 'PORTAL-UNAVAILABLE-TEST',
-            'price': 99.0,
-            'active': False,
-        })
-        self.env.cr.commit()
         self.assertTrue(self.authenticate(self.login, self.password))
 
         available = self.url_open('/my/plans/%s' % self.plan.id)
-        unavailable = self.url_open('/my/plans/%s' % unavailable_plan.id)
+        unavailable = self.url_open('/my/plans/%s' % self.unavailable_plan.id)
 
         self.assertEqual(available.status_code, 200)
         self.assertIn(self.plan.name.encode(), available.content)
