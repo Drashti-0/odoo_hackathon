@@ -35,6 +35,7 @@ services:
       - ./odoo.conf:/etc/odoo/odoo.conf
       - ./subscription_management:/mnt/extra-addons/subscription_management
     command:
+      - odoo
       - --config=/etc/odoo/odoo.conf
       - --admin-passwd=${ODOO_ADMIN_PASSWORD:?Set ODOO_ADMIN_PASSWORD in .env}
 
