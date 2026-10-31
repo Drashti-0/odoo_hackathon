@@ -444,7 +444,6 @@ class SubscriptionInvoiceLine(models.Model):
         comodel_name='product.product',
         string="Product",
         required=False
-        string="Product"
     )
     name = fields.Text(
         string="Description",
