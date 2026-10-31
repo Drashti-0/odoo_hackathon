@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="action_subscription_customers" model="ir.actions.act_window">
+        <field name="name">Customers</field>
+        <field name="res_model">res.partner</field>
+        <field name="view_mode">tree,form</field>
+        <field name="domain">[('customer_rank', '&gt;', 0)]</field>
+        <field name="context">{'default_customer_rank': 1}</field>
+    </record>
+
+    <menuitem id="menu_subscription_customers"
+              name="Customers"
+              parent="menu_subscription_root"
+              action="action_subscription_customers"
+              groups="subscription_management.group_subscription_user"
+              sequence="5"/>
+</odoo>

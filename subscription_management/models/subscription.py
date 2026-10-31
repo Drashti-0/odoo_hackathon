@@ -510,8 +510,8 @@ class SubscriptionSubscription(models.Model):
         """Transitions: Active / Expired / Closed -> Renewed (Requires plan.allow_renewal)"""
         today = fields.Date.today()
         for sub in self:
-            if sub.state in ('draft', 'quotation'):
-                raise UserError(_("Quotations cannot be renewed before confirmation."))
+            if sub.state not in ('active', 'expired', 'closed'):
+                raise UserError(_("Only active, expired, or closed subscriptions can be renewed."))
             if not sub.plan_id.allow_renewal:
                 raise UserError(_("The plan '%s' does not permit renewal.") % sub.plan_id.name)
 

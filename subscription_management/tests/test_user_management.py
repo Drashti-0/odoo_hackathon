@@ -117,6 +117,37 @@ class TestUserManagement(TransactionCase):
                 password="ValidPassword2026!",
             )
 
+    def test_signup_rejects_existing_partner_without_claiming_it(self):
+        """Public signup cannot claim a partner that already owns customer records."""
+        existing_partner = self.env['res.partner'].create({
+            'name': 'Existing Customer Without Login',
+            'email': 'existing.customer@brightloop.com',
+            'customer_rank': 1,
+        })
+        existing_subscription = self.env['subscription.subscription'].with_user(self.staff_user).create({
+            'partner_id': existing_partner.id,
+            'plan_id': self.plan.id,
+            'state': 'active',
+        })
+        existing_invoice = self.env['subscription.invoice'].with_user(self.staff_user).create({
+            'subscription_id': existing_subscription.id,
+            'partner_id': existing_partner.id,
+            'billing_period_start': '2026-02-01',
+            'billing_period_end': '2026-02-28',
+            'state': 'confirmed',
+        })
+
+        with self.assertRaises(ValidationError):
+            self.env['res.users'].register_portal_customer(
+                name='Unauthorized Claim',
+                email='existing.customer@brightloop.com',
+                password='SignupSecurePassword2026!',
+            )
+
+        self.assertFalse(self.env['res.users'].search([('partner_id', '=', existing_partner.id)]))
+        self.assertEqual(existing_subscription.partner_id, existing_partner)
+        self.assertEqual(existing_invoice.partner_id, existing_partner)
+
     def test_04_invalid_email_rejection(self):
         """4. Invalid email syntax rejection."""
         with self.assertRaises(ValidationError):

@@ -10,6 +10,68 @@ _logger = logging.getLogger(__name__)
 
 class SubscriptionPortalAuthController(http.Controller):
 
+    @http.route(
+        '/subscription/signup',
+        type='http',
+        auth='public',
+        website=True,
+        methods=['GET', 'POST'],
+        csrf=True,
+        sitemap=False
+    )
+    def signup_page(self, **post):
+        error = None
+        if request.httprequest.method == 'POST':
+            try:
+                request.env['res.users'].sudo().register_portal_customer(
+                    name=post.get('name'),
+                    email=post.get('email'),
+                    password=post.get('password'),
+                    company_name=post.get('company_name')
+                )
+                return request.redirect('/web/login')
+            except (ValidationError, AccessError) as exc:
+                error = str(exc)
+
+        return request.render('subscription_management.portal_signup', {
+            'error': error,
+            'values': post,
+        })
+
+    @http.route(
+        '/my/subscriptions',
+        type='http',
+        auth='user',
+        website=True,
+        methods=['GET'],
+        sitemap=False
+    )
+    def portal_subscriptions(self, **kwargs):
+        subscriptions = request.env['subscription.subscription'].search(
+            [('partner_id', '=', request.env.user.partner_id.id)],
+            order='id desc'
+        )
+        return request.render('subscription_management.portal_subscriptions', {
+            'subscriptions': subscriptions,
+        })
+
+    @http.route(
+        '/my/subscription-invoices',
+        type='http',
+        auth='user',
+        website=True,
+        methods=['GET'],
+        sitemap=False
+    )
+    def portal_subscription_invoices(self, **kwargs):
+        invoices = request.env['subscription.invoice'].search(
+            [('partner_id', '=', request.env.user.partner_id.id)],
+            order='invoice_date desc, id desc'
+        )
+        return request.render('subscription_management.portal_subscription_invoices', {
+            'invoices': invoices,
+        })
+
     @http.route(['/subscription/api/register', '/subscription/register'], type='json', auth='public', methods=['POST'], csrf=False)
     def register_customer_json(self, **kwargs):
         """
