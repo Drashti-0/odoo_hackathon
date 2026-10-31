@@ -178,27 +178,54 @@ class MockSubscriptionPlan:
         return current_date + relativedelta(months=1)
 
 
+class MockQuotationTemplate:
+    def __init__(self, name, plan, validity_days=30, terms_and_conditions=""):
+        if validity_days < 0:
+            raise ValueError("Quotation validity days cannot be negative.")
+        self.name = name
+        self.plan = plan
+        self.validity_days = int(validity_days)
+        self.terms_and_conditions = terms_and_conditions
+        self.line_ids = []
+
+    def add_line(self, product, quantity=1.0, unit_price=None):
+        if quantity <= 0:
+            raise ValueError("Template line quantity must be strictly greater than 0.")
+        price = unit_price if unit_price is not None else product.get_subscription_price(self.plan)
+        line = {'product': product, 'quantity': float(quantity), 'unit_price': float(price)}
+        self.line_ids.append(line)
+        return line
+
+
 class MockSubscriptionLine:
-    def __init__(self, product, quantity, unit_price, tax_rate=0.0, discount_rate=0.0):
+    def __init__(self, product, quantity, unit_price, tax_rate=0.0, price_include=False, discount_rate=0.0):
         self.product = product
         self.name = product.name
         self.quantity = float(quantity)
         self.unit_price = float(unit_price)
         self.tax_rate = float(tax_rate)
+        self.price_include = bool(price_include)
         self.discount_rate = float(discount_rate)
 
     @property
     def price_subtotal(self):
         gross = self.quantity * self.unit_price
-        return gross * (1.0 - (self.discount_rate / 100.0))
+        disc_price = gross * (1.0 - (self.discount_rate / 100.0))
+        if self.tax_rate and self.price_include:
+            return round(disc_price / (1.0 + (self.tax_rate / 100.0)), 2)
+        return disc_price
 
     @property
     def price_tax(self):
-        return self.price_subtotal * (self.tax_rate / 100.0)
+        if self.price_include and self.tax_rate:
+            gross = self.quantity * self.unit_price
+            disc_price = gross * (1.0 - (self.discount_rate / 100.0))
+            return round(disc_price - self.price_subtotal, 2)
+        return round(self.price_subtotal * (self.tax_rate / 100.0), 2)
 
     @property
     def price_total(self):
-        return self.price_subtotal + self.price_tax
+        return round(self.price_subtotal + self.price_tax, 2)
 
 
 class MockSubscription:
@@ -213,6 +240,8 @@ class MockSubscription:
         self.state = 'draft'
         self.start_date = start_date or date.today()
         self.expiry_date = expiry_date
+        self.quotation_validity_date = date.today() + relativedelta(days=30)
+        self.terms_and_conditions = ""
         self.next_billing_date = None
         self.last_billing_date = None
         self.pause_date = None
@@ -226,11 +255,21 @@ class MockSubscription:
         if self.start_date and self.expiry_date and self.expiry_date < self.start_date:
             raise ValueError("Expiry date cannot be earlier than start date.")
 
-    def add_line(self, product, quantity, unit_price=None, tax_rate=0.0, discount_rate=0.0):
+    def apply_template(self, template):
+        self.plan = template.plan
+        if template.validity_days:
+            self.quotation_validity_date = date.today() + relativedelta(days=template.validity_days)
+        if template.terms_and_conditions:
+            self.terms_and_conditions = template.terms_and_conditions
+        self.line_ids = []
+        for tl in template.line_ids:
+            self.add_line(tl['product'], tl['quantity'], tl['unit_price'])
+
+    def add_line(self, product, quantity, unit_price=None, tax_rate=0.0, price_include=False, discount_rate=0.0):
         if quantity < self.plan.min_quantity:
             raise ValueError(f"Quantity {quantity} is below plan minimum {self.plan.min_quantity}.")
         price = unit_price if unit_price is not None else product.get_subscription_price(self.plan)
-        line = MockSubscriptionLine(product, quantity, price, tax_rate, discount_rate)
+        line = MockSubscriptionLine(product, quantity, price, tax_rate, price_include, discount_rate)
         self.line_ids.append(line)
         return line
 
@@ -284,9 +323,23 @@ class MockSubscription:
             raise RuntimeError("Only draft subscriptions can be sent as quotation.")
         self.state = 'quotation'
 
+    def action_draft(self):
+        if self.state not in ('quotation', 'closed'):
+            raise RuntimeError("Only quotation or closed subscriptions can be reset to draft.")
+        self.state = 'draft'
+
+    def action_cancel(self):
+        if self.state not in ('draft', 'quotation'):
+            raise RuntimeError("Only draft or quotation can be cancelled.")
+        self.state = 'closed'
+        self.close_date = date.today()
+        self.close_reason = "Quotation was cancelled."
+
     def action_confirm(self):
         if self.state not in ('draft', 'quotation'):
             raise RuntimeError("Only draft or quotation can be confirmed.")
+        if not self.line_ids and not (self.plan and self.plan.price > 0):
+            raise ValueError("Cannot confirm a subscription with no lines and zero plan price.")
         if not self.plan.is_available_on(self.start_date):
             raise ValueError(f"Plan {self.plan.name} is not available on {self.start_date}.")
         self.name = f"SUB-{self.id:05d}"
@@ -298,6 +351,22 @@ class MockSubscription:
         self.state = 'active'
         if not self.next_billing_date:
             self.next_billing_date = self.start_date
+
+    def write(self, vals):
+        if 'state' in vals:
+            new_state = vals['state']
+            valid_transitions = {
+                'draft': {'quotation', 'confirmed', 'closed'},
+                'quotation': {'draft', 'confirmed', 'closed'},
+                'confirmed': {'active', 'closed'},
+                'active': {'paused', 'closed', 'expired'},
+                'paused': {'active', 'closed'},
+                'expired': {'active', 'closed'},
+                'closed': {'active', 'draft'},
+            }
+            if new_state not in valid_transitions.get(self.state, set()):
+                raise RuntimeError(f"Direct transition from '{self.state}' to '{new_state}' is not permitted.")
+            self.state = new_state
 
     def action_pause(self):
         if self.state != 'active':
@@ -311,7 +380,7 @@ class MockSubscription:
         if self.state != 'paused':
             raise RuntimeError("Only paused subscriptions can be resumed.")
         today = date.today()
-        if self.pause_date and self.next_billing_date and self.next_billing_date >= self.pause_date:
+        if self.pause_date and self.next_billing_date:
             days = (today - self.pause_date).days
             if days > 0:
                 self.next_billing_date = self.next_billing_date + relativedelta(days=days)
@@ -919,6 +988,101 @@ class TestSubscriptionModules(unittest.TestCase):
             MockSubscriptionPlan("Bad", "B", price=10.0, auto_close_days=-2)
         with self.assertRaises(ValueError):
             MockSubscriptionPlan("Bad", "B", price=10.0, start_date=date(2026, 12, 1), end_date=date(2026, 1, 1))
+
+    def test_14_quotation_and_subscription_management(self):
+        """Module 3: Complete Quotation & Subscription Management verification in Standalone Suite."""
+        tmpl_hosting = MockProductTemplate("Cloud Hosting", list_price=1000.0, brand_name='standard')
+        prod_hosting = MockProductProduct(tmpl_hosting)
+        tmpl_support = MockProductTemplate("Priority Support", list_price=200.0, brand_name='standard')
+        prod_support = MockProductProduct(tmpl_support)
+
+        # 1. Quotation Template and constraints
+        tmpl = MockQuotationTemplate("Cloud Bundle", self.plan_monthly, validity_days=45, terms_and_conditions="Net 30")
+        tmpl.add_line(prod_hosting, quantity=2.0)
+        self.assertEqual(len(tmpl.line_ids), 1)
+
+        with self.assertRaises(ValueError):
+            MockQuotationTemplate("Bad", self.plan_monthly, validity_days=-1)
+        with self.assertRaises(ValueError):
+            tmpl.add_line(prod_hosting, quantity=0.0)
+
+        # 2. Quotation Creation and Template Application
+        sub = MockSubscription("Enterprise Client", self.plan_monthly)
+        self.assertTrue(sub.name.startswith("SQ-"))
+        self.assertEqual(sub.state, 'draft')
+
+        sub.apply_template(tmpl)
+        self.assertEqual(len(sub.line_ids), 1)
+        self.assertEqual(sub.terms_and_conditions, "Net 30")
+        self.assertEqual(sub.quotation_validity_date, date.today() + relativedelta(days=45))
+
+        # 3. Tax-inclusive vs Tax-exclusive Line Calculations
+        # Line 1: prod_hosting 2 qty @ 1000 = 2000 untaxed, 10% tax = 200
+        line1 = sub.line_ids[0]
+        line1.tax_rate = 10.0
+        line1.price_include = False
+        self.assertEqual(line1.price_subtotal, 2000.0)
+        self.assertEqual(line1.price_tax, 200.0)
+        self.assertEqual(line1.price_total, 2200.0)
+
+        # Line 2: 2 qty @ 110 with 10% tax-included -> 200 untaxed, 20 tax, 220 total
+        line2 = sub.add_line(prod_support, quantity=2.0, unit_price=110.0, tax_rate=10.0, price_include=True)
+        self.assertEqual(line2.price_subtotal, 200.0)
+        self.assertEqual(line2.price_tax, 20.0)
+        self.assertEqual(line2.price_total, 220.0)
+
+        # Header totals: plan (100) + line1 (2000) + line2 (200) = 2300 untaxed; tax = 220; total = 2520
+        self.assertEqual(sub.amount_untaxed, 2300.0)
+        self.assertEqual(sub.amount_tax, 220.0)
+        self.assertEqual(sub.amount_total, 2520.0)
+
+        # 4. Confirmation & Sequence
+        sub.action_send_quotation()
+        self.assertEqual(sub.state, 'quotation')
+
+        sub.action_confirm()
+        self.assertEqual(sub.state, 'confirmed')
+        self.assertTrue(sub.name.startswith("SUB-"))
+
+        # Price immutability
+        initial_subtotal = sub.amount_untaxed
+        tmpl_hosting.list_price = 9999.0
+        self.assertEqual(sub.amount_untaxed, initial_subtotal)
+
+        # 5. Invalid State Transitions
+        with self.assertRaises(RuntimeError):
+            sub.write({'state': 'draft'})  # confirmed cannot jump back to draft
+        with self.assertRaises(RuntimeError):
+            sub.write({'state': 'paused'})  # must be active first
+
+        sub.action_activate()
+        self.assertEqual(sub.state, 'active')
+
+        # 6. Pause / Resume Schedule Shifting
+        initial_next_billing = date(2026, 6, 1)
+        sub.next_billing_date = initial_next_billing
+        sub.action_pause()
+        self.assertEqual(sub.state, 'paused')
+
+        # Simulate 10 days paused
+        sub.pause_date = date.today() - relativedelta(days=10)
+        sub.action_resume()
+        self.assertEqual(sub.state, 'active')
+        self.assertEqual(sub.next_billing_date, initial_next_billing + relativedelta(days=10))
+
+        # 7. Renewal
+        sub.expiry_date = date(2026, 12, 31)
+        sub.action_renew()
+        self.assertEqual(sub.expiry_date, date(2027, 1, 31))
+
+        # 8. Reset to draft & cancellation on quotation
+        sub_quote = MockSubscription("Prospect Corp", self.plan_monthly)
+        sub_quote.action_send_quotation()
+        self.assertEqual(sub_quote.state, 'quotation')
+        sub_quote.action_draft()
+        self.assertEqual(sub_quote.state, 'draft')
+        sub_quote.action_cancel()
+        self.assertEqual(sub_quote.state, 'closed')
 
 
 if __name__ == '__main__':

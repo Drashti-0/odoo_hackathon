@@ -624,6 +624,8 @@ class SubscriptionSubscriptionBillingExtension(models.Model):
     def action_generate_invoice_manual(self):
         """Manual trigger for billing engine from subscription form view."""
         self.ensure_one()
+        if self.state != 'active':
+            raise UserError(_("Invoices can only be generated for active subscriptions. Current state is '%s'.") % self.state)
         today = fields.Date.today()
         self._process_recurring_billing_catchup(today)
         return True
