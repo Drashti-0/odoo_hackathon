@@ -1,0 +1,28 @@
+.o_web_client .o_main_navbar {
+    background: linear-gradient(100deg, #173a8a, #2456b8);
+}
+
+.o_web_client .o_main_navbar .o_menu_brand,
+.o_web_client .o_main_navbar .o_nav_entry,
+.o_web_client .o_main_navbar .dropdown-toggle {
+    color: #fff;
+}
+
+.o_web_client .o_control_panel {
+    border-bottom-color: #e4e9f2;
+}
+
+.o_web_client .btn-primary {
+    border-color: #1d4ed8;
+    background-color: #1d4ed8;
+}
+
+.o_web_client .btn-primary:hover {
+    border-color: #173a8a;
+    background-color: #173a8a;
+}
+
+.o_web_client .o_menu_sections .o_nav_entry:hover,
+.o_web_client .o_menu_sections .o_nav_entry:focus {
+    color: #c4b5fd;
+}

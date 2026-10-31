@@ -24,7 +24,7 @@ Integration Ready:
     'author': 'Team AuraMinds (Dhruti Viradiya & Drashti Bhanderi)',
     'website': 'https://brightloopsoftware.com',
     'license': 'LGPL-3',
-    'depends': ['base', 'mail', 'product', 'account'],
+    'depends': ['base', 'mail', 'product', 'account', 'portal', 'website'],
     'data': [
         'security/security.xml',
         'security/ir.model.access.csv',
@@ -39,13 +39,23 @@ Integration Ready:
         'views/billing_log_views.xml',
         'views/menu_views.xml',
         'views/user_views.xml',
+        'views/customer_views.xml',
         'views/discount_views.xml',
         'views/payment_views.xml',
         'views/dashboard_views.xml',
+        'views/portal_templates.xml',
     ],
     'demo': [
         'demo/demo_data.xml',
     ],
+    'assets': {
+        'web.assets_backend': [
+            'subscription_management/static/src/css/brightloop_backend.css',
+        ],
+        'web.assets_frontend': [
+            'subscription_management/static/src/css/brightloop_portal.css',
+        ],
+    },
     'installable': True,
     'application': True,
     'auto_install': False,
