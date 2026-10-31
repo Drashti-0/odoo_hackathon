@@ -290,7 +290,7 @@ class SubscriptionSubscriptionDiscountExtension(models.Model):
         """
         Public API for applying discount coupon to subscription:
         - Validates code existence and eligibility
-        - Assigns discount_id and synchronizes discount_rate
+        - Assigns discount_id without duplicating the coupon as a line discount
         - Recomputes contract financial totals
         """
         self.ensure_one()
@@ -319,8 +319,7 @@ class SubscriptionSubscriptionDiscountExtension(models.Model):
 
         self.discount_id = disc.id
         self.discount_code = disc.code
-        if disc.discount_type == 'percentage':
-            self.discount_rate = disc.value
+        self.discount_rate = 0.0
 
         self._compute_amounts()
         self.message_post(body=_("Discount '%s' (%s) successfully applied. Deduction: %s") % (

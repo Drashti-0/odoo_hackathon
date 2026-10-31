@@ -41,6 +41,16 @@ class SubscriptionPlan(models.Model):
         tracking=True,
         help="Base recurring subscription fee charged per interval (excluding line items)."
     )
+    trial_period_days = fields.Integer(
+        string="Trial Period (Days)",
+        default=0,
+        help="Configured trial duration for this plan."
+    )
+    grace_period_days = fields.Integer(
+        string="Grace Period (Days)",
+        default=0,
+        help="Configured grace duration for this plan."
+    )
     currency_id = fields.Many2one(
         comodel_name='res.currency',
         string="Currency",
@@ -137,6 +147,14 @@ class SubscriptionPlan(models.Model):
         for plan in self:
             if plan.price < 0.0:
                 raise ValidationError(_("Plan price cannot be negative."))
+
+    @api.constrains('trial_period_days', 'grace_period_days')
+    def _check_trial_and_grace_periods(self):
+        for plan in self:
+            if plan.trial_period_days < 0:
+                raise ValidationError(_("Trial period days cannot be negative."))
+            if plan.grace_period_days < 0:
+                raise ValidationError(_("Grace period days cannot be negative."))
 
     @api.constrains('min_quantity')
     def _check_min_quantity(self):
