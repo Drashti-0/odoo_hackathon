@@ -110,6 +110,22 @@ Subscription Administrator access, then run the loader against that database by
 replacing `brightloop_test_db` in the command. The loader commits only after all
 records and lifecycle actions succeed. Do not run it against a production database.
 
+## Customer Subscription Portal
+
+The customer portal extends Odoo 17's portal framework. Sign in at
+`http://localhost:8069/web/login`, then open `http://localhost:8069/my` to find
+My Subscriptions, My Quotations, and Subscription Invoices. Subscription details
+show the plan, product lines, dates, status, recurring amount, and invoice history.
+Customers can download their own invoice PDF and submit cancellation or renewal
+requests for staff review; requests do not directly change contract status.
+
+Portal pages require an authenticated Odoo portal user linked to the subscription's
+customer contact. Every route filters the requested subscription or invoice by that
+partner, and portal record rules apply to the related subscription and invoice lines.
+Billing audit logs are not exposed to portal users. For a local demo, create a portal
+user for a synthetic customer with the **Portal Customer** group and associate
+subscriptions with that same contact. Do not use production customer data.
+
 To load dashboard changes on the existing local database, update the addon and
 restart Odoo:
 
