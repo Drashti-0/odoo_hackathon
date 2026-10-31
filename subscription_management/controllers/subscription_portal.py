@@ -227,7 +227,7 @@ class SubscriptionCustomerPortal(CustomerPortal):
         subscription = self._get_customer_subscription(subscription_id)
         invoices = request.env['subscription.invoice'].search([
             ('subscription_id', '=', subscription.id),
-            ('partner_id', 'in', self._get_portal_partner_ids()),
+            ('partner_id', '=', request.env.user.partner_id.id),
         ], order='invoice_date desc, id desc')
         values = self._prepare_portal_layout_values()
         values.update({
@@ -249,6 +249,7 @@ class SubscriptionCustomerPortal(CustomerPortal):
     def portal_my_invoices(self, page=1, **kwargs):
         invoices_model = request.env['subscription.invoice']
         domain = [('partner_id', 'in', self._get_portal_partner_ids())]
+        domain = [('partner_id', '=', request.env.user.partner_id.id)]
         total = invoices_model.search_count(domain)
         pager = portal_pager(
             url='/my/invoices',
@@ -351,6 +352,16 @@ class SubscriptionCustomerPortal(CustomerPortal):
             ('Content-Disposition', content_disposition(
                 '%s.%s' % (invoice.name, extension)
             )),
+        pdf, content_type = request.env['ir.actions.report'].sudo()._render_qweb_pdf(
+            report.report_name, [invoice.id]
+        )
+        if content_type != 'pdf':
+            raise InternalServerError(
+                _("The invoice document could not be generated.")
+            )
+        return request.make_response(pdf, headers=[
+            ('Content-Type', 'application/pdf'),
+            ('Content-Disposition', content_disposition('%s.pdf' % invoice.name)),
         ])
 
     def _submit_staff_request(self, subscription, summary, note):
@@ -367,6 +378,9 @@ class SubscriptionCustomerPortal(CustomerPortal):
         assignee = subscription.sudo().user_id
         if not assignee or assignee.share:
             assignee = request.env.ref('base.user_admin').sudo()
+        assignee = subscription.user_id
+        if not assignee or assignee.share:
+            assignee = request.env.ref('base.user_admin')
         activity_model.create({
             'activity_type_id': request.env.ref('mail.mail_activity_data_todo').id,
             'date_deadline': fields.Date.today(),

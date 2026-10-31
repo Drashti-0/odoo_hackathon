@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+
+        <!-- ============================================== -->
+        <!-- DEMO CUSTOMERS                                 -->
+        <!-- ============================================== -->
+
+        <record id="partner_demo_alice" model="res.partner">
+            <field name="name">Alice Customer</field>
+            <field name="email">alice@customer.com</field>
+            <field name="company_name">Alice Global Tech Corp</field>
+            <field name="is_company">True</field>
+            <field name="street">100 Enterprise Way</field>
+            <field name="city">San Francisco</field>
+            <field name="customer_rank">1</field>
+        </record>
+
+        <record id="partner_demo_bob" model="res.partner">
+            <field name="name">Bob Customer</field>
+            <field name="email">bob@customer.com</field>
+            <field name="company_name">Bob Digital Solutions</field>
+            <field name="is_company">True</field>
+            <field name="street">250 Innovation Blvd</field>
+            <field name="city">Austin</field>
+            <field name="customer_rank">1</field>
+        </record>
+
+        <!-- ============================================== -->
+        <!-- DEMO PRODUCTS (WITH VARIANT SURCHARGES)       -->
+        <!-- ============================================== -->
+
+        <record id="product_template_cloud_hosting" model="product.template">
+            <field name="name">Cloud ERP Hosting</field>
+            <field name="detailed_type">service</field>
+            <field name="list_price">1000.0</field>
+            <field name="standard_price">400.0</field>
+            <field name="is_subscription">True</field>
+            <field name="brand_name">odoo</field>
+            <field name="description">Dedicated enterprise cloud server with 99.9% uptime SLA and Odoo brand edition (+560 surcharge).</field>
+        </record>
+
+        <record id="product_template_support_tier" model="product.template">
+            <field name="name">Brightloop Enterprise Support</field>
+            <field name="detailed_type">service</field>
+            <field name="list_price">300.0</field>
+            <field name="standard_price">100.0</field>
+            <field name="is_subscription">True</field>
+            <field name="brand_name">brightloop</field>
+            <field name="description">24/7 dedicated support engineers with guaranteed 1-hour SLA.</field>
+        </record>
+
+        <!-- ============================================== -->
+        <!-- DEMO SUBSCRIPTION PLANS                       -->
+        <!-- ============================================== -->
+
+        <record id="plan_demo_monthly_pro" model="subscription.plan">
+            <field name="name">Monthly Pro Plan</field>
+            <field name="code">PLAN-M-PRO</field>
+            <field name="price">150.0</field>
+            <field name="billing_interval_unit">monthly</field>
+            <field name="billing_interval_count">1</field>
+            <field name="min_quantity">1.0</field>
+            <field name="trial_period_days">14</field>
+            <field name="grace_period_days">5</field>
+            <field name="allow_pause">True</field>
+            <field name="allow_renewal">True</field>
+            <field name="allow_early_close">True</field>
+            <field name="auto_close">True</field>
+        </record>
+
+        <record id="plan_demo_annual_enterprise" model="subscription.plan">
+            <field name="name">Annual Enterprise Plan</field>
+            <field name="code">PLAN-Y-ENT</field>
+            <field name="price">1500.0</field>
+            <field name="billing_interval_unit">yearly</field>
+            <field name="billing_interval_count">1</field>
+            <field name="min_quantity">1.0</field>
+            <field name="trial_period_days">30</field>
+            <field name="grace_period_days">15</field>
+            <field name="allow_pause">True</field>
+            <field name="allow_renewal">True</field>
+            <field name="allow_early_close">True</field>
+            <field name="auto_close">True</field>
+        </record>
+
+        <!-- ============================================== -->
+        <!-- DEMO DISCOUNT PROMOTIONS                       -->
+        <!-- ============================================== -->
+
+        <record id="discount_demo_launch20" model="subscription.discount">
+            <field name="name">Launch Special 20% Off</field>
+            <field name="code">LAUNCH20</field>
+            <field name="discount_type">percentage</field>
+            <field name="value">20.0</field>
+            <field name="min_purchase_amount">100.0</field>
+            <field name="usage_limit">100</field>
+            <field name="active">True</field>
+        </record>
+
+        <record id="discount_demo_fixed50" model="subscription.discount">
+            <field name="name">Welcome Fixed $50 Off</field>
+            <field name="code">WELCOME50</field>
+            <field name="discount_type">fixed</field>
+            <field name="value">50.0</field>
+            <field name="min_purchase_amount">200.0</field>
+            <field name="usage_limit">50</field>
+            <field name="active">True</field>
+        </record>
+
+    </data>
+</odoo>

@@ -202,6 +202,119 @@ class TestDiscountManagement(TransactionCase):
         amt = self.disc_percent.calculate_discount_amount(subtotal=500.0)
         self.assertEqual(amt, 50.0)
 
+    def _create_coupon_test_subscription(self, **values):
+        subscription_values = {
+            'partner_id': self.customer_partner.id,
+            'plan_id': self.plan.id,
+            'state': 'draft',
+            'line_ids': [(0, 0, {
+                'product_id': self.product_a.id,
+                'name': self.product_a.name,
+                'quantity': 1.0,
+                'unit_price': 100.0,
+            })],
+        }
+        subscription_values.update(values)
+        return self.env['subscription.subscription'].with_user(self.staff_user).create(subscription_values)
+
+    def test_subscription_form_applies_valid_coupon_with_updated_total(self):
+        sub = self._create_coupon_test_subscription()
+
+        result = sub.action_apply_discount_code(code='SAVE10')
+
+        self.assertEqual(sub.discount_id, self.disc_percent)
+        self.assertEqual(sub.discount_code, 'SAVE10')
+        self.assertEqual(sub.discount_rate, 0.0)
+        self.assertEqual(sub.amount_discount, 15.0)
+        self.assertEqual(sub.amount_total, 135.0)
+        self.assertEqual(result['tag'], 'display_notification')
+        self.assertEqual(result['params']['type'], 'success')
+        self.assertIn('135.00', result['params']['message'])
+
+    def test_subscription_form_rejects_invalid_coupon_without_applying(self):
+        sub = self._create_coupon_test_subscription(discount_rate=5.0)
+        original_total = sub.amount_total
+
+        with self.assertRaises(UserError):
+            sub.action_apply_discount_code(code='NOT-A-COUPON')
+
+        self.assertFalse(sub.discount_id)
+        self.assertEqual(sub.discount_rate, 5.0)
+        self.assertEqual(sub.amount_total, original_total)
+
+    def test_subscription_form_rejects_expired_coupon_without_applying(self):
+        expired = self.env['subscription.discount'].with_user(self.admin_user).create({
+            'name': 'Expired Coupon',
+            'code': 'EXPIRED_SUB',
+            'discount_type': 'percentage',
+            'value': 20.0,
+            'end_date': date.today() - relativedelta(days=1),
+        })
+        sub = self._create_coupon_test_subscription(discount_rate=5.0)
+        original_total = sub.amount_total
+
+        with self.assertRaises(UserError):
+            sub.action_apply_discount_code(code=expired.code)
+
+        self.assertFalse(sub.discount_id)
+        self.assertEqual(sub.discount_rate, 5.0)
+        self.assertEqual(sub.amount_total, original_total)
+
+    def test_subscription_form_rejects_inactive_coupon_without_applying(self):
+        inactive = self.env['subscription.discount'].with_user(self.admin_user).create({
+            'name': 'Inactive Coupon',
+            'code': 'INACTIVE_SUB',
+            'discount_type': 'percentage',
+            'value': 20.0,
+            'active': False,
+        })
+        sub = self._create_coupon_test_subscription(discount_rate=5.0)
+        original_total = sub.amount_total
+
+        with self.assertRaises(UserError):
+            sub.action_apply_discount_code(code=inactive.code)
+
+        self.assertFalse(sub.discount_id)
+        self.assertEqual(sub.discount_rate, 5.0)
+        self.assertEqual(sub.amount_total, original_total)
+
+    def test_subscription_form_rejects_coupon_for_unselected_products(self):
+        product_specific = self.env['subscription.discount'].with_user(self.admin_user).create({
+            'name': 'Product A Coupon',
+            'code': 'ONLY_PRODA_SUB',
+            'discount_type': 'percentage',
+            'value': 20.0,
+            'applicable_product_ids': [(6, 0, [self.product_a.id])],
+            'apply_to_whole_subscription': False,
+        })
+        sub = self._create_coupon_test_subscription(line_ids=[(0, 0, {
+            'product_id': self.product_b.id,
+            'name': self.product_b.name,
+            'quantity': 1.0,
+            'unit_price': 200.0,
+        })])
+        original_total = sub.amount_total
+
+        with self.assertRaises(UserError):
+            sub.action_apply_discount_code(code=product_specific.code)
+
+        self.assertFalse(sub.discount_id)
+        self.assertEqual(sub.amount_total, original_total)
+
+    def test_subscription_form_does_not_apply_same_coupon_twice(self):
+        sub = self._create_coupon_test_subscription()
+        sub.action_apply_discount_code(code='SAVE10')
+        original_discount = sub.amount_discount
+        original_total = sub.amount_total
+
+        result = sub.action_apply_discount_code(code='save10')
+
+        self.assertEqual(sub.discount_id, self.disc_percent)
+        self.assertEqual(sub.amount_discount, original_discount)
+        self.assertEqual(sub.amount_total, original_total)
+        self.assertEqual(result['params']['type'], 'info')
+        self.assertIn('already applied', result['params']['message'])
+
     # ------------------------------------------------------------
     # 12-18: DATE & USAGE TESTS
     # ------------------------------------------------------------
@@ -291,6 +404,7 @@ class TestDiscountManagement(TransactionCase):
         disc.record_usage()
         with self.assertRaises(UserError):
             disc.record_usage()
+        self.assertEqual(disc.usage_count, 1, "Rejected usage must not increment the coupon count")
 
     def test_18_usage_count_not_duplicated(self):
         """18. Usage count is not incremented on re-computation."""

@@ -28,6 +28,7 @@ Integration Ready:
     'data': [
         'security/security.xml',
         'security/ir.model.access.csv',
+        'security/user_security.xml',
         'data/sequence_data.xml',
         'data/cron_data.xml',
         'reports/invoice_report.xml',
@@ -38,6 +39,7 @@ Integration Ready:
         'views/billing_log_views.xml',
         'views/menu_views.xml',
         'views/user_views.xml',
+        'views/customer_views.xml',
         'views/discount_views.xml',
         'views/payment_views.xml',
         'views/dashboard_views.xml',

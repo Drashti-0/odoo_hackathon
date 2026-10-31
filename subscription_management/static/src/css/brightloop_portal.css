@@ -1,0 +1,343 @@
+/* ==========================================================================
+   BRIGHTLOOP SUBSCRIPTION MANAGEMENT – CUSTOMER PORTAL & AUTH STYLING
+   Theme: Blue, White & Subtle Purple SaaS Design
+   ========================================================================== */
+
+:root {
+    --bl-blue: #1d4ed8;
+    --bl-blue-dark: #1e3a8a;
+    --bl-blue-light: #3b82f6;
+    --bl-purple: #7c3aed;
+    --bl-purple-light: #8b5cf6;
+    --bl-ink: #0f172a;
+    --bl-muted: #64748b;
+    --bl-border: #e2e8f0;
+    --bl-surface: #ffffff;
+    --bl-background: #f8fafc;
+    --bl-emerald: #10b981;
+    --bl-amber: #f59e0b;
+    --bl-rose: #ef4444;
+}
+
+/* 1. PORTAL SHELL & CONTAINER */
+.bl-portal-shell {
+    min-height: 80vh;
+    padding: 3rem 1.25rem;
+    color: var(--bl-ink);
+    background:
+        radial-gradient(ellipse at 85% 2%, rgba(124, 58, 237, 0.08), transparent 40%),
+        radial-gradient(ellipse at 15% 98%, rgba(29, 78, 216, 0.06), transparent 40%),
+        var(--bl-background);
+}
+
+.bl-portal-wide {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+/* 2. AUTHENTICATION & REGISTRATION CARD */
+.bl-auth-card {
+    width: min(100%, 480px);
+    margin: 1.5rem auto;
+    padding: clamp(1.75rem, 5vw, 2.75rem);
+    border: 1px solid var(--bl-border);
+    border-radius: 20px;
+    background: var(--bl-surface);
+    box-shadow: 0 20px 60px -10px rgba(15, 23, 42, 0.08);
+}
+
+.bl-brand {
+    color: var(--bl-blue-dark);
+    font-size: 1.35rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.bl-brand span {
+    color: var(--bl-purple);
+}
+
+.bl-eyebrow {
+    margin: 1.5rem 0 0.35rem;
+    color: var(--bl-purple);
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+.bl-auth-card h1, .bl-page-heading h1 {
+    margin: 0;
+    color: var(--bl-ink);
+    font-size: clamp(1.75rem, 4vw, 2.25rem);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+}
+
+.bl-muted {
+    color: var(--bl-muted);
+}
+
+/* 3. MODERN FORM CONTROLS */
+.bl-form {
+    display: grid;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+}
+
+.bl-form label {
+    margin-top: 0.4rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #334155;
+}
+
+.bl-form input {
+    width: 100%;
+    min-height: 46px;
+    padding: 0.65rem 0.85rem;
+    border: 1px solid #cbd5e1;
+    border-radius: 10px;
+    background: #ffffff;
+    color: var(--bl-ink);
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+}
+
+.bl-form input:focus {
+    border-color: var(--bl-blue-light);
+    outline: none;
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
+}
+
+.bl-hint {
+    margin: 0.25rem 0 0;
+    color: var(--bl-muted);
+    font-size: 0.78rem;
+    line-height: 1.4;
+}
+
+/* 4. PASSWORD STRENGTH METER */
+.bl-password-meter {
+    margin-top: 0.5rem;
+    padding: 0.6rem 0.75rem;
+    border-radius: 8px;
+    font-size: 0.76rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s ease;
+}
+
+.bl-meter-weak {
+    background-color: #fef2f2;
+    color: #991b1b;
+    border: 1px solid #fecaca;
+}
+
+.bl-meter-medium {
+    background-color: #fffbeb;
+    color: #92400e;
+    border: 1px solid #fde68a;
+}
+
+.bl-meter-strong {
+    background-color: #ecfdf5;
+    color: #065f46;
+    border: 1px solid #a7f3d0;
+}
+
+/* 5. PORTAL BUTTONS */
+.bl-primary-btn, .bl-secondary-btn {
+    display: inline-flex;
+    min-height: 44px;
+    align-items: center;
+    justify-content: center;
+    padding: 0.7rem 1.25rem;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 0.88rem;
+    text-decoration: none;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+}
+
+.bl-primary-btn {
+    margin-top: 0.75rem;
+    border: 0;
+    background: linear-gradient(135deg, var(--bl-blue) 0%, var(--bl-purple) 100%);
+    color: #ffffff !important;
+    box-shadow: 0 4px 14px rgba(29, 78, 216, 0.25);
+}
+
+.bl-primary-btn:hover {
+    filter: brightness(1.05);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(29, 78, 216, 0.35);
+}
+
+.bl-secondary-btn {
+    border: 1px solid var(--bl-border);
+    background: #ffffff;
+    color: var(--bl-blue-dark);
+}
+
+.bl-secondary-btn:hover {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+    color: var(--bl-blue);
+}
+
+.bl-auth-switch {
+    margin: 1.5rem 0 0;
+    color: var(--bl-muted);
+    font-size: 0.84rem;
+    text-align: center;
+}
+
+.bl-auth-switch a, .bl-portal-links a {
+    color: var(--bl-blue);
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.bl-auth-switch a:hover, .bl-portal-links a:hover {
+    text-decoration: underline;
+}
+
+/* 6. PORTAL KPI SUMMARY CARDS */
+.bl-portal-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1.25rem;
+    margin-bottom: 2rem;
+}
+
+.bl-portal-card {
+    background: #ffffff;
+    border: 1px solid var(--bl-border);
+    border-radius: 16px;
+    padding: 1.25rem 1.5rem;
+    box-shadow: 0 4px 16px rgba(15, 23, 42, 0.04);
+}
+
+.bl-portal-card .card-title {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--bl-muted);
+}
+
+.bl-portal-card .card-value {
+    font-size: 1.85rem;
+    font-weight: 800;
+    color: var(--bl-ink);
+    margin-top: 0.35rem;
+    letter-spacing: -0.02em;
+}
+
+/* 7. PORTAL TABLES */
+.bl-page-heading {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.bl-table-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--bl-border);
+    border-radius: 16px;
+    background: var(--bl-surface);
+    box-shadow: 0 8px 30px rgba(15, 23, 42, 0.04);
+}
+
+.bl-table {
+    width: 100%;
+    min-width: 720px;
+    margin: 0;
+    border-collapse: collapse;
+}
+
+.bl-table thead th {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--bl-border);
+    background: #f8fafc;
+    color: #475569;
+    font-size: 0.74rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    font-weight: 700;
+}
+
+.bl-table tbody td {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid #f1f5f9;
+    vertical-align: middle;
+    font-size: 0.88rem;
+}
+
+.bl-table tbody tr:hover {
+    background-color: #f8faff;
+}
+
+/* 8. STATUS BADGES */
+.bl-status {
+    display: inline-block;
+    padding: 0.25rem 0.65rem;
+    border-radius: 9999px;
+    font-size: 0.74rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.bl-status-active, .bl-status-paid {
+    background-color: #ecfdf5;
+    color: #065f46;
+    border: 1px solid #a7f3d0;
+}
+
+.bl-status-draft, .bl-status-quotation, .bl-status-not_paid {
+    background-color: #f1f5f9;
+    color: #475569;
+    border: 1px solid #cbd5e1;
+}
+
+.bl-status-partial {
+    background-color: #fff7ed;
+    color: #9a3412;
+    border: 1px solid #fed7aa;
+}
+
+.bl-status-paused {
+    background-color: #fffbeb;
+    color: #92400e;
+    border: 1px solid #fde68a;
+}
+
+.bl-status-closed, .bl-status-cancel {
+    background-color: #fef2f2;
+    color: #991b1b;
+    border: 1px solid #fecaca;
+}
+
+.bl-empty {
+    text-align: center;
+    padding: 3rem 1rem !important;
+    color: var(--bl-muted);
+    font-weight: 500;
+}
+
+.bl-portal-links {
+    display: flex;
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+    font-size: 0.86rem;
+}

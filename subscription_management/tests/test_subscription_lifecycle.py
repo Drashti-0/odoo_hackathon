@@ -392,6 +392,8 @@ class TestSubscriptionLifecycle(TransactionCase):
             'line_ids': [(0, 0, {'product_id': self.product.id, 'quantity': 2.0})],
         })
         sub.action_confirm()
+        with self.assertRaises(UserError):
+            sub.action_renew()
         sub.action_activate()
         initial_expiry = sub.expiry_date
 
@@ -399,7 +401,12 @@ class TestSubscriptionLifecycle(TransactionCase):
         self.assertEqual(sub.expiry_date, initial_expiry + relativedelta(months=1))
         self.assertEqual(sub.state, 'active')
 
+        sub.action_pause()
+        with self.assertRaises(UserError):
+            sub.action_renew()
+
         # C. Expired / Closed subscription renewal
+        sub.action_resume()
         sub.state = 'closed'
         sub.close_date = date.today()
         sub.close_reason = "Ended early"
