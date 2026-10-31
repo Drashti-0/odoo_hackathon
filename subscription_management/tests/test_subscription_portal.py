@@ -18,9 +18,10 @@ class TestSubscriptionCustomerPortal(HttpCase):
             'name': 'Other Portal Customer',
             'email': 'portal.other@example.test',
         })
-        portal_group = cls.env.ref(
-            'subscription_management.group_subscription_portal'
-        )
+        portal_groups = [
+            cls.env.ref('base.group_portal').id,
+            cls.env.ref('subscription_management.group_subscription_portal').id,
+        ]
         cls.login = 'portal.customer@example.test'
         cls.password = 'PortalSecure!2026'
         cls.portal_user = cls.env['res.users'].sudo().with_context(
@@ -31,7 +32,7 @@ class TestSubscriptionCustomerPortal(HttpCase):
             'email': cls.login,
             'partner_id': cls.customer.id,
             'password': cls.password,
-            'groups_id': [(6, 0, [portal_group.id])],
+            'groups_id': [(6, 0, portal_groups)],
         })
         cls.plan = cls.env['subscription.plan'].create({
             'name': 'Portal Test Monthly Plan',
