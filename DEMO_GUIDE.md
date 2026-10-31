@@ -1,6 +1,8 @@
 # Brightloop Software – Subscription Management System
 # Comprehensive Demonstration & Presentation Guide
 
+> **Final verification note (2026-10-31):** This guide contains the original project/demo scope and may describe gateway, email, performance, or workflow capabilities more broadly than were verified. For the demo sequence and claims that are safe to make, use [docs/FINAL_HACKATHON_DEMO.md](docs/FINAL_HACKATHON_DEMO.md) and [docs/TESTING_REPORT.md](docs/TESTING_REPORT.md). The native suite was not a clean pass; live provider, email, cron side effects, portal ownership, and PDF output were not fully verified.
+
 **Team:** AuraMinds  
 **Developer 1:** Dhruti Viradiya (Core Modules: Product & Variants, Plans, Subscriptions, Recurring Billing Engine)  
 **Developer 2:** Drashti Bhanderi (Operational Modules: User Management, Discounts, Payments, Financial Dashboard)  
@@ -27,7 +29,7 @@ Modern businesses are transitioning from one-time transactions to recurring subs
 - **Eliminates Manual Billing Overhead**: Automates recurring invoice generation via a resilient cron engine, including automatic catch-up for system downtime without invoice gaps or duplicate charges.
 - **Prevents Revenue Leakage**: Enforces strict financial constraints against negative totals, overpayments, expired discounts, and uncollected overdue receivables.
 - **Ensures Data Isolation**: Implements strict row-level security so that enterprise customers can never view or tamper with other customers' financial records.
-- **Provides Instant Financial Visibility**: Replaces slow manual spreadsheet consolidation with a database-aggregated real-time dashboard delivering Monthly Recurring Revenue (MRR), Annual Recurring Revenue (ARR), and collections aging in under 0.05 seconds.
+- **Provides Financial Visibility**: Dashboard code includes database-backed recurring-revenue and receivables metrics. Final runtime verification found a dashboard aggregation error; do not demonstrate or claim those metrics work until the dashboard owner fixes and retests it.
 
 ### D. Main User Roles
 1. **Subscription Administrator (`group_subscription_manager`)**:
@@ -199,25 +201,20 @@ Modern businesses are transitioning from one-time transactions to recurring subs
 ### Step 9: Real-Time Financial Dashboard & Visual Analytics
 - **Where to Navigate**: Click **Dashboard** in top menu bar.
 - **Action to Perform**:
-  - Show the 5 core metric cards:
-    1. Active Subscriptions: Live count.
-    2. Revenue Received: Displays exact confirmed payments ($400.00).
-    3. Outstanding Receivables: Displays unpaid balances across remaining invoices.
-    4. Overdue Invoices: Highlights invoices past due date.
-    5. Confirmed Payments: Total count and volume.
-  - Demonstrate Dynamic Filters: Select `This Month` $\rightarrow$ Metrics update instantly. Select Customer `Acme Cloud Corp` $\rightarrow$ Scopes metrics to Acme.
-  - Click the card button **View Payments →** $\rightarrow$ Drills down directly to the settled payments tree.
-  - Navigate to **Reporting** $\rightarrow$ **Revenue & Payments** $\rightarrow$ Show the monthly revenue bar chart and cross-tab pivot table.
-- **What to Explain**: *"This is our Task 5 executive dashboard. All metrics are calculated via database-level `read_group` SQL queries in under 0.03 seconds. We also provide multi-dimensional pivot tables and monthly trend charts."*
+  - Show the live subscription, invoice, payment, receivables, and recurring-revenue metrics visible in the current dashboard.
+  - Demonstrate date/customer filters only if the current data produces an intelligible result. Do not promise specific totals; local test/demo records contribute to global figures.
+  - Use the dashboard's visible action buttons to open their corresponding record lists.
+  - Open Reporting charts/pivots if the installed menu exposes them in this database.
+- **What to Explain**: *"The dashboard aggregates Odoo records and provides filters and drill-downs. We have not benchmarked this environment in the final run, so we do not claim a particular response-time SLA."*
 
-### Step 10: Role-Based Security & Customer Isolation Proof
-- **Where to Navigate**: Log out of Admin $\rightarrow$ Log in as Customer `Acme Cloud Corp` (or simulate portal user).
+### Step 10: Role-Based Security & Customer Isolation
+- **Where to Navigate**: Use a separately provisioned synthetic portal account linked to a known synthetic customer. Do not simulate a portal user by reusing an internal account.
 - **Action to Perform**:
-  - Show Customer Portal view: Acme can view only their own subscription `SUB-00001` and invoice `INV-2026-0001`.
-  - Show that Global Dashboard and Reporting menus are completely hidden and inaccessible.
-  - Attempt direct RPC or URL access to another customer's invoice or global dashboard $\rightarrow$ Blocked with `AccessError`.
-- **Result**: Complete multi-tenant privacy is verified.
-- **What to Explain**: *"Security is enforced at the PostgreSQL and Odoo ORM layer, not merely by hiding buttons. Portal customers can never view another client's contracts, and unauthorized RPC write requests are rejected immediately."*
+  - Confirm the portal user's subscriptions/invoices are associated with that user's partner.
+  - If a second synthetic customer is available, attempt to open a record belonging to the other customer and confirm it is not disclosed.
+  - Do not claim this is verified until those exact steps are exercised with separate portal accounts.
+- **Result**: Portal record rules and partner-scoped route checks are present in code. The final verification did not have a portal-customer login and did not perform a two-customer browser test.
+- **What to Explain**: *"The source implements partner-scoped access; we are transparent that this final run did not perform a cross-customer browser test."*
 
 ---
 
@@ -317,7 +314,7 @@ Modern businesses are transitioning from one-time transactions to recurring subs
       - Pivot tables: Multi-dimensional grids for cross-tabulating payment methods and receivables aging by customer.
 
 25. **Q: What testing methodology was used and why are there standalone tests?**
-    - **A:** We wrote native Odoo `TransactionCase` test suites for all modules. However, in CI or local environments without an active `odoo-bin` executable or running PostgreSQL daemon, native tests cannot run directly. Therefore, we also built a complete standalone Python verification suite that faithfully simulates the Odoo ORM, security rules, and calculations. Our standalone suite runs 91 comprehensive tests in 0.040 seconds with 100% pass rate.
+    - **A:** The standalone verification runner passed 93 tests on the final run. A previously recorded native Odoo suite run against the populated local database had 14 failures and 6 errors out of 132 tests, so it is not a clean isolated result. The standalone checks are not a substitute for native ORM/database tests.
 
 ---
 

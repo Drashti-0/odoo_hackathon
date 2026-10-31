@@ -1,6 +1,8 @@
 # Module-Wise Technical Documentation
 ## Brightloop Subscription Management System
 
+> **Evidence note:** This is a technical design/history document. Performance figures and feature descriptions are not a substitute for current runtime proof; in particular, no 5,000-record benchmark was run for this final task. Consult [TESTING_REPORT.md](TESTING_REPORT.md) for measured test evidence and limits.
+
 **Project:** Subscription Management System – Brightloop Software  
 **Team:** AuraMinds  
 **Target Version:** Odoo 17.0 / 18.0  
@@ -152,7 +154,7 @@ Provides real-time executive business intelligence, collection aging, and visual
 - **Interactive Console (`subscription.dashboard.console`)**: Form view with KPI cards, action drill-downs, and dynamic filter controls.
 - **Dynamic Filters**: Period (`today`, `this_week`, `this_month`, `this_year`, `custom`, `all`), Customer, Subscription Status, Payment Method.
 - **Visual Analytics**: Native Odoo Graph (pie, bar) and Pivot views for subscription distribution, monthly revenue trends, receivables aging, and payment methods.
-- **Performance**: Uses Odoo ORM `read_group()` directly, executing in under 0.03 seconds on 5,000 records.
+- **Performance**: Uses Odoo ORM `read_group()` for database-level aggregation. An older document quoted a 5,000-record runtime benchmark; that benchmark was not reproduced during final verification and must not be presented as a verified performance result.
 
 ### Models & Important Methods
 - `subscription.dashboard` (AbstractModel in `models/dashboard.py`):

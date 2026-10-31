@@ -11,15 +11,13 @@ Software companies sell recurring services, but managing products, plans, contra
 
 ### 0:00–0:35 — Set the context
 
-Say: “Brightloop is an Odoo 17 subscription-management addon. The central record is a customer contract: it points to a plan and product lines, moves through a controlled lifecycle, and links recurring invoices to billing periods. The dashboard and portal are views over Odoo data, not a separate static demo.”
+Say: “Brightloop is an Odoo 17 subscription-management addon. The central record is a customer contract: it points to a plan and product lines, moves through a controlled lifecycle, and links recurring invoices to billing periods. It uses Odoo data rather than a separate static demo.”
 
-Start at `http://localhost:8069/web` on the Brightloop Subscriptions dashboard. Identify the data as the current local demo database, not production.
+**Do not run this as a live demonstration until the dashboard blocker is fixed and retested.** Start at `http://localhost:8069/web` after an authorized internal login. Identify the data as the current local demo database, not production.
 
 ### 0:35–1:20 — Show live operational visibility
 
-Point out the dashboard's database-backed customer/product/plan/subscription/invoice indicators, MRR/ARR fields, receivable/revenue metrics, filters, and chart/report navigation. Avoid reading out a “headline” financial number unless its source records and the current dashboard filter are understood. Existing local test/demo data may affect global totals.
-
-Explain that “revenue received” is based on successful payment records; an unpaid invoice belongs in outstanding/residual figures, not settled revenue.
+**Current blocker:** the latest dashboard request raised `NameError: name 'inv_domain' is not defined` during monthly invoice aggregation. The dashboard is Developer 2-owned and remains unresolved pending owner authorization. Do not claim or demonstrate live dashboard KPIs until fixed and verified.
 
 ### 1:20–2:05 — Show the catalog and recurring terms
 
@@ -49,7 +47,7 @@ Show payment transactions linked to invoices and the available discount rule fie
 
 ### 5:40–6:00 — Close with customer isolation and limitations
 
-Describe the customer portal: authenticated routes filter subscriptions/invoices to the user's partner/commercial-partner records; renewal/cancellation controls submit staff-review requests. The portal was not authenticated and visually tested in this final verification; do not claim a live customer walkthrough. End with the concrete next steps: isolated native test run, portal/PDF validation, real mail-template dispatch, and provider sandbox integration if in scope.
+Describe the customer portal: source routes and record rules use partner scopes, but no authenticated customer portal session was tested; do not claim a live customer walkthrough. End with the concrete next steps: owner-authorized dashboard repair, isolated native test run, portal/PDF validation, real mail-template dispatch, and provider sandbox integration if in scope.
 
 ## Why the solution matters
 
@@ -63,7 +61,7 @@ These are implementation capabilities and design benefits; this demo does not cl
 
 ## Strongest demonstrated features
 
-1. A live, database-backed dashboard inside the Odoo backend.
+1. Database-backed dashboard code exists, but live rendering is currently blocked by the known aggregation error.
 2. The connected plan → quotation → subscription → invoice data model.
 3. Subscription lifecycle state and next-billing fields.
 4. Recurring billing configuration and billing audit model.
@@ -87,7 +85,7 @@ The project combines a configurable subscription lifecycle, recurring billing an
 
 - Use `brightloop_test_db` only if that local database is available; otherwise create a development database and install the addon.
 - Load demo data with the command in [INSTALLATION_GUIDE.md](INSTALLATION_GUIDE.md); it creates synthetic `.test` customers, catalog, plans, quotations, an active subscription, and an unpaid invoice through Odoo ORM.
-- Check that the dashboard is the expected action and that the local app is responsive.
+- Check that the local app is responsive. The dashboard is known to error during monthly invoice aggregation; do not present it as operational unless the owner has fixed and retested it.
 - Prepare an existing quotation rather than creating duplicate live demo records.
 - Prepare distinct internal and portal accounts. Do not disclose passwords on screen or in submission documents.
 - If showing customer scope, use two synthetic customers and verify the second user's records are not accessible before the event.
@@ -101,6 +99,7 @@ Use [JUDGE_QA.md](JUDGE_QA.md) for concise technical and business answers. If as
 ## Known limitations to disclose
 
 - Native test run is not a clean pass; test-data contamination and genuine state/fixture mismatches need owner triage in an isolated database.
+- Dashboard KPI computation currently fails on undefined `inv_domain`; owner coordination is required to fix the Developer 2-owned dashboard module.
 - Portal customer login and cross-customer access were not verified in the final browser run.
 - QWeb invoice PDF output, cron side effects, actual notification delivery, and provider gateway calls were not exercised in this final verification.
 - Invoice action named as email/send does not dispatch mail in the reviewed implementation.

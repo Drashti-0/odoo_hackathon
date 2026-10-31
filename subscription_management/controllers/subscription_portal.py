@@ -250,7 +250,6 @@ class SubscriptionCustomerPortal(CustomerPortal):
     def portal_my_invoices(self, page=1, **kwargs):
         invoices_model = request.env['subscription.invoice']
         domain = [('partner_id', 'in', self._get_portal_partner_ids())]
-        domain = [('partner_id', '=', request.env.user.partner_id.id)]
         total = invoices_model.search_count(domain)
         pager = portal_pager(
             url='/my/invoices',

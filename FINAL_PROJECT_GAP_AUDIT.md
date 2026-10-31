@@ -7,7 +7,7 @@
 
 ## Executive summary
 
-The existing addon is installed and the running Odoo instance uses the repository's bind-mounted addon. The system has working product, plan, subscription, invoice, payment, dashboard, and customer-portal implementations; this is not a blank or duplicate implementation.
+The existing addon is installed and the running Odoo instance uses the repository's bind-mounted addon. The system has product, plan, subscription, invoice, payment, dashboard, and customer-portal implementations; the latest live dashboard request exposed an unresolved aggregation error, and several other workflows remain unverified.
 
 Verification evidence collected during this audit:
 
@@ -16,9 +16,11 @@ Verification evidence collected during this audit:
 - The active database contains 65 subscriptions, 40 invoices, and 25 payment records. It contains 19 stable `subscription_management.demo_*` external IDs (the loader's five customer, five product, three plan, five subscription, and one invoice records).
 - All three subscription cron records are enabled. Their execution was not triggered as part of this audit.
 - All 16 module XML files parsed successfully.
-- `python3 tests/run_standalone_verification.py -v`: **92 tests passed**.
-- The full native Odoo suite on the already populated database: **132 tests, 14 failures and 6 errors**. Many failures compare global dashboard aggregates with small isolated fixture values. The test class commits fixtures and reuses a fixed email. The test file received an unrelated, uncommitted cleanup edit during this audit; that edit was left untouched and the native suite was not rerun against it. Separate lifecycle assertions disagree about `expired` versus `closed`, and invoice tests report missing `subscription_id` or duplicate subscription-period rows. This run is not a clean-database pass and is not sufficient to label the native suite as passing.
-- Opening `/my` and `/web` in the integrated browser redirected to the Odoo login screen. No portal-customer credentials were available, so authenticated customer-page behavior was not visually verified during this audit.
+- Latest `python3 tests/run_standalone_verification.py -q`: **93 tests passed**. An earlier audit run had 92.
+- A prior full native Odoo run on the populated database: **132 tests, 14 failures and 6 errors**. Many failures compare global dashboard aggregates with small isolated fixture values. That run also showed lifecycle assertions disagreeing about `expired` versus `closed`, and invoice test errors for missing `subscription_id` or duplicate subscription-period rows. It is not a clean-database pass. The native suite was not rerun during the final mission.
+- The latest dashboard compute request raised `NameError: name 'inv_domain' is not defined` during monthly invoice aggregation. Anonymous `/web` and `/my` requests redirected to login. An existing `/my/plans/64` browser tab showed 404; no portal-customer account was available for ownership testing.
+- The controllers declare `/my/subscriptions` twice (`portal_auth.py` and `subscription_portal.py`). An authenticated browser request rendered the subscription-list empty state for the current user's account, but duplicate route registration is unnecessary and must be reconciled with the portal owner.
+- The high-level repo rules were checked: local `.env` is ignored, `.env.example` contains blank password fields, and Compose requires passwords from environment variables. The initial running container used an invalid CLI argument and was not loopback-bound; Compose was corrected, the services were recreated, and the actual Odoo binding was verified as `127.0.0.1:8069`. Do not copy real values into documentation or source.
 
 The integration contract explicitly assigns shared implementation files to Developer 1 or Developer 2. The implementation gaps below are documented rather than patched in those owned files. No Python business logic, ACLs, record rules, or existing database records were changed.
 
@@ -36,8 +38,8 @@ Status definitions: **COMPLETE** = verified implementation and evidence; **PARTI
 | 6 | Customer and employee roles | User groups, staff roles and portal integration are present in security and user-management code. | COMPLETE | Developer 2; retain existing role design. | HIGH |
 | 7 | Discounts and validation | Discount/coupon model and invoice/subscription hooks exist; standalone verification passes. The native suite is not clean enough to certify full ORM integration. | PARTIAL | Developer 2; rerun native validation against an isolated database. | MEDIUM |
 | 8 | Payment management and status | Payment transaction records, reconciliation/status logic and payment views exist. The demo invoice is unpaid; no fake successful payment was inserted. No live gateway/provider transaction was exercised; the contract's gateway integration claim needs provider-specific proof. | PARTIAL | Developer 2; do not present manual status updates as a live payment gateway. | HIGH |
-| 9 | Dashboard and financial reporting | Database-backed dashboard KPIs, filters, charts and pivot views are present. The contract lists `reports/financial_report.xml`, but that file is absent; the existing QWeb report is the invoice report. README claims recent activity, which was not verified as a dedicated activity table. | PARTIAL | Dashboard owned by Developer 2; add/verify financial report and activity view with that owner. | HIGH |
-| 10 | Customer portal and customer-specific records | Portal routes/templates cover subscriptions, plans, invoices and billing/payment history; ownership checks and portal record rules exist. Authenticated portal access was not visually verified in this audit because no portal account was available. | PARTIAL | Developer 2; retain the current record scoping and verify with a real portal user. | HIGH |
+| 9 | Dashboard and financial reporting | Dashboard code has KPIs, filters, charts and pivot views, but the latest live dashboard request raises `NameError: name 'inv_domain' is not defined` in monthly invoice aggregation. The contract-listed `reports/financial_report.xml` is absent. | BROKEN | Developer 2 owns `models/dashboard.py`; owner authorization is required before editing. Add/verify the financial report with that owner. | HIGH |
+| 10 | Customer portal and customer-specific records | Portal routes/templates cover subscriptions, plans, invoices and billing/payment history; partner-scoped lookups and record rules exist. Anonymous requests redirect to login; no authorized customer login was available. Two controllers both declare `/my/subscriptions`, creating route ownership ambiguity. | PARTIAL | Developer 2 portal ownership; consolidate the duplicate route and verify with distinct portal customers. | HIGH |
 | 11 | Email notifications and invoice “send” action | `subscription.invoice.action_send_email()` only posts a chatter message stating the invoice was sent; it does not dispatch an email. No invoice mail-template/send-mail call was found. This is a misleading, non-delivering action. | BROKEN | Developer 1 owns `models/subscription_invoice.py` and invoice views; implementation requires owner coordination. Copilot did not alter it. | HIGH |
 | 12 | Invoice PDF/report generation | QWeb invoice report action and portal PDF route exist, with ownership checks in the portal route. XML parses, but actual PDF rendering/download was not exercised during this audit. | PARTIAL | Developer 1 owns the report; complete a real PDF render/download test. | HIGH |
 | 13 | Scheduled jobs and notifications | Recurring billing, expiry and upcoming-billing cron records exist and are enabled in the active DB. Execution, side effects and email delivery were not demonstrated in this audit. | PARTIAL | Developer 1 owns cron; run controlled, non-production validation. | HIGH |
@@ -45,9 +47,9 @@ Status definitions: **COMPLETE** = verified implementation and evidence; **PARTI
 | 15 | Access rights and customer isolation | ACLs, groups and partner-scoped rules are present. Prior focused portal tests passed 7/7; this audit did not authenticate a browser as a portal customer. No ACL or record-rule changes were made. | COMPLETE | Developer 1/2 security ownership; preserve existing restrictions. | CRITICAL |
 | 16 | Search, filters, grouping and navigation | Product, plan, subscription, invoice, payment, billing-log and dashboard views include searchable actions and filters; menu/action definitions are present. XML syntax validation passed. Not every menu was opened interactively during this audit. | PARTIAL | View owners per contract; no duplicate navigation added. | MEDIUM |
 | 17 | Audit trail and customer activity | Chatter tracking, billing logs and subscription activities are implemented. The README's “recent activity” dashboard claim was not confirmed as a populated customer-activity table. | PARTIAL | Core billing/activity files are Developer 1-owned; dashboard activity is Developer 2-owned. Coordinate before extending. | MEDIUM |
-| 18 | Installation, upgrade and configuration | Addon is installed in the active Odoo 17 database and its mounted source is the repository module. XML parse validation passed. A module upgrade was not run in this audit. | PARTIAL | Manifest/configuration owned by Developer 1; no changes made. | HIGH |
+| 18 | Installation, upgrade and configuration | Addon is installed and mounted from the repository, but live requests raise `UndefinedColumn` for `subscription_plan.trial_period_days`, showing the shared database schema is behind the source. A module upgrade was not run because it would alter shared database structure without authorization. | BROKEN | Developer 1 owns core product/plan models; coordinate and back up before upgrading the shared development database. | HIGH |
 | 19 | Reproducible demo data and workflow | `scripts/load_demo_data.py` uses stable external IDs and creates synthetic `.test` customers/products/plans/subscriptions/invoice. Active database has the expected 19 demo external IDs. The loader was not rerun to avoid changing the shared database. | COMPLETE | Demo loader already exists; no duplicate records created. | HIGH |
-| 20 | Automated tests and user documentation | Standalone suite passes 92/92. The native run (14 failures, 6 errors) predates a concurrent uncommitted cleanup edit to `test_subscription_portal.py`; the test still commits its fixtures and reuses a fixed email. `DASHBOARD_REPORTS.md` had a stale 85/85 count and is corrected in this audit. | PARTIAL | Core tests are Developer 1-owned; report the dirty-database and lifecycle issues to the owners. | CRITICAL |
+| 20 | Automated tests and user documentation | Latest standalone suite passes 93/93. A prior populated-database native run had 14 failures and 6 errors. Several historical reports still contain stale branch, test-count, benchmark, or pass-rate claims; the final submission docs now carry the current qualified result. | PARTIAL | Core tests are Developer 1-owned; rerun native validation in an isolated database and reconcile old reports. | CRITICAL |
 
 ## Ownership and integration conflicts
 
@@ -58,29 +60,31 @@ The following gaps are real but touch files assigned to a developer by `INTEGRAT
 3. **Native test isolation:** the Developer 1-owned test suite commits a portal fixture and reuses a fixed email. The populated DB also makes dashboard aggregate expectations non-isolated. Fix fixtures and rerun against a clean test database without resetting the shared demo DB.
 4. **Financial report:** the contract assigns `reports/financial_report.xml` to Developer 2, but the file is absent. Existing dashboard charts are not the same as a printable financial report.
 5. **Portal verification:** portal-specific rendering and PDF delivery need an authenticated portal-user browser session; the current browser session only reached login.
+6. **Duplicate portal endpoint:** both `portal_auth.py` and `subscription_portal.py` register `/my/subscriptions`. The current request rendered the list page, but the duplicate route should be resolved by the portal owner before public rollout.
 
 No evidence was found that a separate, duplicate module should be created. The existing implementation and ownership boundaries were preserved.
 
 ## Changes made by Copilot in this audit
 
 - Added this audit report.
-- Updated the stale standalone regression count in `DASHBOARD_REPORTS.md` to the observed 92 passing tests.
+- Updated demo/submission documentation to reflect 93 standalone tests, the failed native suite, and the latest dashboard runtime error.
+- Fixed the Odoo 17 Compose startup configuration and confirmed the local port is loopback-only.
 - No business logic, models, access rules, views, database data, module manifest, or test code was changed by Copilot. A concurrent uncommitted edit to `subscription_management/tests/test_subscription_portal.py` appeared during the audit and was left untouched.
 
 ## Demo readiness and completion estimate
 
-**Weighted implementation estimate: 60%.** Calculation: 20 requirement areas are scored equally; `COMPLETE = 1`, `PARTIAL = 0.5`, and `BROKEN/MISSING/BLOCKED = 0`. This audit classifies 5 areas complete, 14 partial, and 1 broken: `(5 + 14 × 0.5) / 20 = 60%`. This measures requirement coverage, not test quality or delivery confidence.
+**Weighted implementation estimate: 55%.** Calculation: 20 requirement areas are scored equally; `COMPLETE = 1`, `PARTIAL = 0.5`, and `BROKEN/MISSING/BLOCKED = 0`. This audit classifies 5 areas complete, 12 partial, and 3 broken: `(5 + 12 × 0.5) / 20 = 55%`. This measures requirement coverage, not test quality or delivery confidence.
 
-**Hackathon demo readiness: BLOCKED for an unconditional end-to-end pass.** The app is installed, populated, and has working core surfaces, but native tests fail on the active database, invoice-send behavior is misleading, and authenticated portal/PDF/cron workflows have not been verified in this audit. Use the existing synthetic demo records for a guided internal demonstration only after confirming the lifecycle and billing flow on an isolated test database. Do not claim gateway payment or actual email delivery.
+**Hackathon demo readiness: BLOCKED.** The app is installed and populated, but dashboard KPI computation fails, database schema lags the mounted addon, native tests fail on the active database, invoice-send behavior is misleading, and authenticated portal/PDF/cron workflows have not been verified in this audit. Fixes require owner coordination and authorization to update the shared development database. Do not claim an end-to-end pass, gateway payment, or actual email delivery.
 
 ## Exact verification commands and runtime facts
 
-- Standalone suite: `python3 tests/run_standalone_verification.py -v` — **PASS, 92 tests**.
+- Standalone suite: `python3 tests/run_standalone_verification.py -q` — **PASS, 93 tests on final run**.
 - Native Odoo suite: run against existing `brightloop_test_db` — **FAIL, 14 failures and 6 errors out of 132 tests**; this database was intentionally not reset.
 - XML syntax: parsed all 16 `subscription_management/**/*.xml` files — **PASS**.
 - Runtime: Odoo 17 at `http://localhost:8069`; active module `subscription_management`; database `brightloop_test_db`.
 - Addon bind mount: repository `subscription_management/` → `/mnt/extra-addons/subscription_management`.
-- Browser: `/my` redirected to `/web/login`; authenticated portal and admin pages were **NOT TESTED** in this audit.
+- Browser: dashboard **FAIL** due undefined `inv_domain`; a plan page also failed due the database's missing `trial_period_days` column; anonymous `/my` redirected to login. Customer-scoped portal verification was **NOT TESTED**.
 
 To load or reconcile the synthetic demo records in the configured local container, use the repository's documented idempotent loader:
 
