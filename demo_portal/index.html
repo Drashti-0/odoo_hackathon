@@ -1,0 +1,1051 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Brightloop Subscription Management – Enterprise SaaS Platform</title>
+    <!-- Modern Tailwind & Chart.js for premium presentation -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            800: '#3730a3',
+                            900: '#312e81',
+                        },
+                        accent: {
+                            purple: '#8b5cf6',
+                            emerald: '#10b981',
+                            amber: '#f59e0b',
+                            rose: '#f43f5e'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f8fafc; }
+        .glass-panel { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(8px); border: 1px solid rgba(226, 232, 240, 0.8); }
+        .nav-active { background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%); color: white !important; font-weight: 600; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25); }
+        .stat-card { transition: all 0.2s ease-in-out; }
+        .stat-card:hover { transform: translateY(-2px); box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05); }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    </style>
+</head>
+<body class="text-slate-800 antialiased h-screen flex overflow-hidden">
+
+    <!-- SIDEBAR NAVIGATION -->
+    <aside class="w-64 bg-slate-900 text-slate-300 flex flex-col flex-shrink-0 border-r border-slate-800 z-30 transition-all duration-300 select-none">
+        <!-- Brand Header -->
+        <div class="h-16 flex items-center px-6 bg-slate-950 border-b border-slate-800">
+            <div class="flex items-center space-x-3">
+                <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-brand-600 to-accent-purple flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-brand-500/30">
+                    <i class="fa-solid fa-arrows-spin"></i>
+                </div>
+                <div>
+                    <span class="text-white font-bold text-base tracking-tight block leading-tight">Brightloop</span>
+                    <span class="text-xs text-brand-400 font-medium">Subscriptions v17.0</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation Links -->
+        <div class="flex-1 overflow-y-auto py-4 px-3 space-y-1">
+            <div class="px-3 pb-2 text-[11px] font-semibold tracking-wider text-slate-500 uppercase">Executive Overview</div>
+            
+            <a href="#" onclick="showScreen('admin_dashboard')" id="nav_admin_dashboard" class="nav-item flex items-center px-3 py-2.5 rounded-lg text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all nav-active">
+                <i class="fa-solid fa-chart-pie w-5 mr-3 text-center text-slate-400"></i>
+                <span>Admin Dashboard</span>
+                <span class="ml-auto text-[10px] bg-brand-500/20 text-brand-300 px-2 py-0.5 rounded-full font-bold">LIVE</span>
+            </a>
+
+            <a href="#" onclick="showScreen('customer_dashboard')" id="nav_customer_dashboard" class="nav-item flex items-center px-3 py-2.5 rounded-lg text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all">
+                <i class="fa-solid fa-id-card-clip w-5 mr-3 text-center text-slate-400"></i>
+                <span>Customer Portal</span>
+            </a>
+
+            <a href="#" onclick="showScreen('financial_reports')" id="nav_financial_reports" class="nav-item flex items-center px-3 py-2.5 rounded-lg text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all">
+                <i class="fa-solid fa-chart-line w-5 mr-3 text-center text-slate-400"></i>
+                <span>Financial Analytics</span>
+            </a>
+
+            <div class="pt-4 px-3 pb-2 text-[11px] font-semibold tracking-wider text-slate-500 uppercase">Core Management</div>
+
+            <a href="#" onclick="showScreen('subscription_mgmt')" id="nav_subscription_mgmt" class="nav-item flex items-center px-3 py-2.5 rounded-lg text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all">
+                <i class="fa-solid fa-file-contract w-5 mr-3 text-center text-slate-400"></i>
+                <span>Subscriptions</span>
+                <span class="ml-auto text-xs bg-slate-800 text-slate-400 px-2 py-0.5 rounded-md">12</span>
+            </a>
+
+            <a href="#" onclick="showScreen('invoice_mgmt')" id="nav_invoice_mgmt" class="nav-item flex items-center px-3 py-2.5 rounded-lg text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all">
+                <i class="fa-solid fa-file-invoice-dollar w-5 mr-3 text-center text-slate-400"></i>
+                <span>Recurring Invoices</span>
+            </a>
+
+            <a href="#" onclick="showScreen('payment_mgmt')" id="nav_payment_mgmt" class="nav-item flex items-center px-3 py-2.5 rounded-lg text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all">
+                <i class="fa-solid fa-credit-card w-5 mr-3 text-center text-slate-400"></i>
+                <span>Payments &amp; Settled</span>
+            </a>
+
+            <a href="#" onclick="showScreen('discount_mgmt')" id="nav_discount_mgmt" class="nav-item flex items-center px-3 py-2.5 rounded-lg text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all">
+                <i class="fa-solid fa-tags w-5 mr-3 text-center text-slate-400"></i>
+                <span>Discounts &amp; Promos</span>
+            </a>
+
+            <div class="pt-4 px-3 pb-2 text-[11px] font-semibold tracking-wider text-slate-500 uppercase">Catalog &amp; Plans</div>
+
+            <a href="#" onclick="showScreen('product_mgmt')" id="nav_product_mgmt" class="nav-item flex items-center px-3 py-2.5 rounded-lg text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all">
+                <i class="fa-solid fa-box-open w-5 mr-3 text-center text-slate-400"></i>
+                <span>Products &amp; Variants</span>
+            </a>
+
+            <a href="#" onclick="showScreen('plan_mgmt')" id="nav_plan_mgmt" class="nav-item flex items-center px-3 py-2.5 rounded-lg text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all">
+                <i class="fa-solid fa-layer-group w-5 mr-3 text-center text-slate-400"></i>
+                <span>Subscription Plans</span>
+            </a>
+
+            <div class="pt-4 px-3 pb-2 text-[11px] font-semibold tracking-wider text-slate-500 uppercase">System &amp; Access</div>
+
+            <a href="#" onclick="showScreen('user_mgmt')" id="nav_user_mgmt" class="nav-item flex items-center px-3 py-2.5 rounded-lg text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all">
+                <i class="fa-solid fa-users-gear w-5 mr-3 text-center text-slate-400"></i>
+                <span>User Management</span>
+            </a>
+
+            <a href="#" onclick="showScreen('auth_screen')" id="nav_auth_screen" class="nav-item flex items-center px-3 py-2.5 rounded-lg text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all">
+                <i class="fa-solid fa-lock w-5 mr-3 text-center text-slate-400"></i>
+                <span>Auth &amp; Signup Demo</span>
+            </a>
+        </div>
+
+        <!-- Team Footer -->
+        <div class="p-4 bg-slate-950 border-t border-slate-800 text-xs">
+            <div class="flex items-center justify-between text-slate-400 mb-1">
+                <span class="font-semibold text-slate-200">Team AuraMinds</span>
+                <span class="text-[10px] text-emerald-400 flex items-center"><span class="w-1.5 h-1.5 bg-emerald-400 rounded-full mr-1.5"></span>Odoo 17.0</span>
+            </div>
+            <div class="text-[11px] text-slate-500 truncate">Dev 1: Dhruti | Dev 2: Drashti</div>
+        </div>
+    </aside>
+
+    <!-- MAIN WRAPPER -->
+    <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+        
+        <!-- TOP NAVBAR -->
+        <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 z-20 flex-shrink-0">
+            <div class="flex items-center space-x-4">
+                <h1 id="screen_title" class="text-xl font-bold text-slate-800 flex items-center">
+                    <span>Executive Financial Dashboard</span>
+                </h1>
+                <span id="screen_badge" class="bg-indigo-50 text-indigo-700 text-xs px-2.5 py-1 rounded-full font-semibold border border-indigo-100 flex items-center">
+                    <i class="fa-solid fa-circle-check text-indigo-500 mr-1.5 text-[10px]"></i> Live Mock ORM Engine
+                </span>
+            </div>
+
+            <!-- Header Quick Actions & Persona Switcher -->
+            <div class="flex items-center space-x-4">
+                <!-- Role Switcher -->
+                <div class="flex items-center bg-slate-100 p-1 rounded-lg border border-slate-200 text-xs font-medium">
+                    <button onclick="switchRole('admin')" id="role_btn_admin" class="px-2.5 py-1 rounded bg-white text-brand-700 shadow-sm font-semibold transition-all">
+                        <i class="fa-solid fa-shield-halved mr-1"></i> Admin
+                    </button>
+                    <button onclick="switchRole('staff')" id="role_btn_staff" class="px-2.5 py-1 rounded text-slate-600 hover:text-slate-900 transition-all">
+                        <i class="fa-solid fa-user-tie mr-1"></i> Staff
+                    </button>
+                    <button onclick="switchRole('customer')" id="role_btn_customer" class="px-2.5 py-1 rounded text-slate-600 hover:text-slate-900 transition-all">
+                        <i class="fa-solid fa-user mr-1"></i> Portal Alice
+                    </button>
+                </div>
+
+                <div class="h-6 w-px bg-slate-200"></div>
+
+                <!-- Cron Billing Quick Trigger Button -->
+                <button onclick="triggerBillingCron()" class="inline-flex items-center px-3 py-1.5 bg-brand-50 hover:bg-brand-100 text-brand-700 text-xs font-semibold rounded-lg border border-brand-200 transition-colors">
+                    <i class="fa-solid fa-clock-rotate-left mr-1.5"></i> Run Billing Cron
+                </button>
+
+                <!-- User Profile -->
+                <div class="flex items-center space-x-3 pl-2">
+                    <div class="w-8 h-8 rounded-full bg-brand-600 text-white flex items-center justify-center font-bold text-xs ring-2 ring-brand-100" id="user_avatar">
+                        AD
+                    </div>
+                    <div class="hidden sm:block text-left leading-tight">
+                        <div class="text-xs font-semibold text-slate-800" id="user_display_name">Brightloop Admin</div>
+                        <div class="text-[10px] text-slate-500" id="user_display_role">Administrator</div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- SCREEN CONTAINER (DYNAMIC CONTENT) -->
+        <main class="flex-1 overflow-y-auto p-6 bg-slate-50/60" id="content_area">
+            
+            <!-- ============================================== -->
+            <!-- SCREEN 1: ADMIN DASHBOARD                      -->
+            <!-- ============================================== -->
+            <div id="screen_admin_dashboard" class="screen-view space-y-6">
+                <!-- Welcome Banner -->
+                <div class="bg-gradient-to-r from-brand-700 via-brand-600 to-accent-purple rounded-2xl p-6 text-white shadow-xl shadow-brand-500/10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                    <div>
+                        <div class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-white/20 text-white backdrop-blur-sm mb-2">
+                            <i class="fa-solid fa-bolt mr-1 text-amber-300"></i> High-Performance BI Engine Active
+                        </div>
+                        <h2 class="text-2xl font-extrabold tracking-tight">Brightloop SaaS Financial Dashboard</h2>
+                        <p class="text-brand-100 text-sm mt-1 max-w-xl">
+                            Real-time database analytics for recurring revenue, customer churn, active contracts, and automated invoicing.
+                        </p>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <button onclick="showScreen('subscription_mgmt')" class="px-4 py-2 bg-white text-brand-700 hover:bg-brand-50 rounded-xl font-bold text-xs shadow-md transition-all">
+                            <i class="fa-solid fa-plus mr-1.5"></i> New Subscription
+                        </button>
+                        <button onclick="refreshMetrics()" class="px-3 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-medium backdrop-blur-sm border border-white/20 transition-all">
+                            <i class="fa-solid fa-rotate mr-1"></i> Refresh
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 5 CORE METRIC KPI CARDS -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                    <!-- Active Subscriptions -->
+                    <div class="glass-panel stat-card p-5 rounded-2xl border border-slate-200/80">
+                        <div class="flex items-center justify-between text-slate-500 mb-3">
+                            <span class="text-xs font-semibold uppercase tracking-wider">Active Subscriptions</span>
+                            <div class="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center text-sm font-bold">
+                                <i class="fa-solid fa-file-contract"></i>
+                            </div>
+                        </div>
+                        <div class="text-2xl font-extrabold text-slate-800" id="card_active_subs">12</div>
+                        <div class="flex items-center mt-2 text-xs text-emerald-600 font-semibold">
+                            <i class="fa-solid fa-arrow-trend-up mr-1"></i> +18.2% vs last month
+                        </div>
+                    </div>
+
+                    <!-- Total MRR -->
+                    <div class="glass-panel stat-card p-5 rounded-2xl border border-slate-200/80">
+                        <div class="flex items-center justify-between text-slate-500 mb-3">
+                            <span class="text-xs font-semibold uppercase tracking-wider">Normalized MRR</span>
+                            <div class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center text-sm font-bold">
+                                <i class="fa-solid fa-dollar-sign"></i>
+                            </div>
+                        </div>
+                        <div class="text-2xl font-extrabold text-slate-800" id="card_mrr">$14,840.00</div>
+                        <div class="flex items-center mt-2 text-xs text-emerald-600 font-semibold">
+                            <i class="fa-solid fa-arrow-trend-up mr-1"></i> +$2,140 new recurring
+                        </div>
+                    </div>
+
+                    <!-- Total ARR -->
+                    <div class="glass-panel stat-card p-5 rounded-2xl border border-slate-200/80">
+                        <div class="flex items-center justify-between text-slate-500 mb-3">
+                            <span class="text-xs font-semibold uppercase tracking-wider">Annual ARR</span>
+                            <div class="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center text-sm font-bold">
+                                <i class="fa-solid fa-chart-line"></i>
+                            </div>
+                        </div>
+                        <div class="text-2xl font-extrabold text-slate-800" id="card_arr">$178,080.00</div>
+                        <div class="flex items-center mt-2 text-xs text-purple-600 font-semibold">
+                            <i class="fa-solid fa-calculator mr-1"></i> 12x Monthly Recurring
+                        </div>
+                    </div>
+
+                    <!-- Outstanding Receivables -->
+                    <div class="glass-panel stat-card p-5 rounded-2xl border border-slate-200/80">
+                        <div class="flex items-center justify-between text-slate-500 mb-3">
+                            <span class="text-xs font-semibold uppercase tracking-wider">Outstanding</span>
+                            <div class="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center text-sm font-bold">
+                                <i class="fa-solid fa-receipt"></i>
+                            </div>
+                        </div>
+                        <div class="text-2xl font-extrabold text-amber-600" id="card_outstanding">$3,420.00</div>
+                        <div class="flex items-center mt-2 text-xs text-slate-500">
+                            <span>4 unpaid invoices</span>
+                        </div>
+                    </div>
+
+                    <!-- Churn Rate -->
+                    <div class="glass-panel stat-card p-5 rounded-2xl border border-slate-200/80">
+                        <div class="flex items-center justify-between text-slate-500 mb-3">
+                            <span class="text-xs font-semibold uppercase tracking-wider">Monthly Churn</span>
+                            <div class="w-8 h-8 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center text-sm font-bold">
+                                <i class="fa-solid fa-user-minus"></i>
+                            </div>
+                        </div>
+                        <div class="text-2xl font-extrabold text-slate-800" id="card_churn">2.4%</div>
+                        <div class="flex items-center mt-2 text-xs text-emerald-600 font-semibold">
+                            <i class="fa-solid fa-arrow-down mr-1"></i> -0.8% decrease (Health: High)
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CHARTS ROW -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Revenue Trend Chart -->
+                    <div class="lg:col-span-2 glass-panel p-6 rounded-2xl border border-slate-200/80">
+                        <div class="flex items-center justify-between mb-4">
+                            <div>
+                                <h3 class="text-base font-bold text-slate-800">Monthly Recurring Revenue (MRR) Growth</h3>
+                                <p class="text-xs text-slate-500">2026 actual billing collections across all active subscription tiers.</p>
+                            </div>
+                            <span class="text-xs bg-slate-100 text-slate-600 px-3 py-1 rounded-lg font-semibold">Last 6 Months</span>
+                        </div>
+                        <div class="h-64">
+                            <canvas id="mrrChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Subscription Plan Distribution -->
+                    <div class="glass-panel p-6 rounded-2xl border border-slate-200/80">
+                        <div class="flex items-center justify-between mb-4">
+                            <div>
+                                <h3 class="text-base font-bold text-slate-800">Tier Distribution</h3>
+                                <p class="text-xs text-slate-500">By plan subscriptions</p>
+                            </div>
+                            <span class="text-xs bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded font-semibold">Active</span>
+                        </div>
+                        <div class="h-48 relative flex items-center justify-center">
+                            <canvas id="planChart"></canvas>
+                        </div>
+                        <div class="mt-4 space-y-2 text-xs">
+                            <div class="flex items-center justify-between">
+                                <span class="flex items-center"><span class="w-2.5 h-2.5 rounded-full bg-indigo-600 mr-2"></span>Enterprise Annual ($1500)</span>
+                                <span class="font-bold text-slate-700">45%</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="flex items-center"><span class="w-2.5 h-2.5 rounded-full bg-purple-500 mr-2"></span>Monthly Professional ($150)</span>
+                                <span class="font-bold text-slate-700">35%</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="flex items-center"><span class="w-2.5 h-2.5 rounded-full bg-amber-400 mr-2"></span>Cloud ERP + Odoo Brand</span>
+                                <span class="font-bold text-slate-700">20%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- RECENT SUBSCRIPTION CONTRACTS TABLE -->
+                <div class="glass-panel rounded-2xl border border-slate-200/80 overflow-hidden">
+                    <div class="p-5 border-b border-slate-200/80 flex items-center justify-between">
+                        <div>
+                            <h3 class="text-base font-bold text-slate-800">Active Subscription Contracts</h3>
+                            <p class="text-xs text-slate-500">Live contracts being processed by the recurring billing engine.</p>
+                        </div>
+                        <button onclick="showScreen('subscription_mgmt')" class="text-xs text-brand-600 hover:text-brand-800 font-bold flex items-center">
+                            View All Contracts <i class="fa-solid fa-arrow-right ml-1"></i>
+                        </button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse text-xs">
+                            <thead>
+                                <tr class="bg-slate-50/80 text-slate-500 uppercase tracking-wider font-semibold border-b border-slate-200">
+                                    <th class="py-3 px-4">Contract #</th>
+                                    <th class="py-3 px-4">Subscriber Customer</th>
+                                    <th class="py-3 px-4">Assigned Plan</th>
+                                    <th class="py-3 px-4">Interval</th>
+                                    <th class="py-3 px-4">Next Billing Date</th>
+                                    <th class="py-3 px-4">Subtotal</th>
+                                    <th class="py-3 px-4">Status</th>
+                                    <th class="py-3 px-4 text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-200/60 font-medium text-slate-700" id="admin_sub_table_body">
+                                <tr class="hover:bg-slate-50/60 transition-colors">
+                                    <td class="py-3 px-4 font-mono font-bold text-brand-700">SUB-2026-001</td>
+                                    <td class="py-3 px-4 flex items-center space-x-2">
+                                        <div class="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-[10px] font-bold">AC</div>
+                                        <span>Alice Customer (Alice Corp)</span>
+                                    </td>
+                                    <td class="py-3 px-4">Enterprise Monthly SaaS</td>
+                                    <td class="py-3 px-4"><span class="px-2 py-0.5 rounded bg-slate-100 text-slate-700">Monthly</span></td>
+                                    <td class="py-3 px-4 text-slate-600 font-mono">Today (Due)</td>
+                                    <td class="py-3 px-4 font-bold">$2,656.00</td>
+                                    <td class="py-3 px-4"><span class="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[11px]"><i class="fa-solid fa-circle-check text-[10px] mr-1"></i> Active</span></td>
+                                    <td class="py-3 px-4 text-right">
+                                        <button onclick="triggerManualInvoice('SUB-2026-001')" class="px-2.5 py-1 bg-brand-50 text-brand-700 hover:bg-brand-100 rounded font-semibold text-[11px] transition-colors">Generate Invoice</button>
+                                    </td>
+                                </tr>
+                                <tr class="hover:bg-slate-50/60 transition-colors">
+                                    <td class="py-3 px-4 font-mono font-bold text-brand-700">SUB-2026-002</td>
+                                    <td class="py-3 px-4 flex items-center space-x-2">
+                                        <div class="w-6 h-6 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center text-[10px] font-bold">BC</div>
+                                        <span>Bob Customer (Bob Solutions)</span>
+                                    </td>
+                                    <td class="py-3 px-4">Annual Enterprise SaaS</td>
+                                    <td class="py-3 px-4"><span class="px-2 py-0.5 rounded bg-slate-100 text-slate-700">Yearly</span></td>
+                                    <td class="py-3 px-4 text-slate-600 font-mono">Nov 15, 2026</td>
+                                    <td class="py-3 px-4 font-bold">$1,500.00</td>
+                                    <td class="py-3 px-4"><span class="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[11px]"><i class="fa-solid fa-circle-check text-[10px] mr-1"></i> Active</span></td>
+                                    <td class="py-3 px-4 text-right">
+                                        <button onclick="showScreen('subscription_mgmt')" class="px-2.5 py-1 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded font-semibold text-[11px]">View</button>
+                                    </td>
+                                </tr>
+                                <tr class="hover:bg-slate-50/60 transition-colors">
+                                    <td class="py-3 px-4 font-mono font-bold text-brand-700">SUB-2026-003</td>
+                                    <td class="py-3 px-4 flex items-center space-x-2">
+                                        <div class="w-6 h-6 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center text-[10px] font-bold">GT</div>
+                                        <span>Global Tech Industries</span>
+                                    </td>
+                                    <td class="py-3 px-4">Monthly Pro Tier</td>
+                                    <td class="py-3 px-4"><span class="px-2 py-0.5 rounded bg-slate-100 text-slate-700">Monthly</span></td>
+                                    <td class="py-3 px-4 text-slate-600 font-mono">Dec 01, 2026</td>
+                                    <td class="py-3 px-4 font-bold">$450.00</td>
+                                    <td class="py-3 px-4"><span class="px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 font-bold text-[11px]"><i class="fa-solid fa-pause text-[10px] mr-1"></i> Paused</span></td>
+                                    <td class="py-3 px-4 text-right">
+                                        <button class="px-2.5 py-1 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded font-semibold text-[11px]">Resume</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============================================== -->
+            <!-- SCREEN 2: CUSTOMER PORTAL                      -->
+            <!-- ============================================== -->
+            <div id="screen_customer_dashboard" class="screen-view hidden space-y-6">
+                <div class="bg-white rounded-2xl p-6 border border-slate-200 flex items-center justify-between">
+                    <div>
+                        <span class="text-xs font-bold text-brand-600 uppercase tracking-wider">Customer Self-Service Portal</span>
+                        <h2 class="text-2xl font-extrabold text-slate-800">Welcome back, Alice Customer!</h2>
+                        <p class="text-sm text-slate-500 mt-1">Manage your active Brightloop services, download tax invoices, and pay online securely.</p>
+                    </div>
+                    <div class="text-right">
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">
+                            <i class="fa-solid fa-lock text-[10px] mr-1.5"></i> Multi-Tenant Isolated View
+                        </span>
+                        <div class="text-[11px] text-slate-400 mt-1">Logged in as: alice@customer.com</div>
+                    </div>
+                </div>
+
+                <!-- Alice's Summary Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="glass-panel p-5 rounded-2xl border border-slate-200">
+                        <div class="text-xs text-slate-500 font-bold uppercase mb-1">Active Services</div>
+                        <div class="text-3xl font-extrabold text-slate-800">1 Contract</div>
+                        <div class="text-xs text-emerald-600 font-semibold mt-2"><i class="fa-solid fa-check mr-1"></i> Next billing: Nov 30, 2026</div>
+                    </div>
+                    <div class="glass-panel p-5 rounded-2xl border border-slate-200">
+                        <div class="text-xs text-slate-500 font-bold uppercase mb-1">Outstanding Balance</div>
+                        <div class="text-3xl font-extrabold text-slate-800" id="alice_balance">$0.00</div>
+                        <div class="text-xs text-emerald-600 font-semibold mt-2"><i class="fa-solid fa-circle-check mr-1"></i> All invoices fully settled</div>
+                    </div>
+                    <div class="glass-panel p-5 rounded-2xl border border-slate-200">
+                        <div class="text-xs text-slate-500 font-bold uppercase mb-1">Lifetime Savings (Promo)</div>
+                        <div class="text-3xl font-extrabold text-indigo-600">$664.00</div>
+                        <div class="text-xs text-indigo-600 font-semibold mt-2"><i class="fa-solid fa-tag mr-1"></i> Coupon LAUNCH20 applied</div>
+                    </div>
+                </div>
+
+                <!-- Alice's Subscriptions Table -->
+                <div class="glass-panel rounded-2xl border border-slate-200 overflow-hidden">
+                    <div class="p-5 border-b border-slate-200">
+                        <h3 class="font-bold text-slate-800">Your Subscription Contract</h3>
+                    </div>
+                    <div class="p-6">
+                        <div class="flex flex-col md:flex-row justify-between items-start md:items-center bg-slate-50 p-4 rounded-xl border border-slate-200">
+                            <div>
+                                <div class="flex items-center space-x-2">
+                                    <span class="font-bold text-slate-800 text-base">Enterprise Monthly Cloud SaaS</span>
+                                    <span class="px-2 py-0.5 bg-emerald-100 text-emerald-800 text-xs font-bold rounded-full">ACTIVE</span>
+                                </div>
+                                <div class="text-xs text-slate-500 mt-1">Contract ID: <span class="font-mono font-bold text-slate-700">SUB-2026-001</span> | Included: 2x Cloud ERP Hosting (Odoo Variant)</div>
+                            </div>
+                            <div class="mt-4 md:mt-0 flex items-center space-x-3">
+                                <span class="text-lg font-extrabold text-slate-800">$2,656.00 / mo</span>
+                                <button onclick="alert('Pause request submitted to account executive.')" class="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-semibold rounded-lg">Pause</button>
+                                <button onclick="alert('Contract renewal confirmed!')" class="px-3 py-1.5 bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold rounded-lg">Renew Now</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============================================== -->
+            <!-- SCREEN 3: PRODUCT MANAGEMENT                   -->
+            <!-- ============================================== -->
+            <div id="screen_product_mgmt" class="screen-view hidden space-y-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-800">Product &amp; Variant Catalog</h2>
+                        <p class="text-xs text-slate-500">Manage sellable subscription services and mandatory edition variant surcharges.</p>
+                    </div>
+                    <button onclick="alert('New product creation modal')" class="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold rounded-xl shadow-sm">
+                        <i class="fa-solid fa-plus mr-1"></i> Add Service Product
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- Product 1: Odoo Surcharge -->
+                    <div class="glass-panel p-5 rounded-2xl border border-slate-200 flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-center justify-between mb-3">
+                                <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-amber-100 text-amber-800">Odoo Brand Edition</span>
+                                <span class="text-xs font-bold text-emerald-600">Recurring Service</span>
+                            </div>
+                            <h3 class="font-bold text-slate-800 text-base">Cloud ERP Dedicated Hosting</h3>
+                            <p class="text-xs text-slate-500 mt-1">High-availability cloud container with automated backups, monitoring, and 99.9% uptime SLA.</p>
+                            
+                            <div class="my-4 p-3 bg-slate-50 rounded-xl space-y-1 text-xs">
+                                <div class="flex justify-between text-slate-600"><span>Base List Price:</span> <span class="font-semibold">$1,000.00</span></div>
+                                <div class="flex justify-between text-amber-700 font-semibold"><span>Odoo Brand Surcharge:</span> <span>+$560.00</span></div>
+                                <div class="border-t border-slate-200 pt-1 flex justify-between font-bold text-slate-900 text-sm"><span>Calculated Price:</span> <span>$1,560.00</span></div>
+                            </div>
+                        </div>
+                        <div class="text-xs text-slate-400">Model: <code class="text-slate-600">product.template</code></div>
+                    </div>
+
+                    <!-- Product 2: Standard Support -->
+                    <div class="glass-panel p-5 rounded-2xl border border-slate-200 flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-center justify-between mb-3">
+                                <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-brand-100 text-brand-800">Brightloop Enterprise</span>
+                                <span class="text-xs font-bold text-emerald-600">Recurring Service</span>
+                            </div>
+                            <h3 class="font-bold text-slate-800 text-base">24/7 Priority Support Tier</h3>
+                            <p class="text-xs text-slate-500 mt-1">Direct access to L3 technical engineers with 1-hour guaranteed incident response time.</p>
+                            
+                            <div class="my-4 p-3 bg-slate-50 rounded-xl space-y-1 text-xs">
+                                <div class="flex justify-between text-slate-600"><span>Base List Price:</span> <span class="font-semibold">$300.00</span></div>
+                                <div class="flex justify-between text-slate-500"><span>Standard Surcharge:</span> <span>$0.00</span></div>
+                                <div class="border-t border-slate-200 pt-1 flex justify-between font-bold text-slate-900 text-sm"><span>Calculated Price:</span> <span>$300.00</span></div>
+                            </div>
+                        </div>
+                        <div class="text-xs text-slate-400">Model: <code class="text-slate-600">product.template</code></div>
+                    </div>
+
+                    <!-- Product 3: Custom Integration -->
+                    <div class="glass-panel p-5 rounded-2xl border border-slate-200 flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-center justify-between mb-3">
+                                <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-purple-100 text-purple-800">Add-On Module</span>
+                                <span class="text-xs font-bold text-emerald-600">Recurring Service</span>
+                            </div>
+                            <h3 class="font-bold text-slate-800 text-base">API Sync &amp; Webhook Engine</h3>
+                            <p class="text-xs text-slate-500 mt-1">High-throughput event streaming pipeline connecting external CRM, ERP, and payment hooks.</p>
+                            
+                            <div class="my-4 p-3 bg-slate-50 rounded-xl space-y-1 text-xs">
+                                <div class="flex justify-between text-slate-600"><span>Base List Price:</span> <span class="font-semibold">$200.00</span></div>
+                                <div class="flex justify-between text-slate-500"><span>Standard Surcharge:</span> <span>$0.00</span></div>
+                                <div class="border-t border-slate-200 pt-1 flex justify-between font-bold text-slate-900 text-sm"><span>Calculated Price:</span> <span>$200.00</span></div>
+                            </div>
+                        </div>
+                        <div class="text-xs text-slate-400">Model: <code class="text-slate-600">product.template</code></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============================================== -->
+            <!-- SCREEN 4: SUBSCRIPTION PLAN MANAGEMENT         -->
+            <!-- ============================================== -->
+            <div id="screen_plan_mgmt" class="screen-view hidden space-y-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-800">Subscription Plans &amp; Billing Cadences</h2>
+                        <p class="text-xs text-slate-500">Configure recurring frequencies, trial days, grace periods, and month-end date clamping.</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-5">
+                    <!-- Daily Plan -->
+                    <div class="glass-panel p-5 rounded-2xl border border-slate-200">
+                        <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-blue-100 text-blue-800">Daily Trial</span>
+                        <div class="text-2xl font-extrabold text-slate-800 my-2">$10.00 <span class="text-xs text-slate-500 font-normal">/ day</span></div>
+                        <p class="text-xs text-slate-500 mb-4">Fast prototype cadence for short-term testing and developer sandboxes.</p>
+                        <div class="text-xs space-y-1.5 text-slate-600 border-t pt-3 border-slate-100">
+                            <div><i class="fa-solid fa-check text-emerald-500 mr-1.5"></i> Daily auto-cron billing</div>
+                            <div><i class="fa-solid fa-check text-emerald-500 mr-1.5"></i> 3-day grace period</div>
+                        </div>
+                    </div>
+
+                    <!-- Weekly Plan -->
+                    <div class="glass-panel p-5 rounded-2xl border border-slate-200">
+                        <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-indigo-100 text-indigo-800">Weekly Starter</span>
+                        <div class="text-2xl font-extrabold text-slate-800 my-2">$50.00 <span class="text-xs text-slate-500 font-normal">/ week</span></div>
+                        <p class="text-xs text-slate-500 mb-4">Weekly sprint billing suited for agile consultancy engagements.</p>
+                        <div class="text-xs space-y-1.5 text-slate-600 border-t pt-3 border-slate-100">
+                            <div><i class="fa-solid fa-check text-emerald-500 mr-1.5"></i> 7-day interval math</div>
+                            <div><i class="fa-solid fa-check text-emerald-500 mr-1.5"></i> Auto-renew enabled</div>
+                        </div>
+                    </div>
+
+                    <!-- Monthly Plan -->
+                    <div class="glass-panel p-5 rounded-2xl border-2 border-brand-500 relative">
+                        <span class="absolute -top-3 right-4 bg-brand-600 text-white text-[10px] font-extrabold px-2.5 py-0.5 rounded-full uppercase">Most Popular</span>
+                        <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-purple-100 text-purple-800">Monthly Pro</span>
+                        <div class="text-2xl font-extrabold text-slate-800 my-2">$150.00 <span class="text-xs text-slate-500 font-normal">/ month</span></div>
+                        <p class="text-xs text-slate-500 mb-4">Core subscription tier with February leap-year clamping and 14-day trials.</p>
+                        <div class="text-xs space-y-1.5 text-slate-600 border-t pt-3 border-slate-100">
+                            <div><i class="fa-solid fa-check text-emerald-500 mr-1.5"></i> Clamps Jan 31 -> Feb 28</div>
+                            <div><i class="fa-solid fa-check text-emerald-500 mr-1.5"></i> Pause &amp; resume allowed</div>
+                        </div>
+                    </div>
+
+                    <!-- Yearly Plan -->
+                    <div class="glass-panel p-5 rounded-2xl border border-slate-200">
+                        <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">Annual Enterprise</span>
+                        <div class="text-2xl font-extrabold text-slate-800 my-2">$1,500.00 <span class="text-xs text-slate-500 font-normal">/ year</span></div>
+                        <p class="text-xs text-slate-500 mb-4">Full organization commitment with 2 months free equivalent pricing.</p>
+                        <div class="text-xs space-y-1.5 text-slate-600 border-t pt-3 border-slate-100">
+                            <div><i class="fa-solid fa-check text-emerald-500 mr-1.5"></i> 1-year interval engine</div>
+                            <div><i class="fa-solid fa-check text-emerald-500 mr-1.5"></i> Max MRR weight ($125/mo)</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============================================== -->
+            <!-- SCREEN 5: DISCOUNT MANAGEMENT                  -->
+            <!-- ============================================== -->
+            <div id="screen_discount_mgmt" class="screen-view hidden space-y-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-800">Discount &amp; Promotion Engine</h2>
+                        <p class="text-xs text-slate-500">Atomic coupon redemption, percentage/fixed discounts, usage caps, and expiration windows.</p>
+                    </div>
+                </div>
+
+                <div class="glass-panel rounded-2xl border border-slate-200 overflow-hidden">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead>
+                            <tr class="bg-slate-50 text-slate-500 uppercase tracking-wider font-semibold border-b border-slate-200">
+                                <th class="py-3 px-4">Coupon Code</th>
+                                <th class="py-3 px-4">Promotion Name</th>
+                                <th class="py-3 px-4">Type</th>
+                                <th class="py-3 px-4">Value</th>
+                                <th class="py-3 px-4">Usage Counter</th>
+                                <th class="py-3 px-4">Min. Subtotal</th>
+                                <th class="py-3 px-4">Validity</th>
+                                <th class="py-3 px-4 text-right">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-200 font-medium text-slate-700">
+                            <tr class="hover:bg-slate-50/60">
+                                <td class="py-3 px-4 font-mono font-bold text-indigo-600">LAUNCH20</td>
+                                <td class="py-3 px-4">Launch Special 20% Off</td>
+                                <td class="py-3 px-4"><span class="px-2 py-0.5 rounded bg-indigo-50 text-indigo-700">Percentage</span></td>
+                                <td class="py-3 px-4 font-bold text-slate-900">20.0%</td>
+                                <td class="py-3 px-4"><span class="font-bold text-slate-800">1</span> / 100 max</td>
+                                <td class="py-3 px-4">$50.00</td>
+                                <td class="py-3 px-4 text-slate-500">Until Dec 31, 2026</td>
+                                <td class="py-3 px-4 text-right"><span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold">Active</span></td>
+                            </tr>
+                            <tr class="hover:bg-slate-50/60">
+                                <td class="py-3 px-4 font-mono font-bold text-indigo-600">WELCOME50</td>
+                                <td class="py-3 px-4">Welcome Fixed $50 Off</td>
+                                <td class="py-3 px-4"><span class="px-2 py-0.5 rounded bg-purple-50 text-purple-700">Fixed Amount</span></td>
+                                <td class="py-3 px-4 font-bold text-slate-900">$50.00</td>
+                                <td class="py-3 px-4"><span class="font-bold text-slate-800">0</span> / 50 max</td>
+                                <td class="py-3 px-4">$200.00</td>
+                                <td class="py-3 px-4 text-slate-500">Until Nov 30, 2026</td>
+                                <td class="py-3 px-4 text-right"><span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold">Active</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ============================================== -->
+            <!-- SCREEN 6: INVOICES & PAYMENTS                  -->
+            <!-- ============================================== -->
+            <div id="screen_invoice_mgmt" class="screen-view hidden space-y-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-800">Recurring Invoices &amp; Settlement</h2>
+                        <p class="text-xs text-slate-500">Manage billing outputs, payment reconciliation hooks, and residual tracking.</p>
+                    </div>
+                </div>
+
+                <div class="glass-panel rounded-2xl border border-slate-200 overflow-hidden">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead>
+                            <tr class="bg-slate-50 text-slate-500 uppercase tracking-wider font-semibold border-b border-slate-200">
+                                <th class="py-3 px-4">Invoice #</th>
+                                <th class="py-3 px-4">Customer</th>
+                                <th class="py-3 px-4">Billing Period</th>
+                                <th class="py-3 px-4">Gross Total</th>
+                                <th class="py-3 px-4">Paid Amount</th>
+                                <th class="py-3 px-4">Residual</th>
+                                <th class="py-3 px-4">Payment State</th>
+                                <th class="py-3 px-4 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-200 font-medium text-slate-700">
+                            <tr class="hover:bg-slate-50/60">
+                                <td class="py-3 px-4 font-mono font-bold text-slate-900">INV-2026-001</td>
+                                <td class="py-3 px-4">Alice Customer</td>
+                                <td class="py-3 px-4 font-mono text-slate-500">Oct 01 - Oct 31</td>
+                                <td class="py-3 px-4 font-bold text-slate-900">$2,656.00</td>
+                                <td class="py-3 px-4 text-emerald-600 font-bold">$2,656.00</td>
+                                <td class="py-3 px-4 font-mono">$0.00</td>
+                                <td class="py-3 px-4"><span class="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[11px]">Fully Paid</span></td>
+                                <td class="py-3 px-4 text-right">
+                                    <button onclick="alert('Viewing invoice receipt')" class="px-2 py-1 bg-slate-100 hover:bg-slate-200 rounded text-slate-700 font-semibold">Receipt</button>
+                                </td>
+                            </tr>
+                            <tr class="hover:bg-slate-50/60">
+                                <td class="py-3 px-4 font-mono font-bold text-slate-900">INV-2026-002</td>
+                                <td class="py-3 px-4">Bob Customer</td>
+                                <td class="py-3 px-4 font-mono text-slate-500">Nov 01 - Nov 30</td>
+                                <td class="py-3 px-4 font-bold text-slate-900">$1,500.00</td>
+                                <td class="py-3 px-4 text-slate-600 font-bold">$500.00</td>
+                                <td class="py-3 px-4 font-mono font-bold text-amber-600">$1,000.00</td>
+                                <td class="py-3 px-4"><span class="px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 font-bold text-[11px]">Partially Paid</span></td>
+                                <td class="py-3 px-4 text-right">
+                                    <button onclick="alert('Register Payment Wizard')" class="px-2.5 py-1 bg-brand-50 text-brand-700 hover:bg-brand-100 rounded font-semibold">Pay Balance</button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ============================================== -->
+            <!-- SCREEN 7: PAYMENTS SCREEN                      -->
+            <!-- ============================================== -->
+            <div id="screen_payment_mgmt" class="screen-view hidden space-y-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-800">Payment Transactions</h2>
+                        <p class="text-xs text-slate-500">Multi-gateway settlements (Stripe, Card, Bank Wire) and automated reconciliation.</p>
+                    </div>
+                </div>
+
+                <div class="glass-panel rounded-2xl border border-slate-200 overflow-hidden">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead>
+                            <tr class="bg-slate-50 text-slate-500 uppercase tracking-wider font-semibold border-b border-slate-200">
+                                <th class="py-3 px-4">Transaction Ref</th>
+                                <th class="py-3 px-4">Invoice Ref</th>
+                                <th class="py-3 px-4">Customer</th>
+                                <th class="py-3 px-4">Method</th>
+                                <th class="py-3 px-4">Amount</th>
+                                <th class="py-3 px-4">Status</th>
+                                <th class="py-3 px-4 text-right">Settled Timestamp</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-200 font-medium text-slate-700">
+                            <tr class="hover:bg-slate-50/60">
+                                <td class="py-3 px-4 font-mono font-bold text-brand-700">TXN-STRIPE-1002</td>
+                                <td class="py-3 px-4 font-mono text-slate-600">INV-2026-001</td>
+                                <td class="py-3 px-4">Alice Customer</td>
+                                <td class="py-3 px-4"><span class="px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 font-semibold"><i class="fa-brands fa-stripe mr-1"></i> Stripe</span></td>
+                                <td class="py-3 px-4 font-bold text-slate-900">$1,656.00</td>
+                                <td class="py-3 px-4"><span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold">Settled</span></td>
+                                <td class="py-3 px-4 text-right text-slate-500">Today, 14:15:20</td>
+                            </tr>
+                            <tr class="hover:bg-slate-50/60">
+                                <td class="py-3 px-4 font-mono font-bold text-brand-700">TXN-CC-1001</td>
+                                <td class="py-3 px-4 font-mono text-slate-600">INV-2026-001</td>
+                                <td class="py-3 px-4">Alice Customer</td>
+                                <td class="py-3 px-4"><span class="px-2 py-0.5 rounded bg-blue-50 text-blue-700 font-semibold"><i class="fa-solid fa-credit-card mr-1"></i> Credit Card</span></td>
+                                <td class="py-3 px-4 font-bold text-slate-900">$1,000.00</td>
+                                <td class="py-3 px-4"><span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold">Settled</span></td>
+                                <td class="py-3 px-4 text-right text-slate-500">Today, 14:10:05</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ============================================== -->
+            <!-- SCREEN 8: USER MANAGEMENT & AUTH DEMO          -->
+            <!-- ============================================== -->
+            <div id="screen_auth_screen" class="screen-view hidden space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+                    <!-- Registration Card -->
+                    <div class="glass-panel p-6 rounded-2xl border border-slate-200 shadow-sm">
+                        <div class="flex items-center space-x-2 text-brand-600 font-bold text-xs uppercase mb-1">
+                            <i class="fa-solid fa-user-plus"></i>
+                            <span>Portal Signup</span>
+                        </div>
+                        <h3 class="text-xl font-bold text-slate-900 mb-2">Customer Registration</h3>
+                        <p class="text-xs text-slate-500 mb-5">Enforces Brightloop Password Security Policy (&gt;8 chars, upper, lower, digit, special symbol).</p>
+
+                        <form onsubmit="demoRegister(event)" class="space-y-4 text-xs">
+                            <div>
+                                <label class="block font-semibold text-slate-700 mb-1">Full Legal Name</label>
+                                <input type="text" id="reg_name" value="Emma Watson" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-brand-500 outline-none" required>
+                            </div>
+                            <div>
+                                <label class="block font-semibold text-slate-700 mb-1">Business Email</label>
+                                <input type="email" id="reg_email" value="emma@watsoncorp.com" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-brand-500 outline-none" required>
+                            </div>
+                            <div>
+                                <label class="block font-semibold text-slate-700 mb-1">Secure Password</label>
+                                <input type="password" id="reg_password" value="EmmaStrongPass2026!" oninput="checkStrength(this.value)" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-brand-500 outline-none" required>
+                                <div class="mt-2 text-[11px] text-emerald-600 font-semibold" id="pass_strength_text">
+                                    <i class="fa-solid fa-shield-check mr-1"></i> Strong: >8 chars, A-Z, a-z, special char verified
+                                </div>
+                            </div>
+                            <button type="submit" class="w-full py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-lg font-bold text-xs shadow-md shadow-brand-500/20 transition-all">
+                                Complete Portal Registration
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Role Architecture Card -->
+                    <div class="glass-panel p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-center space-x-2 text-purple-600 font-bold text-xs uppercase mb-1">
+                                <i class="fa-solid fa-shield-halved"></i>
+                                <span>Security Matrix</span>
+                            </div>
+                            <h3 class="text-xl font-bold text-slate-900 mb-2">3-Tier Role-Based Access</h3>
+                            <p class="text-xs text-slate-500 mb-4">Strict row-level multi-tenancy isolating subscriber data from competitors.</p>
+
+                            <div class="space-y-3 text-xs">
+                                <div class="p-3 bg-indigo-50/60 rounded-xl border border-indigo-100">
+                                    <span class="font-bold text-brand-900 block">1. Subscription Customer (Portal)</span>
+                                    <span class="text-slate-600 text-[11px]">Can ONLY read own contracts and invoices where partner_id == user.partner_id. Restricted from dashboard.</span>
+                                </div>
+                                <div class="p-3 bg-purple-50/60 rounded-xl border border-purple-100">
+                                    <span class="font-bold text-purple-900 block">2. Subscription Officer (Staff)</span>
+                                    <span class="text-slate-600 text-[11px]">Operational processing of orders, quotations, manual invoices, and payment confirmations.</span>
+                                </div>
+                                <div class="p-3 bg-amber-50/60 rounded-xl border border-amber-100">
+                                    <span class="font-bold text-amber-900 block">3. Subscription Administrator (Manager)</span>
+                                    <span class="text-slate-600 text-[11px]">Unrestricted governance: plan creation, discount rules, cron scheduling, and financial reports.</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- OTHER SCREENS FALLBACK CONTENT -->
+            <div id="screen_financial_reports" class="screen-view hidden space-y-6">
+                <!-- Reuses financial cards & detailed breakdown -->
+                <div class="p-6 bg-white rounded-2xl border border-slate-200">
+                    <h2 class="text-xl font-bold text-slate-800">Executive Financial Intelligence</h2>
+                    <p class="text-xs text-slate-500 mb-6">Normalized cadence analytics (Weekly x4.33, Monthly x1, Annual /12).</p>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="p-5 bg-slate-50 rounded-xl border border-slate-200">
+                            <div class="text-xs font-semibold text-slate-500 uppercase">Average Revenue Per User (ARPU)</div>
+                            <div class="text-2xl font-extrabold text-slate-800 mt-2">$1,236.67</div>
+                            <div class="text-[11px] text-slate-500 mt-1">MRR / Active Subscribers</div>
+                        </div>
+                        <div class="p-5 bg-slate-50 rounded-xl border border-slate-200">
+                            <div class="text-xs font-semibold text-slate-500 uppercase">Customer Lifetime Value (LTV)</div>
+                            <div class="text-2xl font-extrabold text-slate-800 mt-2">$51,527.92</div>
+                            <div class="text-[11px] text-slate-500 mt-1">ARPU / Monthly Churn Rate (2.4%)</div>
+                        </div>
+                        <div class="p-5 bg-slate-50 rounded-xl border border-slate-200">
+                            <div class="text-xs font-semibold text-slate-500 uppercase">Net Revenue Retention (NRR)</div>
+                            <div class="text-2xl font-extrabold text-emerald-600 mt-2">114.5%</div>
+                            <div class="text-[11px] text-slate-500 mt-1">Expansion &amp; upsells offset churn</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="screen_subscription_mgmt" class="screen-view hidden space-y-6">
+                <!-- Direct Full Subscription View -->
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-800">All Subscription Contracts</h2>
+                        <p class="text-xs text-slate-500">Lifecycle State Machine: Draft &rarr; Quotation &rarr; Confirmed &rarr; Active &rarr; Paused &rarr; Closed</p>
+                    </div>
+                </div>
+                <!-- Reuses table with full details -->
+                <div class="glass-panel rounded-2xl border border-slate-200 p-4">
+                    <p class="text-xs text-slate-600">Showing 12 active subscriptions in database. All contracts synchronize with billing cron.</p>
+                </div>
+            </div>
+
+            <div id="screen_user_mgmt" class="screen-view hidden space-y-6">
+                <div class="p-6 bg-white rounded-2xl border border-slate-200">
+                    <h2 class="text-xl font-bold text-slate-800">User Registry &amp; Roles</h2>
+                    <p class="text-xs text-slate-500 mb-4">Managed via Odoo res.users and user_security.xml.</p>
+                    <div class="space-y-2 text-xs">
+                        <div class="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+                            <div><span class="font-bold">admin@brightloop.com</span> (Brightloop Admin)</div>
+                            <span class="px-2 py-0.5 rounded bg-brand-100 text-brand-800 font-bold">Administrator</span>
+                        </div>
+                        <div class="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+                            <div><span class="font-bold">staff@brightloop.com</span> (Brightloop Staff)</div>
+                            <span class="px-2 py-0.5 rounded bg-purple-100 text-purple-800 font-bold">Officer / Staff</span>
+                        </div>
+                        <div class="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+                            <div><span class="font-bold">alice@customer.com</span> (Alice Customer)</div>
+                            <span class="px-2 py-0.5 rounded bg-slate-200 text-slate-800 font-bold">Portal Customer</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        // Navigation Handler
+        function showScreen(screenId) {
+            // Hide all screens
+            document.querySelectorAll('.screen-view').forEach(el => el.classList.add('hidden'));
+            
+            // Show target
+            const target = document.getElementById('screen_' + screenId);
+            if (target) target.classList.remove('hidden');
+
+            // Update active state in sidebar
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('nav-active'));
+            const activeNav = document.getElementById('nav_' + screenId);
+            if (activeNav) activeNav.classList.add('nav-active');
+
+            // Update Title
+            const titles = {
+                'admin_dashboard': 'Executive Financial Dashboard',
+                'customer_dashboard': 'Subscriber Self-Service Portal',
+                'product_mgmt': 'Product Catalog & Variant Surcharges',
+                'plan_mgmt': 'Subscription Plans & Cadence Rules',
+                'discount_mgmt': 'Discount & Promo Code Engine',
+                'subscription_mgmt': 'Subscription Contract Lifecycle',
+                'invoice_mgmt': 'Recurring Invoices & Receivables',
+                'payment_mgmt': 'Payment Settlements & Gateway Hub',
+                'financial_reports': 'SaaS Financial Analytics & Retention',
+                'user_mgmt': 'User Management & Access Control',
+                'auth_screen': 'Authentication & Security Policy Demo'
+            };
+            if (titles[screenId]) {
+                document.getElementById('screen_title').innerText = titles[screenId];
+            }
+        }
+
+        // Persona Switcher
+        function switchRole(role) {
+            document.querySelectorAll('[id^="role_btn_"]').forEach(b => {
+                b.className = 'px-2.5 py-1 rounded text-slate-600 hover:text-slate-900 transition-all';
+            });
+            const activeBtn = document.getElementById('role_btn_' + role);
+            if (activeBtn) {
+                activeBtn.className = 'px-2.5 py-1 rounded bg-white text-brand-700 shadow-sm font-semibold transition-all';
+            }
+
+            if (role === 'customer') {
+                document.getElementById('user_display_name').innerText = 'Alice Customer';
+                document.getElementById('user_display_role').innerText = 'Portal Subscriber';
+                document.getElementById('user_avatar').innerText = 'AC';
+                document.getElementById('user_avatar').className = 'w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-xs ring-2 ring-emerald-100';
+                showScreen('customer_dashboard');
+            } else if (role === 'staff') {
+                document.getElementById('user_display_name').innerText = 'Brightloop Staff';
+                document.getElementById('user_display_role').innerText = 'Subscription Officer';
+                document.getElementById('user_avatar').innerText = 'ST';
+                document.getElementById('user_avatar').className = 'w-8 h-8 rounded-full bg-purple-600 text-white flex items-center justify-center font-bold text-xs ring-2 ring-purple-100';
+                showScreen('admin_dashboard');
+            } else {
+                document.getElementById('user_display_name').innerText = 'Brightloop Admin';
+                document.getElementById('user_display_role').innerText = 'Administrator';
+                document.getElementById('user_avatar').innerText = 'AD';
+                document.getElementById('user_avatar').className = 'w-8 h-8 rounded-full bg-brand-600 text-white flex items-center justify-center font-bold text-xs ring-2 ring-brand-100';
+                showScreen('admin_dashboard');
+            }
+        }
+
+        // Quick Actions
+        function triggerBillingCron() {
+            alert('Triggered Automated Recurring Billing Engine (ir.cron).\nProcessed all due contracts. Catch-up verified without duplicate charges.');
+        }
+
+        function triggerManualInvoice(subCode) {
+            alert('Generated recurring invoice for ' + subCode + '.\nAmount: $2,656.00 with LAUNCH20 discount verified.');
+            showScreen('invoice_mgmt');
+        }
+
+        function refreshMetrics() {
+            const card = document.getElementById('card_mrr');
+            card.innerText = 'Calculating...';
+            setTimeout(() => {
+                card.innerText = '$14,840.00';
+                alert('Database read_group aggregation refreshed successfully.');
+            }, 300);
+        }
+
+        function demoRegister(e) {
+            e.preventDefault();
+            alert('Customer registration successful!\nCreated res.users record linked to customer partner with group_subscription_portal.');
+            switchRole('customer');
+        }
+
+        function checkStrength(val) {
+            const el = document.getElementById('pass_strength_text');
+            if (val.length > 8 && /[A-Z]/.test(val) && /[a-z]/.test(val) && /[!@#$%^&*]/.test(val)) {
+                el.innerHTML = '<i class="fa-solid fa-shield-check mr-1 text-emerald-600"></i> Password satisfies all Brightloop security criteria';
+                el.className = 'mt-2 text-[11px] text-emerald-600 font-semibold';
+            } else {
+                el.innerHTML = '<i class="fa-solid fa-triangle-exclamation mr-1 text-amber-600"></i> Must be >8 chars with uppercase, lowercase, and special symbol';
+                el.className = 'mt-2 text-[11px] text-amber-600 font-semibold';
+            }
+        }
+
+        // Initialize Charts
+        window.addEventListener('DOMContentLoaded', () => {
+            // MRR Growth Chart
+            const ctx1 = document.getElementById('mrrChart').getContext('2d');
+            new Chart(ctx1, {
+                type: 'line',
+                data: {
+                    labels: ['Jun 2026', 'Jul 2026', 'Aug 2026', 'Sep 2026', 'Oct 2026', 'Nov 2026 (Est)'],
+                    datasets: [{
+                        label: 'MRR ($ USD)',
+                        data: [8200, 9600, 11400, 12700, 14840, 16900],
+                        borderColor: '#4f46e5',
+                        backgroundColor: 'rgba(79, 70, 229, 0.08)',
+                        fill: true,
+                        tension: 0.35,
+                        borderWidth: 3,
+                        pointBackgroundColor: '#4f46e5',
+                        pointRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: {
+                            grid: { color: '#f1f5f9' },
+                            ticks: { callback: v => '$' + v.toLocaleString() }
+                        },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+
+            // Plan Doughnut Chart
+            const ctx2 = document.getElementById('planChart').getContext('2d');
+            new Chart(ctx2, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Enterprise Annual', 'Monthly Pro', 'Cloud ERP'],
+                    datasets: [{
+                        data: [45, 35, 20],
+                        backgroundColor: ['#4f46e5', '#a855f7', '#fbbf24'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    cutout: '72%'
+                }
+            });
+        });
+    </script>
+</body>
+</html>
