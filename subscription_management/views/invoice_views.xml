@@ -122,8 +122,10 @@
                 <field name="partner_id"/>
                 <field name="subscription_id"/>
                 <field name="invoice_date"/>
+                <field name="due_date" optional="show"/>
                 <field name="billing_period_start"/>
                 <field name="billing_period_end"/>
+                <field name="days_overdue" string="Days Overdue" optional="hide" decoration-danger="days_overdue &gt; 0"/>
                 <field name="amount_untaxed" widget="monetary" options="{'currency_field': 'currency_id'}" optional="hide"/>
                 <field name="amount_total" widget="monetary" options="{'currency_field': 'currency_id'}"/>
                 <field name="amount_paid" widget="monetary" options="{'currency_field': 'currency_id'}" optional="show"/>
@@ -149,12 +151,15 @@
                 <filter string="Paid" name="filter_paid" domain="[('state', '=', 'paid')]"/>
                 <filter string="Partially Paid" name="filter_partial" domain="[('payment_state', '=', 'partial')]"/>
                 <filter string="Unpaid" name="filter_unpaid" domain="[('state', '=', 'confirmed'), ('payment_state', '!=', 'paid')]"/>
+                <filter string="Overdue" name="filter_overdue" domain="[('is_overdue', '=', True)]"/>
+                <filter string="Cancelled" name="filter_cancelled" domain="[('state', '=', 'cancel')]"/>
                 <separator/>
                 <group expand="0" string="Group By">
                     <filter string="Customer" name="group_partner" context="{'group_by': 'partner_id'}"/>
                     <filter string="Subscription" name="group_subscription" context="{'group_by': 'subscription_id'}"/>
                     <filter string="Status" name="group_state" context="{'group_by': 'state'}"/>
                     <filter string="Invoice Date" name="group_invoice_date" context="{'group_by': 'invoice_date:month'}"/>
+                    <filter string="Due Date" name="group_due_date" context="{'group_by': 'due_date:month'}"/>
                 </group>
             </search>
         </field>
@@ -166,7 +171,14 @@
         <field name="res_model">subscription.invoice</field>
         <field name="view_mode">tree,form</field>
         <field name="search_view_id" ref="view_subscription_invoice_search"/>
-        <field name="context">{'search_default_filter_confirmed': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Invoices appear here when generated from an active subscription.
+            </p>
+            <p>
+                Review billing periods, payment status, outstanding balances, and overdue invoices from this list.
+            </p>
+        </field>
     </record>
 
 </odoo>

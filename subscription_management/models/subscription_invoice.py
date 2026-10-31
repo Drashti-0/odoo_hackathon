@@ -555,7 +555,8 @@ class SubscriptionSubscriptionBillingExtension(models.Model):
         _logger.info("STARTING RECURRING BILLING CRON ENGINE FOR DATE: %s", today)
         _logger.info("==================================================")
 
-        # First, run automatic expiry evaluation
+        # Renew eligible contracts before expiry evaluation can transition them.
+        self.cron_automatic_renewal(today)
         self.action_check_expiry()
 
         # Query candidate subscriptions: active, started, and billing date due or unassigned
@@ -659,9 +660,25 @@ class SubscriptionSubscriptionBillingExtension(models.Model):
             })
             return
 
-        # Safeguard: Check contractual expiration
+        # Safeguard: Check contractual expiration and honor the configured grace period.
         if self.expiry_date and self.next_billing_date > self.expiry_date:
-            if self.plan_id.auto_close:
+            close_threshold = self.expiry_date + relativedelta(
+                days=self.plan_id.auto_close_days or 0
+            )
+            if today < close_threshold:
+                log_obj.create({
+                    'execution_date': fields.Datetime.now(),
+                    'subscription_id': self.id,
+                    'status': 'skipped',
+                    'message': _(
+                        "Subscription %s has reached its expiry date (%s) and is "
+                        "within its configured grace period until %s."
+                    ) % (self.name, self.expiry_date, close_threshold)
+                })
+                return
+            if self.plan_id.allow_renewal:
+                self.state = 'expired'
+            elif self.plan_id.auto_close:
                 self.state = 'closed'
                 self.close_date = today
                 self.close_reason = _("Contract reached expiry date (%s). Auto-closed.") % self.expiry_date

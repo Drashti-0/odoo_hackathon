@@ -2,6 +2,7 @@
 from datetime import date
 from dateutil.relativedelta import relativedelta
 from psycopg2 import IntegrityError
+from unittest.mock import patch
 from odoo.tests.common import TransactionCase, tagged
 from odoo.exceptions import UserError, ValidationError
 from odoo.tools import mute_logger
@@ -558,6 +559,17 @@ class TestBillingEngine(TransactionCase):
         self.assertEqual(cron.interval_number, 1)
         self.assertEqual(cron.interval_type, 'days')
         self.assertEqual(cron.code, 'model.cron_recurring_billing()')
+        expiry_cron = self.env.ref('subscription_management.ir_cron_subscription_expiry_check')
+        self.assertTrue(expiry_cron.active)
+        self.assertEqual(expiry_cron.code, 'model.action_check_expiry()')
+        notification_cron = self.env.ref(
+            'subscription_management.ir_cron_subscription_billing_notifications'
+        )
+        self.assertTrue(notification_cron.active)
+        self.assertEqual(
+            notification_cron.code,
+            'model.cron_billing_notifications()',
+        )
 
         # Direct execution of scheduled action
         cron.method_direct_trigger()
@@ -660,3 +672,132 @@ class TestBillingEngine(TransactionCase):
         self.assertTrue(len(pdf_content) > 100)
         if content_type == 'pdf':
             self.assertTrue(pdf_content.startswith(b'%PDF-'))
+
+    def test_21_billing_notifications_cover_due_buckets_idempotently(self):
+        today = date.today()
+        due_subscriptions = {
+            'today': today,
+            'three_days': today + relativedelta(days=3),
+            'seven_days': today + relativedelta(days=7),
+            'overdue': today - relativedelta(days=1),
+        }
+        created = {}
+        for key, billing_date in due_subscriptions.items():
+            created[key] = self.env['subscription.subscription'].create({
+                'partner_id': self.partner.id,
+                'plan_id': self.monthly_plan.id,
+                'start_date': today,
+                'next_billing_date': billing_date,
+                'state': 'active',
+            })
+
+        subscriptions = self.env['subscription.subscription']
+        subscriptions.cron_billing_notifications(today)
+        subscriptions.cron_billing_notifications(today)
+
+        activity_model = self.env['mail.activity']
+        model_id = self.env['ir.model']._get_id('subscription.subscription')
+        for key, expected_label in (
+            ('today', 'Due today'),
+            ('three_days', 'Due within 3 days'),
+            ('seven_days', 'Due within 7 days'),
+            ('overdue', 'Overdue'),
+        ):
+            activities = activity_model.search([
+                ('res_model_id', '=', model_id),
+                ('res_id', '=', created[key].id),
+                ('summary', '=', 'Subscription billing follow-up'),
+            ])
+            self.assertEqual(len(activities), 1)
+            self.assertIn(expected_label, activities.note)
+
+        created['today'].state = 'closed'
+        subscriptions.cron_billing_notifications(today)
+        self.assertFalse(activity_model.search([
+            ('res_model_id', '=', model_id),
+            ('res_id', '=', created['today'].id),
+            ('summary', '=', 'Subscription billing follow-up'),
+        ]))
+
+    def test_22_due_subscription_renews_and_generates_unpaid_invoice_once(self):
+        today = date.today()
+        subscription = self.env['subscription.subscription'].create({
+            'partner_id': self.partner.id,
+            'plan_id': self.monthly_plan.id,
+            'start_date': today,
+            'expiry_date': today,
+            'next_billing_date': today,
+            'state': 'active',
+            'line_ids': [(0, 0, {
+                'product_id': self.product.id,
+                'quantity': 1.0,
+                'unit_price': 500.0,
+            })],
+        })
+
+        subscription.cron_recurring_billing()
+        renewed_expiry = subscription.expiry_date
+
+        self.assertEqual(subscription.state, 'active')
+        self.assertGreater(renewed_expiry, today)
+        self.assertEqual(len(subscription.invoice_ids), 1)
+        self.assertEqual(subscription.invoice_ids.subscription_id, subscription)
+        self.assertEqual(subscription.invoice_ids.payment_state, 'not_paid')
+        self.assertTrue(
+            subscription.message_ids.filtered(
+                lambda message: 'Subscription renewed' in message.body
+            )
+        )
+
+        subscription.cron_recurring_billing()
+        self.assertEqual(subscription.expiry_date, renewed_expiry)
+        self.assertEqual(len(subscription.invoice_ids), 1)
+
+    def test_23_failed_invoice_rolls_back_automatic_renewal(self):
+        today = date.today()
+        subscription = self.env['subscription.subscription'].create({
+            'partner_id': self.partner.id,
+            'plan_id': self.monthly_plan.id,
+            'start_date': today,
+            'expiry_date': today,
+            'next_billing_date': today,
+            'state': 'active',
+            'line_ids': [(0, 0, {
+                'product_id': self.product.id,
+                'quantity': 1.0,
+                'unit_price': 500.0,
+            })],
+        })
+        invoice_model = type(self.env['subscription.invoice'])
+
+        with patch.object(invoice_model, 'create', side_effect=UserError("Invoice creation failed")):
+            subscription.cron_automatic_renewal(today)
+
+        self.assertEqual(subscription.state, 'active')
+        self.assertEqual(subscription.expiry_date, today)
+        self.assertEqual(subscription.next_billing_date, today)
+        self.assertFalse(subscription.invoice_ids)
+        failure = self.env['subscription.billing.log'].search([
+            ('subscription_id', '=', subscription.id),
+            ('status', '=', 'failed'),
+        ], limit=1)
+        self.assertTrue(failure)
+        self.assertIn("Invoice creation failed", failure.message)
+        self.assertTrue(failure.error_traceback)
+
+    def test_24_cancelled_subscription_is_never_renewed_or_billed(self):
+        today = date.today()
+        subscription = self.env['subscription.subscription'].create({
+            'partner_id': self.partner.id,
+            'plan_id': self.monthly_plan.id,
+            'start_date': today - relativedelta(days=30),
+            'expiry_date': today - relativedelta(days=1),
+            'next_billing_date': today - relativedelta(days=1),
+            'state': 'closed',
+        })
+
+        subscription.cron_recurring_billing()
+
+        self.assertEqual(subscription.state, 'closed')
+        self.assertFalse(subscription.invoice_ids)
+        self.assertEqual(subscription.expiry_date, today - relativedelta(days=1))

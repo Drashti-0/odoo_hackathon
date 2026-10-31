@@ -1,8 +1,12 @@
 # -*- coding: utf-8 -*-
+import logging
+import traceback
 from datetime import date
 from dateutil.relativedelta import relativedelta
 from odoo import api, fields, models, _
 from odoo.exceptions import UserError, ValidationError
+
+_logger = logging.getLogger(__name__)
 
 
 class SubscriptionQuotationTemplate(models.Model):
@@ -550,7 +554,15 @@ class SubscriptionSubscription(models.Model):
         for sub in expiring:
             grace_days = sub.plan_id.auto_close_days or 0
             close_threshold = sub.expiry_date + relativedelta(days=grace_days)
-            if today >= close_threshold and sub.plan_id.auto_close:
+            if today < close_threshold:
+                continue
+            if sub.plan_id.allow_renewal:
+                sub.state = 'expired'
+                sub.message_post(
+                    body=_("Subscription reached contractual expiry date on %s and is awaiting renewal.")
+                    % sub.expiry_date
+                )
+            elif sub.plan_id.auto_close:
                 sub.state = 'closed'
                 sub.close_date = today
                 sub.close_reason = _("Automatic closing upon reaching contractual expiry date.")
@@ -558,6 +570,123 @@ class SubscriptionSubscription(models.Model):
             else:
                 sub.state = 'expired'
                 sub.message_post(body=_("Subscription reached contractual expiry date on %s.") % sub.expiry_date)
+        return True
+
+    @api.model
+    def cron_automatic_renewal(self, target_date=None):
+        """Renew eligible expired contracts and bill due cycles within one savepoint."""
+        today = fields.Date.to_date(target_date) if target_date else fields.Date.today()
+        candidates = self.search([
+            ('state', 'in', ('active', 'expired')),
+            ('expiry_date', '!=', False),
+            ('expiry_date', '<=', today),
+            ('plan_id.allow_renewal', '=', True),
+        ])
+        log_model = self.env['subscription.billing.log'].sudo()
+
+        for candidate in candidates:
+            try:
+                with self.env.cr.savepoint():
+                    self.env.cr.execute(
+                        """
+                        SELECT id
+                          FROM subscription_subscription
+                         WHERE id = %s
+                           AND state IN ('active', 'expired')
+                           AND expiry_date <= %s
+                        FOR UPDATE SKIP LOCKED
+                        """,
+                        (candidate.id, today),
+                    )
+                    if not self.env.cr.fetchone():
+                        continue
+
+                    subscription = self.browse(candidate.id)
+                    subscription.invalidate_recordset([
+                        'state', 'expiry_date', 'next_billing_date', 'plan_id',
+                    ])
+                    if (
+                        subscription.state not in ('active', 'expired')
+                        or not subscription.plan_id.allow_renewal
+                        or not subscription.expiry_date
+                        or subscription.expiry_date > today
+                    ):
+                        continue
+
+                    previous_billing_date = subscription.next_billing_date
+                    subscription.action_renew()
+                    if previous_billing_date and previous_billing_date <= today:
+                        subscription.next_billing_date = previous_billing_date
+                    elif not subscription.next_billing_date:
+                        subscription.next_billing_date = subscription.start_date or today
+                    if subscription.next_billing_date and subscription.next_billing_date <= today:
+                        subscription._process_recurring_billing_catchup(today)
+            except Exception as exc:
+                _logger.exception("Automatic renewal failed for subscription %s", candidate.display_name)
+                log_model.create({
+                    'execution_date': fields.Datetime.now(),
+                    'subscription_id': candidate.id,
+                    'status': 'failed',
+                    'message': _("Automatic renewal failed: %s") % str(exc),
+                    'error_traceback': traceback.format_exc(),
+                })
+        return True
+
+    @api.model
+    def cron_billing_notifications(self, target_date=None):
+        """Create or refresh one follow-up activity for active subscriptions due within a week."""
+        today = fields.Date.to_date(target_date) if target_date else fields.Date.today()
+        model_id = self.env['ir.model']._get_id(self._name)
+        todo_type = self.env.ref('mail.mail_activity_data_todo')
+        summary = _("Subscription billing follow-up")
+        activity_model = self.env['mail.activity'].sudo()
+        activities = activity_model.search([
+            ('res_model_id', '=', model_id),
+            ('activity_type_id', '=', todo_type.id),
+            ('summary', '=', summary),
+        ])
+        subscriptions = self.search([
+            ('state', '=', 'active'),
+            ('next_billing_date', '!=', False),
+            ('next_billing_date', '<=', today + relativedelta(days=7)),
+        ])
+        subscriptions_by_id = {subscription.id: subscription for subscription in subscriptions}
+
+        activities_by_subscription = {}
+        for activity in activities:
+            if activity.res_id not in subscriptions_by_id:
+                activity.unlink()
+                continue
+            if activity.res_id in activities_by_subscription:
+                activity.unlink()
+                continue
+            activities_by_subscription[activity.res_id] = activity
+
+        for subscription in subscriptions:
+            days_until_billing = (subscription.next_billing_date - today).days
+            if days_until_billing < 0:
+                due_label = _("Overdue")
+            elif days_until_billing == 0:
+                due_label = _("Due today")
+            elif days_until_billing <= 3:
+                due_label = _("Due within 3 days")
+            else:
+                due_label = _("Due within 7 days")
+            values = {
+                'activity_type_id': todo_type.id,
+                'date_deadline': subscription.next_billing_date,
+                'summary': summary,
+                'note': _("%(status)s. Next billing date: %(date)s.")
+                % {'status': due_label, 'date': subscription.next_billing_date},
+                'user_id': subscription.user_id.id or self.env.user.id,
+                'res_model_id': model_id,
+                'res_id': subscription.id,
+            }
+            activity = activities_by_subscription.get(subscription.id)
+            if activity:
+                activity.write(values)
+            else:
+                activity_model.create(values)
         return True
 
     def action_view_invoices(self):
