@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Subscription Invoice Form View -->
+    <record id="view_subscription_invoice_form" model="ir.ui.view">
+        <field name="name">subscription.invoice.form</field>
+        <field name="model">subscription.invoice</field>
+        <field name="arch" type="xml">
+            <form string="Subscription Invoice">
+                <header>
+                    <button name="action_confirm" string="Confirm / Post" type="object" class="oe_highlight" invisible="state != 'draft'"/>
+                    <button name="action_register_payment" string="Register Payment" type="object" class="btn-success" invisible="state != 'confirmed' or payment_state == 'paid'"/>
+                    <button name="action_send_email" string="Send by Email" type="object" class="btn-outline-primary" invisible="state == 'cancel'"/>
+                    <button name="action_print" string="Print Invoice" type="object" class="btn-outline-secondary" invisible="state == 'draft'"/>
+                    <button name="action_cancel" string="Cancel Invoice" type="object" class="btn-outline-danger" invisible="state in ('paid', 'cancel')"/>
+
+                    <field name="state" widget="statusbar" statusbar_visible="draft,confirmed,paid"/>
+                </header>
+                <sheet>
+                    <widget name="web_ribbon" title="Paid" bg_color="bg-success" invisible="payment_state != 'paid'"/>
+                    <widget name="web_ribbon" title="Cancelled" bg_color="bg-danger" invisible="state != 'cancel'"/>
+
+                    <div class="oe_title">
+                        <label for="name" string="Invoice Reference" class="oe_edit_only"/>
+                        <h1>
+                            <field name="name" readonly="1"/>
+                        </h1>
+                    </div>
+
+                    <group>
+                        <group string="Billing Entity &amp; Contract Reference">
+                            <field name="partner_id" widget="res_partner_many2one" context="{'show_address': 1}" options="{'always_reload': True}" readonly="state != 'draft'"/>
+                            <field name="subscription_id" readonly="state != 'draft'"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                        </group>
+
+                        <group string="Billing Cycle &amp; Terms">
+                            <field name="invoice_date" readonly="state != 'draft'"/>
+                            <field name="due_date" readonly="state != 'draft'"/>
+                            <label for="billing_period_start" string="Billing Period"/>
+                            <div class="o_row">
+                                <field name="billing_period_start" readonly="state != 'draft'"/>
+                                <span class="oe_inline"> to </span>
+                                <field name="billing_period_end" readonly="state != 'draft'"/>
+                            </div>
+                            <field name="payment_terms"/>
+                            <field name="payment_state" widget="badge" decoration-success="payment_state == 'paid'" decoration-info="payment_state == 'partial'" decoration-warning="payment_state == 'not_paid'"/>
+                            <field name="payment_reference" invisible="not payment_reference"/>
+                            <field name="currency_id" invisible="1"/>
+                        </group>
+                    </group>
+
+                    <notebook>
+                        <page name="invoice_lines" string="Invoice Lines">
+                            <field name="line_ids" readonly="state != 'draft'">
+                                <tree editable="bottom">
+                                    <field name="product_id"/>
+                                    <field name="name"/>
+                                    <field name="quantity"/>
+                                    <field name="unit_price" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                                    <field name="discount_rate" optional="show"/>
+                                    <field name="discount_amount" widget="monetary" options="{'currency_field': 'currency_id'}" optional="show"/>
+                                    <field name="tax_ids" widget="many2many_tags" optional="show"/>
+                                    <field name="price_subtotal" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                                    <field name="price_tax" widget="monetary" options="{'currency_field': 'currency_id'}" optional="hide"/>
+                                    <field name="price_total" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                                    <field name="currency_id" column_invisible="True"/>
+                                </tree>
+                            </field>
+
+                            <group col="12" class="oe_invoice_amount_total">
+                                <group colspan="8"/>
+                                <group colspan="4">
+                                    <field name="amount_untaxed" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                                    <field name="amount_discount" widget="monetary" options="{'currency_field': 'currency_id'}" invisible="amount_discount == 0.0"/>
+                                    <field name="amount_tax" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                                    <div class="oe_subtotal_footer_separator oe_inline o_td_label">
+                                        <label for="amount_total"/>
+                                    </div>
+                                    <field name="amount_total" nolabel="1" class="oe_subtotal_footer_separator" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                                </group>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="activity_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <!-- Subscription Invoice Tree View -->
+    <record id="view_subscription_invoice_tree" model="ir.ui.view">
+        <field name="name">subscription.invoice.tree</field>
+        <field name="model">subscription.invoice</field>
+        <field name="arch" type="xml">
+            <tree string="Invoices" decoration-info="state == 'draft'" decoration-success="state == 'paid'" decoration-primary="state == 'confirmed'" decoration-muted="state == 'cancel'">
+                <field name="name"/>
+                <field name="partner_id"/>
+                <field name="subscription_id"/>
+                <field name="invoice_date"/>
+                <field name="billing_period_start"/>
+                <field name="billing_period_end"/>
+                <field name="amount_untaxed" widget="monetary" options="{'currency_field': 'currency_id'}" optional="hide"/>
+                <field name="amount_total" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                <field name="payment_state" widget="badge" decoration-success="payment_state == 'paid'" decoration-warning="payment_state == 'not_paid'"/>
+                <field name="state" widget="badge" decoration-info="state == 'draft'" decoration-primary="state == 'confirmed'" decoration-success="state == 'paid'" decoration-danger="state == 'cancel'"/>
+                <field name="currency_id" column_invisible="True"/>
+            </tree>
+        </field>
+    </record>
+
+    <!-- Subscription Invoice Search View -->
+    <record id="view_subscription_invoice_search" model="ir.ui.view">
+        <field name="name">subscription.invoice.search</field>
+        <field name="model">subscription.invoice</field>
+        <field name="arch" type="xml">
+            <search string="Search Invoices">
+                <field name="name" string="Invoice or Customer" filter_domain="['|', ('name', 'ilike', self), ('partner_id', 'ilike', self)]"/>
+                <field name="subscription_id"/>
+                <field name="partner_id"/>
+                <filter string="Draft" name="filter_draft" domain="[('state', '=', 'draft')]"/>
+                <filter string="Posted / Confirmed" name="filter_confirmed" domain="[('state', '=', 'confirmed')]"/>
+                <filter string="Paid" name="filter_paid" domain="[('state', '=', 'paid')]"/>
+                <filter string="Unpaid" name="filter_unpaid" domain="[('state', '=', 'confirmed'), ('payment_state', '!=', 'paid')]"/>
+                <separator/>
+                <group expand="0" string="Group By">
+                    <filter string="Customer" name="group_partner" context="{'group_by': 'partner_id'}"/>
+                    <filter string="Subscription" name="group_subscription" context="{'group_by': 'subscription_id'}"/>
+                    <filter string="Status" name="group_state" context="{'group_by': 'state'}"/>
+                    <filter string="Invoice Date" name="group_invoice_date" context="{'group_by': 'invoice_date:month'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Action: Subscription Invoices -->
+    <record id="action_subscription_invoices" model="ir.actions.act_window">
+        <field name="name">Recurring Invoices</field>
+        <field name="res_model">subscription.invoice</field>
+        <field name="view_mode">tree,form</field>
+        <field name="search_view_id" ref="view_subscription_invoice_search"/>
+        <field name="context">{'search_default_filter_confirmed': 1}</field>
+    </record>
+
+</odoo>

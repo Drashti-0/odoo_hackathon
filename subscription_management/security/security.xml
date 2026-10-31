@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="0">
+
+        <!-- Module Category -->
+        <record id="module_category_subscription" model="ir.module.category">
+            <field name="name">Subscriptions</field>
+            <field name="description">Manage recurring contracts, subscription plans, quotations, and automated billing.</field>
+            <field name="sequence">25</field>
+        </record>
+
+        <!-- Subscription User (Officer) -->
+        <record id="group_subscription_user" model="res.groups">
+            <field name="name">Officer / Staff</field>
+            <field name="category_id" ref="module_category_subscription"/>
+            <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+            <field name="comment">Subscription staff can manage quotations, subscriptions, and view invoices.</field>
+        </record>
+
+        <!-- Subscription Administrator (Manager) -->
+        <record id="group_subscription_manager" model="res.groups">
+            <field name="name">Administrator</field>
+            <field name="category_id" ref="module_category_subscription"/>
+            <field name="implied_ids" eval="[(4, ref('group_subscription_user'))]"/>
+            <field name="users" eval="[(4, ref('base.user_root')), (4, ref('base.user_admin'))]"/>
+            <field name="comment">Subscription managers have complete administrative control over plans, pricing, and automated recurring billing cron.</field>
+        </record>
+
+        <!-- Subscription Portal Customer -->
+        <record id="group_subscription_portal" model="res.groups">
+            <field name="name">Portal Customer</field>
+            <field name="category_id" ref="module_category_subscription"/>
+            <field name="implied_ids" eval="[(4, ref('base.group_portal'))]"/>
+            <field name="comment">Customers who can view their own subscriptions and invoices via the online portal.</field>
+        </record>
+
+    </data>
+
+    <data noupdate="1">
+
+        <!-- Multi-Company Rule: Subscription -->
+        <record id="subscription_subscription_company_rule" model="ir.rule">
+            <field name="name">Subscription Multi-Company Rule</field>
+            <field name="model_id" ref="model_subscription_subscription"/>
+            <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+        </record>
+
+        <!-- Multi-Company Rule: Invoice -->
+        <record id="subscription_invoice_company_rule" model="ir.rule">
+            <field name="name">Subscription Invoice Multi-Company Rule</field>
+            <field name="model_id" ref="model_subscription_invoice"/>
+            <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+        </record>
+
+        <!-- Portal Customer Rule: Read Own Subscriptions -->
+        <record id="subscription_portal_rule" model="ir.rule">
+            <field name="name">Portal Customer Own Subscriptions</field>
+            <field name="model_id" ref="model_subscription_subscription"/>
+            <field name="domain_force">[('partner_id', '=', user.partner_id.id)]</field>
+            <field name="groups" eval="[(4, ref('group_subscription_portal'))]"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="False"/>
+            <field name="perm_create" eval="False"/>
+            <field name="perm_unlink" eval="False"/>
+        </record>
+
+        <!-- Portal Customer Rule: Read Own Invoices -->
+        <record id="subscription_invoice_portal_rule" model="ir.rule">
+            <field name="name">Portal Customer Own Invoices</field>
+            <field name="model_id" ref="model_subscription_invoice"/>
+            <field name="domain_force">[('partner_id', '=', user.partner_id.id)]</field>
+            <field name="groups" eval="[(4, ref('group_subscription_portal'))]"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="False"/>
+            <field name="perm_create" eval="False"/>
+            <field name="perm_unlink" eval="False"/>
+        </record>
+
+    </data>
+</odoo>
