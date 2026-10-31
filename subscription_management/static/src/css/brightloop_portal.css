@@ -61,6 +61,31 @@
 .bl-empty { padding: 2rem !important; color: var(--bl-muted); text-align: center; }
 .bl-portal-links { display: flex; flex-wrap: wrap; gap: 1.25rem; margin-top: 1.25rem; }
 
+.oe_login_form {
+    padding: clamp(1.5rem, 4vw, 2.5rem);
+    border: 1px solid var(--bl-border);
+    border-radius: 16px;
+    background: var(--bl-surface);
+    box-shadow: 0 20px 60px rgba(27, 45, 86, .10);
+}
+
+.oe_login_form .form-control {
+    min-height: 44px;
+    border-color: #d6deeb;
+    border-radius: 8px;
+}
+
+.bl-login-signup {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: .35rem;
+    margin: 1rem auto;
+    color: var(--bl-muted);
+}
+
+.bl-login-signup a { color: var(--bl-blue); font-weight: 700; }
+
 @media (max-width: 575.98px) {
     .bl-portal-shell { padding: 1.5rem .75rem; }
     .bl-auth-card { margin: 0 auto; border-radius: 14px; }
