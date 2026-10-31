@@ -716,6 +716,15 @@ except ImportError:
     except ImportError:
         pass
 
+# Import Developer 2 Discount Management Verification Suite
+try:
+    from test_discount_management_standalone import TestDiscountManagementStandalone
+except ImportError:
+    try:
+        from tests.test_discount_management_standalone import TestDiscountManagementStandalone
+    except ImportError:
+        pass
+
 
 if __name__ == '__main__':
     unittest.main()

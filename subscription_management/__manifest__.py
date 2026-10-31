@@ -38,6 +38,7 @@ Integration Ready:
         'views/billing_log_views.xml',
         'views/menu_views.xml',
         'views/user_views.xml',
+        'views/discount_views.xml',
         'security/user_security.xml',
     ],
     'demo': [],
