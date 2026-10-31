@@ -36,6 +36,7 @@ class TestSubscriptionCustomerPortal(HttpCase):
         cls.plan = cls.env['subscription.plan'].create({
             'name': 'Portal Test Monthly Plan',
             'code': 'PORTAL-MONTHLY-TEST',
+            'sequence': -999,
             'price': 49.0,
             'billing_interval_unit': 'monthly',
             'billing_interval_count': 1,
@@ -96,17 +97,35 @@ class TestSubscriptionCustomerPortal(HttpCase):
         })
 
     def test_portal_login_and_lists_are_customer_scoped(self):
+        portal_plans = self.env['subscription.plan'].with_user(
+            self.portal_user
+        ).search([('id', '=', self.plan.id)])
+        self.assertEqual(portal_plans, self.plan)
+        self.assertTrue(portal_plans.is_available_on())
         self.assertTrue(self.authenticate(self.login, self.password))
 
         home = self.url_open('/my')
         subscriptions = self.url_open('/my/subscriptions')
         quotations = self.url_open('/my/quotations')
+        plans = self.url_open('/my/plans')
         invoices = self.url_open('/my/invoices')
+        billing_history = self.url_open('/my/billing-history')
 
         self.assertEqual(home.status_code, 200)
         self.assertEqual(subscriptions.status_code, 200)
         self.assertEqual(quotations.status_code, 200)
+        self.assertEqual(plans.status_code, 200)
         self.assertEqual(invoices.status_code, 200)
+        self.assertEqual(billing_history.status_code, 200)
+        self.assertIn(b'brightloop', home.content.lower())
+        self.assertIn(b'Active subscriptions', home.content)
+        self.assertIn(self.own_subscription.name.encode(), home.content)
+        self.assertNotIn(self.other_subscription.name.encode(), home.content)
+        self.assertIn(b'My profile', home.content)
+        self.assertIn(b'Log out', home.content)
+        self.assertIn(self.plan.name.encode(), home.content)
+        self.assertIn(self.plan.name.encode(), plans.content, plans.text[:2000])
+        self.assertIn(b'Plan base fee per billing interval', plans.content)
         self.assertIn(self.own_subscription.name.encode(), subscriptions.content)
         self.assertNotIn(self.other_subscription.name.encode(), subscriptions.content)
         self.assertIn(self.own_invoice.name.encode(), invoices.content)

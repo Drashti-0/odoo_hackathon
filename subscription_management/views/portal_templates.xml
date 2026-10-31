@@ -29,6 +29,8 @@
             <attribute name="t-value">False</attribute>
         </xpath>
         <xpath expr="//div[hasclass('o_portal_my_home')]" position="replace">
+            <div class="o_portal_my_home">
+            <div class="o_portal_doc_spinner d-none"/>
             <main class="bl-portal-dashboard">
                 <section class="bl-portal-hero">
                     <div>
@@ -135,6 +137,14 @@
                     </div>
                 </section>
             </main>
+                <div class="o_portal_docs bl-hidden-portal-docs">
+                    <div class="o_portal_category" id="portal_alert_category"/>
+                    <div class="o_portal_category" id="portal_client_category"/>
+                    <div class="o_portal_category" id="portal_service_category"/>
+                    <div class="o_portal_category" id="portal_vendor_category"/>
+                    <div class="o_portal_category" id="portal_common_category"/>
+                </div>
+            </div>
         </xpath>
     </template>
 

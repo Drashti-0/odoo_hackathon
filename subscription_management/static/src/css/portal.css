@@ -14,6 +14,15 @@ body:has(.bl-portal-nav) {
     color: var(--bl-ink);
 }
 
+body:has(.bl-portal-nav) #top,
+body:has(.bl-portal-nav) #bottom {
+    display: none !important;
+}
+
+.bl-hidden-portal-docs {
+    display: none !important;
+}
+
 .bl-portal-nav {
     position: relative;
     z-index: 3;

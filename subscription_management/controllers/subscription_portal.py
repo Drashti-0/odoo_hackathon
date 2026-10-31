@@ -26,9 +26,9 @@ class SubscriptionCustomerPortal(CustomerPortal):
         today = fields.Date.today()
         plans = request.env['subscription.plan'].search([
             ('active', '=', True),
-            '|', ('start_date', '=', False), ('start_date', '<=', today),
-            '|', ('end_date', '=', False), ('end_date', '>=', today),
-        ], order='sequence, name', limit=3)
+        ], order='sequence, name').filtered(
+            lambda plan: plan.is_available_on(today)
+        )[:3]
         values.update({
             'page_name': 'home',
             'portal_subscriptions': subscriptions,
@@ -76,12 +76,11 @@ class SubscriptionCustomerPortal(CustomerPortal):
     def portal_subscription_plans(self, page=1, **kwargs):
         today = fields.Date.today()
         plans_model = request.env['subscription.plan']
-        domain = [
-            ('active', '=', True),
-            '|', ('start_date', '=', False), ('start_date', '<=', today),
-            '|', ('end_date', '=', False), ('end_date', '>=', today),
-        ]
-        total = plans_model.search_count(domain)
+        available_plans = plans_model.search(
+            [('active', '=', True)],
+            order='sequence, name',
+        ).filtered(lambda plan: plan.is_available_on(today))
+        total = len(available_plans)
         pager = portal_pager(
             url='/my/plans',
             total=total,
@@ -91,12 +90,7 @@ class SubscriptionCustomerPortal(CustomerPortal):
         values = self._prepare_portal_layout_values()
         values.update({
             'page_name': 'subscription_plans',
-            'plans': plans_model.search(
-                domain,
-                order='sequence, name',
-                limit=self._items_per_page,
-                offset=pager['offset'],
-            ),
+            'plans': available_plans[pager['offset']:pager['offset'] + self._items_per_page],
             'pager': pager,
         })
         return request.render(
