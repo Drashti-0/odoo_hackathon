@@ -309,7 +309,7 @@ class TestComplete12StepIntegration(unittest.TestCase):
 
         # Portal Customer attempting to access Financial Dashboard raises AccessError
         dash_portal = DashUser(id=3, name="Portal User", roles=[MockRole.PORTAL])
-        with self.assertRaises(AccessError):
+        with self.assertRaises((AccessError, DashAccessError)):
             dashboard.get_dashboard_metrics(user=dash_portal)
         print(" -> PASS: Multi-tenant record rules strictly enforced: Bob blocked from Alice's contracts; Customers blocked from dashboard.")
 

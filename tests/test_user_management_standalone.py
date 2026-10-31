@@ -156,7 +156,13 @@ class MockUser:
         if MockUser.search_by_email(clean):
             raise ValidationError(f"The email '{email}' is already registered.")
 
-        partner = MockPartner.search_by_email(clean) or MockPartner(name=name, email=clean, company_name=company_name)
+        partner = MockPartner.search_by_email(clean)
+        if partner:
+            raise ValidationError(
+                "An existing customer or contact already uses this email. "
+                "Please contact support to access that account."
+            )
+        partner = MockPartner(name=name, email=clean, company_name=company_name)
         user = MockUser(name=name, email=clean, password=password, partner=partner, groups=[MockSecurityGroup.PORTAL])
         return {
             'success': True,
@@ -313,6 +319,18 @@ class TestUserManagementAuthentication(unittest.TestCase):
             MockUser.register_portal_customer(
                 "Alice Clone Mixed", "  AliCe@ExamPle.Com ", "ValidPass123!"
             )
+
+    def test_03b_existing_partner_email_cannot_be_claimed(self):
+        """Signup rejects a known partner email and creates no portal-user association."""
+        existing_partner = MockPartner("Existing Customer", "existing@example.com")
+
+        with self.assertRaises(ValidationError):
+            MockUser.register_portal_customer(
+                "Unauthorized Claim", "existing@example.com", "ValidPass123!"
+            )
+
+        self.assertIsNone(MockUser.search_by_email("existing@example.com"))
+        self.assertEqual(MockPartner.search_by_email("existing@example.com"), existing_partner)
 
     # 4. Invalid email rejection
     def test_04_invalid_email_rejection(self):
