@@ -1,0 +1,287 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ============================================== -->
+    <!-- DASHBOARD CONSOLE FORM VIEW                    -->
+    <!-- ============================================== -->
+
+    <record id="view_subscription_dashboard_console_form" model="ir.ui.view">
+        <field name="name">subscription.dashboard.console.form</field>
+        <field name="model">subscription.dashboard.console</field>
+        <field name="arch" type="xml">
+            <form string="Subscription Analytics &amp; Financial Dashboard" create="false" delete="false">
+                <header>
+                    <button name="action_view_active_subscriptions" string="View Active Subscriptions" type="object" class="btn-primary"/>
+                    <button name="action_view_received_payments" string="View Settled Payments" type="object" class="btn-success"/>
+                    <button name="action_view_outstanding_invoices" string="View Unpaid Invoices" type="object" class="btn-warning"/>
+                    <button name="action_view_overdue_invoices" string="View Overdue Invoices" type="object" class="btn-danger"/>
+                </header>
+
+                <sheet>
+                    <div class="oe_title">
+                        <h1>
+                            <span>Subscription Financial &amp; Operational Dashboard</span>
+                        </h1>
+                        <p class="text-muted">
+                            Real-time key performance indicators and revenue intelligence.
+                        </p>
+                    </div>
+
+                    <!-- Dynamic Filter Panel -->
+                    <group string="Filter &amp; Date Period Criteria" col="4">
+                        <field name="date_range_type"/>
+                        <field name="partner_id" options="{'no_create': True}"/>
+                        <field name="date_from" invisible="date_range_type == 'all'"/>
+                        <field name="date_to" invisible="date_range_type == 'all'"/>
+                        <field name="subscription_status"/>
+                        <field name="payment_method"/>
+                        <field name="currency_id" invisible="1"/>
+                    </group>
+
+                    <separator string="Core Business Key Performance Indicators (KPIs)"/>
+
+                    <!-- Metric KPI Cards -->
+                    <div class="row o_dashboard_kpis mt-3 mb-4">
+                        <!-- Metric 1: Active Subscriptions -->
+                        <div class="col-md-4 col-sm-6 mb-3">
+                            <div class="card shadow-sm border-primary text-center p-3 h-100">
+                                <h6 class="text-muted text-uppercase mb-1">Active Subscriptions</h6>
+                                <h2 class="text-primary fw-bold mb-2">
+                                    <field name="active_subscriptions"/>
+                                </h2>
+                                <button name="action_view_active_subscriptions" string="Explore Contracts →" type="object" class="btn btn-sm btn-outline-primary"/>
+                            </div>
+                        </div>
+
+                        <!-- Metric 2: Revenue Received -->
+                        <div class="col-md-4 col-sm-6 mb-3">
+                            <div class="card shadow-sm border-success text-center p-3 h-100">
+                                <h6 class="text-muted text-uppercase mb-1">Revenue Received</h6>
+                                <h2 class="text-success fw-bold mb-2">
+                                    <field name="revenue_received" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                                </h2>
+                                <button name="action_view_received_payments" string="View Payments →" type="object" class="btn btn-sm btn-outline-success"/>
+                            </div>
+                        </div>
+
+                        <!-- Metric 3: Outstanding Receivables -->
+                        <div class="col-md-4 col-sm-6 mb-3">
+                            <div class="card shadow-sm border-warning text-center p-3 h-100">
+                                <h6 class="text-muted text-uppercase mb-1">Outstanding Balance</h6>
+                                <h2 class="text-warning fw-bold mb-2">
+                                    <field name="outstanding_amount" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                                </h2>
+                                <button name="action_view_outstanding_invoices" string="View Receivables →" type="object" class="btn btn-sm btn-outline-warning"/>
+                            </div>
+                        </div>
+
+                        <!-- Metric 4: Overdue Invoices -->
+                        <div class="col-md-4 col-sm-6 mb-3">
+                            <div class="card shadow-sm border-danger text-center p-3 h-100">
+                                <h6 class="text-muted text-uppercase mb-1">Overdue Invoices</h6>
+                                <h2 class="text-danger fw-bold mb-1">
+                                    <field name="overdue_invoices"/>
+                                </h2>
+                                <small class="text-danger mb-2 d-block">
+                                    Past Due: <field name="overdue_amount" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                                </small>
+                                <button name="action_view_overdue_invoices" string="Resolve Overdue →" type="object" class="btn btn-sm btn-outline-danger"/>
+                            </div>
+                        </div>
+
+                        <!-- Metric 5: Total Confirmed Payments -->
+                        <div class="col-md-4 col-sm-6 mb-3">
+                            <div class="card shadow-sm border-info text-center p-3 h-100">
+                                <h6 class="text-muted text-uppercase mb-1">Confirmed Payments</h6>
+                                <h2 class="text-info fw-bold mb-1">
+                                    <field name="total_payments_count"/>
+                                </h2>
+                                <small class="text-muted mb-2 d-block">
+                                    Total Value: <field name="total_payments_amount" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                                </small>
+                                <button name="action_view_received_payments" string="Payment Audit →" type="object" class="btn btn-sm btn-outline-info"/>
+                            </div>
+                        </div>
+
+                        <!-- Metric 6: MRR / ARR -->
+                        <div class="col-md-4 col-sm-6 mb-3">
+                            <div class="card shadow-sm border-secondary text-center p-3 h-100">
+                                <h6 class="text-muted text-uppercase mb-1">Recurring Run-Rate</h6>
+                                <h4 class="text-secondary fw-bold mb-0">
+                                    MRR: <field name="mrr_total" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                                </h4>
+                                <small class="text-muted mt-1 d-block">
+                                    ARR: <field name="arr_total" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Action: Open Interactive Dashboard -->
+    <record id="action_subscription_dashboard" model="ir.actions.act_window">
+        <field name="name">Dashboard &amp; Intelligence</field>
+        <field name="res_model">subscription.dashboard.console</field>
+        <field name="view_mode">form</field>
+        <field name="target">inline</field>
+    </record>
+
+    <!-- ============================================== -->
+    <!-- VISUAL CHARTS & MULTI-DIMENSIONAL PIVOT VIEWS -->
+    <!-- ============================================== -->
+
+    <!-- 1. Subscription Graph & Pivot Views -->
+    <record id="view_subscription_subscription_graph" model="ir.ui.view">
+        <field name="name">subscription.subscription.graph</field>
+        <field name="model">subscription.subscription</field>
+        <field name="arch" type="xml">
+            <graph string="Subscriptions by Status &amp; Plan" type="pie" sample="1">
+                <field name="state"/>
+                <field name="mrr" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="view_subscription_subscription_pivot" model="ir.ui.view">
+        <field name="name">subscription.subscription.pivot</field>
+        <field name="model">subscription.subscription</field>
+        <field name="arch" type="xml">
+            <pivot string="Subscription Analysis" sample="1">
+                <field name="partner_id" type="row"/>
+                <field name="plan_id" type="row"/>
+                <field name="state" type="col"/>
+                <field name="mrr" type="measure"/>
+                <field name="arr" type="measure"/>
+                <field name="amount_total" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- 2. Payment Revenue Graph & Pivot Views -->
+    <record id="view_subscription_payment_graph" model="ir.ui.view">
+        <field name="name">subscription.payment.graph</field>
+        <field name="model">subscription.payment</field>
+        <field name="arch" type="xml">
+            <graph string="Monthly Revenue Received" type="bar" sample="1">
+                <field name="payment_date" interval="month"/>
+                <field name="amount" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="view_subscription_payment_pivot" model="ir.ui.view">
+        <field name="name">subscription.payment.pivot</field>
+        <field name="model">subscription.payment</field>
+        <field name="arch" type="xml">
+            <pivot string="Payment Method &amp; Revenue Breakdown" sample="1">
+                <field name="payment_method" type="row"/>
+                <field name="payment_date" interval="month" type="col"/>
+                <field name="amount" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- 3. Invoice Receivables Graph & Pivot Views -->
+    <record id="view_subscription_invoice_graph" model="ir.ui.view">
+        <field name="name">subscription.invoice.graph</field>
+        <field name="model">subscription.invoice</field>
+        <field name="arch" type="xml">
+            <graph string="Invoicing &amp; Outstanding Analysis" type="bar" sample="1">
+                <field name="invoice_date" interval="month"/>
+                <field name="amount_total" type="measure"/>
+                <field name="amount_paid" type="measure"/>
+                <field name="amount_residual" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="view_subscription_invoice_pivot" model="ir.ui.view">
+        <field name="name">subscription.invoice.pivot</field>
+        <field name="model">subscription.invoice</field>
+        <field name="arch" type="xml">
+            <pivot string="Receivables &amp; Aging Analysis" sample="1">
+                <field name="partner_id" type="row"/>
+                <field name="payment_state" type="col"/>
+                <field name="amount_total" type="measure"/>
+                <field name="amount_paid" type="measure"/>
+                <field name="amount_residual" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- ============================================== -->
+    <!-- REPORTING & ANALYSIS WINDOW ACTIONS            -->
+    <!-- ============================================== -->
+
+    <!-- Action: Revenue & Payment Analysis -->
+    <record id="action_subscription_payment_analysis" model="ir.actions.act_window">
+        <field name="name">Revenue &amp; Payment Analysis</field>
+        <field name="res_model">subscription.payment</field>
+        <field name="view_mode">graph,pivot,tree</field>
+        <field name="domain">[('state', '=', 'success')]</field>
+        <field name="context">{'search_default_filter_success': 1, 'group_by': ['payment_date:month']}</field>
+    </record>
+
+    <!-- Action: Invoicing & Receivables Analysis -->
+    <record id="action_subscription_invoice_analysis" model="ir.actions.act_window">
+        <field name="name">Invoicing &amp; Receivables Analysis</field>
+        <field name="res_model">subscription.invoice</field>
+        <field name="view_mode">graph,pivot,tree</field>
+        <field name="domain">[('state', 'in', ('confirmed', 'paid'))]</field>
+        <field name="context">{'group_by': ['invoice_date:month']}</field>
+    </record>
+
+    <!-- Action: Subscription MRR/ARR Analysis -->
+    <record id="action_subscription_contract_analysis" model="ir.actions.act_window">
+        <field name="name">Subscription &amp; MRR Analysis</field>
+        <field name="res_model">subscription.subscription</field>
+        <field name="view_mode">graph,pivot,tree</field>
+        <field name="context">{'group_by': ['state']}</field>
+    </record>
+
+    <!-- ============================================== -->
+    <!-- REPORTING & DASHBOARD MENU HIERARCHY           -->
+    <!-- ============================================== -->
+
+    <!-- Primary Top-Level Dashboard Menu Item (Sequence 1) -->
+    <menuitem id="menu_subscription_dashboard_act"
+              name="Dashboard"
+              parent="menu_subscription_root"
+              action="action_subscription_dashboard"
+              sequence="1"/>
+
+    <!-- Reporting & Financial Analytics Submenu (Sequence 25) -->
+    <menuitem id="menu_subscription_reporting"
+              name="Reporting"
+              parent="menu_subscription_root"
+              groups="group_subscription_user,group_subscription_manager"
+              sequence="25"/>
+
+    <menuitem id="menu_subscription_report_console"
+              name="Financial Dashboard Console"
+              parent="menu_subscription_reporting"
+              action="action_subscription_dashboard"
+              sequence="10"/>
+
+    <menuitem id="menu_subscription_report_payments"
+              name="Revenue &amp; Payments"
+              parent="menu_subscription_reporting"
+              action="action_subscription_payment_analysis"
+              sequence="20"/>
+
+    <menuitem id="menu_subscription_report_invoices"
+              name="Invoices &amp; Receivables"
+              parent="menu_subscription_reporting"
+              action="action_subscription_invoice_analysis"
+              sequence="30"/>
+
+    <menuitem id="menu_subscription_report_contracts"
+              name="Subscription MRR/ARR"
+              parent="menu_subscription_reporting"
+              action="action_subscription_contract_analysis"
+              sequence="40"/>
+
+</odoo>
