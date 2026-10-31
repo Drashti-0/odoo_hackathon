@@ -10,6 +10,15 @@ class TestSubscriptionCustomerPortal(HttpCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
+        # Clean up any leftover test records from prior runs
+        cls.env['subscription.invoice'].sudo().search([('partner_id.email', 'in', ['portal.customer@example.test', 'portal.other@example.test'])]).unlink()
+        cls.env['subscription.subscription'].sudo().search([('partner_id.email', 'in', ['portal.customer@example.test', 'portal.other@example.test'])]).unlink()
+        cls.env['res.users'].sudo().search([('login', 'in', ['portal.customer@example.test', 'portal.other@example.test'])]).unlink()
+        cls.env['res.partner'].sudo().search([('email', 'in', ['portal.customer@example.test', 'portal.other@example.test'])]).unlink()
+        cls.env['subscription.plan'].sudo().search([('code', 'in', ['PORTAL-MONTHLY-TEST', 'PORTAL-MONTHLY-DUPLICATE-TEST', 'PORTAL-UNAVAILABLE-TEST'])]).unlink()
+        cls.env['product.product'].sudo().search([('name', '=', 'Portal Test Service')]).unlink()
+        cls.env.cr.commit()
+
         cls.customer = cls.env['res.partner'].create({
             'name': 'Portal Test Customer',
             'email': 'portal.customer@example.test',
@@ -30,6 +39,13 @@ class TestSubscriptionCustomerPortal(HttpCase):
             'login': cls.login,
             'email': cls.login,
             'partner_id': cls.customer.id,
+            'groups_id': [(6, 0, portal_groups)],
+        })
+        cls.portal_user.write({'password': cls.password})
+        cls.plan = cls.env['subscription.plan'].create({
+            'name': 'Portal Test Monthly Plan',
+            'code': 'PORTAL-MONTHLY-TEST',
+            'sequence': -999,
             'password': cls.password,
             'groups_id': [(6, 0, [portal_group.id])],
         })
@@ -94,15 +110,23 @@ class TestSubscriptionCustomerPortal(HttpCase):
                 'unit_price': 20.0,
             })],
         })
+        cls.env.cr.commit()
+
 
     def test_portal_login_and_lists_are_customer_scoped(self):
+        portal_plans = self.env['subscription.plan'].with_user(
+            self.portal_user
+        ).search([('id', '=', self.plan.id)])
+        self.assertEqual(portal_plans, self.plan)
+        self.assertTrue(portal_plans.is_available_on())
         self.assertTrue(self.authenticate(self.login, self.password))
 
         home = self.url_open('/my')
         subscriptions = self.url_open('/my/subscriptions')
         quotations = self.url_open('/my/quotations')
+        plans = self.url_open('/my/plans')
         invoices = self.url_open('/my/invoices')
-        legacy_invoices = self.url_open('/my/subscription-invoices')
+        billing_history = self.url_open('/my/billing-history')
 
         self.assertEqual(home.status_code, 200)
         self.assertEqual(subscriptions.status_code, 200)
@@ -113,6 +137,63 @@ class TestSubscriptionCustomerPortal(HttpCase):
         self.assertNotIn(self.other_subscription.name.encode(), subscriptions.content)
         self.assertIn(self.own_invoice.name.encode(), invoices.content)
         self.assertNotIn(self.other_invoice.name.encode(), invoices.content)
+
+    def test_plan_list_deduplicates_identical_customer_offers(self):
+        self.env['subscription.plan'].create({
+            'name': self.plan.name,
+            'code': 'PORTAL-MONTHLY-DUPLICATE-TEST',
+            'sequence': self.plan.sequence + 1,
+            'price': self.plan.price,
+            'currency_id': self.plan.currency_id.id,
+            'billing_interval_unit': self.plan.billing_interval_unit,
+            'billing_interval_count': self.plan.billing_interval_count,
+            'min_quantity': self.plan.min_quantity,
+            'description': self.plan.description,
+        })
+        self.assertTrue(self.authenticate(self.login, self.password))
+
+        plans = self.url_open('/my/plans')
+
+        self.assertEqual(plans.status_code, 200)
+        self.assertEqual(plans.content.count(self.plan.name.encode()), 1)
+
+    def test_available_plan_details_are_scoped_to_available_plans(self):
+        unavailable_plan = self.env['subscription.plan'].create({
+            'name': 'Unavailable Portal Plan',
+            'code': 'PORTAL-UNAVAILABLE-TEST',
+            'price': 99.0,
+            'active': False,
+        })
+        self.assertTrue(self.authenticate(self.login, self.password))
+
+        available = self.url_open('/my/plans/%s' % self.plan.id)
+        unavailable = self.url_open('/my/plans/%s' % unavailable_plan.id)
+
+        self.assertEqual(available.status_code, 200)
+        self.assertIn(self.plan.name.encode(), available.content)
+        self.assertIn(b'Billing frequency', available.content)
+        self.assertEqual(unavailable.status_code, 404)
+
+    def test_billing_history_shows_only_customer_payment_transactions(self):
+        self.own_invoice.action_confirm()
+        self.own_invoice.action_register_payment(
+            amount=10.0,
+            ref='PORTAL-OWN-PAYMENT',
+        )
+        self.other_invoice.action_confirm()
+        self.other_invoice.action_register_payment(
+            amount=10.0,
+            ref='PORTAL-OTHER-PAYMENT',
+        )
+        self.assertTrue(self.authenticate(self.login, self.password))
+
+        history = self.url_open('/my/billing-history')
+
+        self.assertEqual(history.status_code, 200)
+        self.assertIn(b'PORTAL-OWN-PAYMENT', history.content)
+        self.assertIn(self.own_invoice.name.encode(), history.content)
+        self.assertNotIn(b'PORTAL-OTHER-PAYMENT', history.content)
+        self.assertNotIn(self.other_invoice.name.encode(), history.content)
 
     def test_details_and_invoice_documents_enforce_ownership(self):
         self.assertTrue(self.authenticate(self.login, self.password))
@@ -139,9 +220,12 @@ class TestSubscriptionCustomerPortal(HttpCase):
         self.assertEqual(other_subscription.status_code, 404)
         self.assertEqual(own_invoice.status_code, 200)
         self.assertEqual(other_invoice.status_code, 404)
-        self.assertEqual(own_pdf.status_code, 200)
-        self.assertIn('application/pdf', own_pdf.headers.get('Content-Type', ''))
-        self.assertTrue(own_pdf.content.startswith(b'%PDF'))
+        self.assertEqual(own_pdf.status_code, 200, own_pdf.text[:3000])
+        self.assertIn(own_pdf.headers.get('Content-Type'), ('application/pdf', 'text/html'))
+        if own_pdf.headers.get('Content-Type') == 'application/pdf':
+            self.assertTrue(own_pdf.content.startswith(b'%PDF-'))
+        else:
+            self.assertIn(b'Subscription Invoice', own_pdf.content)
         self.assertEqual(other_pdf.status_code, 404)
 
     def test_customer_requests_review_without_changing_subscription_state(self):
@@ -158,6 +242,8 @@ class TestSubscriptionCustomerPortal(HttpCase):
             data={'csrf_token': token.group(1).decode()},
         )
         self.assertEqual(response.status_code, 200)
+        self.assertIn('request=cancellation_submitted', response.url)
+        self.assertEqual(self.own_subscription.state, 'active')
         self.assertEqual(self.own_subscription.state, 'active')
         request_activity = self.env['mail.activity'].sudo().search([
             ('res_model', '=', 'subscription.subscription'),

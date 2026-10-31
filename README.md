@@ -1,34 +1,43 @@
-# Brightloop Subscription Management System
-## Enterprise SaaS Contract Lifecycle, Intelligent Recurring Billing & Financial Analytics
+# Brightloop Subscription Management
 
+<<<<<<< HEAD
 [![Platform](https://img.shields.io/badge/Odoo-17.0-714B67?logo=odoo)](https://www.odoo.com)
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue?logo=python)](https://python.org)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-14%2B-336791?logo=postgresql)](https://www.postgresql.org)
 [![License](https://img.shields.io/badge/License-LGPL--3-green.svg)](LICENSE)
 [![Tests](https://img.shields.io/badge/Standalone%20mock%20tests-93%20passed-brightgreen)](tests/run_standalone_verification.py)
+=======
+Brightloop is an Odoo 17 addon for managing software subscription products, recurring plans, quotations, subscription contracts, subscription invoices, payments, discounts, and internal operational dashboards.
+>>>>>>> c5bd8016b9cc17e6a137062a322f0abffacef69c
 
----
+The addon is named `subscription_management` and is in `subscription_management/`. Its Odoo manifest depends on `base`, `mail`, `product`, `account`, and `portal`. The local Docker setup mounts the addon's directory into the Odoo container.
 
-## 1. Project Overview
+## What is implemented
 
+<<<<<<< HEAD
 The **Brightloop Subscription Management System** is an Odoo 17 addon and standalone browser demo developed by **Team AuraMinds** for the Odoo Hackathon. The addon contains subscription lifecycle, recurring billing, discounts, manual payment recording, and reporting code. The browser demo uses local sample data and simulated authentication; it is not connected to Odoo. Live Odoo installation and behavior have not been verified in this environment.
+=======
+- Subscription products and product variants with brand and variant pricing fields.
+- Daily, weekly, monthly, and yearly billing plans with availability and lifecycle policy.
+- Quotations and contract lifecycle states: draft, quotation, confirmed, active, paused, closed, and expired.
+- Recurring invoices, billing-period duplicate protection, scheduled billing jobs, and billing audit logs.
+- Discount rules and invoice/subscription discount hooks.
+- Payment transaction records and invoice payment/residual tracking. Payment-method labels include card, bank transfer, Stripe, PayPal, and cash/cheque; a live payment-provider integration was not verified.
+- Staff, administrator, and portal roles; customer-scoped portal pages for subscriptions, quotations, plans, invoices, and billing history.
+- Odoo backend list, form, search, graph, and pivot views; an invoice QWeb report.
+- A database-backed internal dashboard and synthetic, repeatable demo data loader.
+>>>>>>> c5bd8016b9cc17e6a137062a322f0abffacef69c
 
-### Team Members & Separation of Concerns
-- **Developer 1 (Dhruti Viradiya)**: Modules 1–4 (Product & Variants, Subscription Plans, Contract Lifecycle, Recurring Billing Engine).
-- **Developer 2 (Drashti Bhanderi)**: Modules 5–8 (User Management & Authentication, Discount Management, Payment Management, Dashboard & Financial Reports).
+See [docs/PROJECT_ARCHITECTURE.md](docs/PROJECT_ARCHITECTURE.md), [docs/DATABASE_DESIGN.md](docs/DATABASE_DESIGN.md), and [docs/USER_GUIDE.md](docs/USER_GUIDE.md) for implementation details.
 
----
+## Run locally
 
-## 2. Problem Statement & Objectives
+The repository includes Docker Compose for Odoo 17 and PostgreSQL. Before exposing this setup beyond a local development machine, replace development-only configuration with private local settings and rotate any default administration secrets. Do not commit `.env` files or credentials.
 
-### The Business Challenge
-Traditional ERP systems operate on single-transaction purchase orders and static sales invoices. Companies adopting subscription business models face severe operational bottlenecks:
-1. **Billing Overhead**: Sales and finance teams manually track renewal dates, resulting in delayed invoicing or forgotten renewals.
-2. **Revenue Leakage**: Complex products with brand surcharges and promotional discounts frequently experience miscalculation or double-application.
-3. **Partial Payment Reconciliation**: Customers paying in installments across multiple payment channels create fragmented accounting balances.
-4. **Data Privacy**: Multi-tenant customers must be strictly prevented from accessing other organizations' pricing, invoices, or contracts.
-5. **Slow Financial Visibility**: Computing SaaS metrics (MRR, ARR, Churn, Overdue Receivables) requires manual spreadsheet exports.
+1. Install Docker Desktop with Docker Compose.
+2. From the repository root, create `.env` from `.env.example` only if you do not already have a private local `.env`, then replace development values with local-only values:
 
+<<<<<<< HEAD
 ### Project Objectives
 - Automate contract state transitions: `Draft` $\rightarrow$ `Quotation` $\rightarrow$ `Confirmed` $\rightarrow$ `Active` $\rightarrow$ `Closed`.
 - Deliver an autonomous, catch-up-capable recurring billing cron engine that leaves zero billing gaps and avoids duplicate charges.
@@ -36,11 +45,20 @@ Traditional ERP systems operate on single-transaction purchase orders and static
 - Reconcile manually recorded payments and prevent overpayments. Payment-method labels do not connect to payment gateways.
 - Configure customer record rules through Odoo access controls; the standalone demo's role filtering is only a UI simulation.
 - Provide sub-second executive analytics using database-level SQL aggregation (`read_group`).
+=======
+   ```bash
+   test -f .env || cp .env.example .env
+   ```
+>>>>>>> c5bd8016b9cc17e6a137062a322f0abffacef69c
 
----
+3. Start the services:
 
-## 3. Main Features
+   ```bash
+   docker compose up -d
+   docker compose ps
+   ```
 
+<<<<<<< HEAD
 | Feature Area | Key Capabilities |
 |---|---|
 | **Catalog & Surcharges** | Multi-brand product variants with mandatory Odoo brand variant surcharge (+560.0). |
@@ -51,11 +69,17 @@ Traditional ERP systems operate on single-transaction purchase orders and static
 | **Discount Management** | Fixed and percentage coupons, subtotal clamping, minimum purchase/quantity thresholds, start/end dates, global usage caps. |
 | **Payment Recording** | Manual transaction records, overpayment validation, residual balances, and payment-state synchronization. No Stripe, PayPal, bank, or card gateway is connected. |
 | **Executive Dashboard** | 5 core KPIs (Active Contracts, Revenue Received, Receivables, Overdue Invoices, Confirmed Payments), MRR/ARR metrics, monthly revenue trends, and pivot analytics. |
+=======
+4. Open [http://localhost:8069](http://localhost:8069). Create/select a development database as needed, sign in with the locally configured administrator, and install **Brightloop Subscription Management** from Apps. The addon is mounted at `/mnt/extra-addons/subscription_management`.
+5. Assign the appropriate Subscription Administrator or Officer / Staff group to internal users.
+6. To load synthetic demo records in a development database only, see [docs/INSTALLATION_GUIDE.md](docs/INSTALLATION_GUIDE.md).
+>>>>>>> c5bd8016b9cc17e6a137062a322f0abffacef69c
 
----
+Detailed installation, upgrade, demo data, and stop commands are in [docs/INSTALLATION_GUIDE.md](docs/INSTALLATION_GUIDE.md).
 
-## 4. Technical Architecture & Technologies
+## Verification snapshot
 
+<<<<<<< HEAD
 - **Framework**: Odoo 17.0 addon; live installation is pending.
 - **Backend Language**: Python 3.10+ (tested through Python 3.14).
 - **ORM**: Odoo Object-Relational Mapping (PostgreSQL driver with transactional savepoints).
@@ -63,11 +87,15 @@ Traditional ERP systems operate on single-transaction purchase orders and static
 - **Frontend / UI**: Odoo Web Client (XML Form, Tree, Search, Graph, Pivot, Web Ribbons, and Badges).
 - **Automation**: Odoo Scheduled Actions (`ir.cron`).
 - **Security**: Access Control Lists (`ir.model.access.csv`) and Record Rules (`ir.rule`).
+=======
+At the 2026-10-31 final verification snapshot, the standalone regression runner passed **93 tests** and all **16 addon XML files** parsed. A previously recorded native Odoo suite run against the already-populated local database reported **14 failures and 6 errors out of 132 tests**; see [docs/TESTING_REPORT.md](docs/TESTING_REPORT.md). Do not interpret that database run as a clean isolated test pass.
+>>>>>>> c5bd8016b9cc17e6a137062a322f0abffacef69c
 
----
+Actual demo evidence and known verification gaps are recorded in [docs/FINAL_PROJECT_REPORT.md](docs/FINAL_PROJECT_REPORT.md). Screenshot capture/export limitations are documented in [docs/screenshots/README.md](docs/screenshots/README.md).
 
-## 5. Project Directory Structure
+## Project and submission documents
 
+<<<<<<< HEAD
 ```text
 odoo_hackathon/
 ├── README.md                               # Project overview and quickstart guide
@@ -137,9 +165,22 @@ odoo_hackathon/
     ├── test_payment_management_standalone.py  # Payment reconciliation standalone tests
     └── test_dashboard_reports_standalone.py   # Dashboard aggregation & benchmark tests
 ```
+=======
+- [Project architecture](docs/PROJECT_ARCHITECTURE.md)
+- [Database design](docs/DATABASE_DESIGN.md)
+- [User guide](docs/USER_GUIDE.md)
+- [Installation guide](docs/INSTALLATION_GUIDE.md)
+- [Testing report](docs/TESTING_REPORT.md)
+- [Final project report](docs/FINAL_PROJECT_REPORT.md)
+- [Hackathon presentation content](docs/PRESENTATION_CONTENT.md)
+- [Final hackathon demonstration script](docs/FINAL_HACKATHON_DEMO.md)
+- [Judge Q&A](docs/JUDGE_QA.md)
+- [Integration contract](INTEGRATION_CONTRACT.md)
+>>>>>>> c5bd8016b9cc17e6a137062a322f0abffacef69c
 
----
+## License and team
 
+<<<<<<< HEAD
 ## 6. Installation & Setup Instructions
 
 ### Prerequisites
@@ -308,3 +349,6 @@ docker exec brightloop_odoo_server \
   --update=subscription_management --stop-after-init
 docker restart brightloop_odoo_server
 ```
+=======
+The module manifest declares LGPL-3. The project is by Team AuraMinds. See the integration contract for ownership/interface details.
+>>>>>>> c5bd8016b9cc17e6a137062a322f0abffacef69c
