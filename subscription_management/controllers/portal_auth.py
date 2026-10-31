@@ -39,23 +39,6 @@ class SubscriptionPortalAuthController(http.Controller):
         })
 
     @http.route(
-        '/my/subscriptions',
-        type='http',
-        auth='user',
-        website=True,
-        methods=['GET'],
-        sitemap=False
-    )
-    def portal_subscriptions(self, **kwargs):
-        subscriptions = request.env['subscription.subscription'].search(
-            [('partner_id', '=', request.env.user.partner_id.id)],
-            order='id desc'
-        )
-        return request.render('subscription_management.portal_subscriptions', {
-            'subscriptions': subscriptions,
-        })
-
-    @http.route(
         '/my/subscription-invoices',
         type='http',
         auth='user',
