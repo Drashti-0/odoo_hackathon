@@ -40,6 +40,7 @@ Integration Ready:
         'views/user_views.xml',
         'views/discount_views.xml',
         'views/payment_views.xml',
+        'views/dashboard_views.xml',
         'security/user_security.xml',
     ],
     'demo': [],

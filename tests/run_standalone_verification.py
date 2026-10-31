@@ -734,6 +734,15 @@ except ImportError:
     except ImportError:
         pass
 
+# Import Developer 2 Dashboard & Financial Reports Verification Suite
+try:
+    from test_dashboard_reports_standalone import TestDashboardReportsStandalone
+except ImportError:
+    try:
+        from tests.test_dashboard_reports_standalone import TestDashboardReportsStandalone
+    except ImportError:
+        pass
+
 
 if __name__ == '__main__':
     unittest.main()
