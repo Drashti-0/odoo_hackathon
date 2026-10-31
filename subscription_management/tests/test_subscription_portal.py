@@ -31,9 +31,9 @@ class TestSubscriptionCustomerPortal(HttpCase):
             'login': cls.login,
             'email': cls.login,
             'partner_id': cls.customer.id,
-            'password': cls.password,
             'groups_id': [(6, 0, portal_groups)],
         })
+        cls.portal_user.write({'password': cls.password})
         cls.plan = cls.env['subscription.plan'].create({
             'name': 'Portal Test Monthly Plan',
             'code': 'PORTAL-MONTHLY-TEST',
@@ -96,6 +96,24 @@ class TestSubscriptionCustomerPortal(HttpCase):
                 'unit_price': 20.0,
             })],
         })
+        cls.env.cr.commit()
+
+    @classmethod
+    def tearDownClass(cls):
+        try:
+            cls.own_invoice.unlink()
+            cls.other_invoice.unlink()
+            cls.own_subscription.unlink()
+            cls.other_subscription.unlink()
+            cls.product.unlink()
+            cls.plan.unlink()
+            cls.portal_user.unlink()
+            cls.customer.unlink()
+            cls.other_customer.unlink()
+            cls.env.cr.commit()
+        except Exception:
+            pass
+        super().tearDownClass()
 
     def test_portal_login_and_lists_are_customer_scoped(self):
         portal_plans = self.env['subscription.plan'].with_user(
@@ -112,8 +130,6 @@ class TestSubscriptionCustomerPortal(HttpCase):
         invoices = self.url_open('/my/invoices')
         billing_history = self.url_open('/my/billing-history')
 
-        if home.status_code != 200:
-            print("ERROR IN HOME:", home.status_code, home.text[:1000])
         self.assertEqual(home.status_code, 200)
         self.assertEqual(subscriptions.status_code, 200)
         self.assertEqual(quotations.status_code, 200)

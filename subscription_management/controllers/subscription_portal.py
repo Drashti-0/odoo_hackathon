@@ -43,40 +43,36 @@ class SubscriptionCustomerPortal(CustomerPortal):
     @http.route(['/my', '/my/home'], type='http', auth='user', website=True)
     def home(self, **kwargs):
         values = self._prepare_portal_layout_values()
-            partner_ids = self._get_portal_partner_ids()
-            subscriptions = request.env['subscription.subscription'].search([
-                ('partner_id', 'in', partner_ids),
-            ], order='create_date desc, id desc')
-            invoices = request.env['subscription.invoice'].search([
-                ('partner_id', 'in', partner_ids),
-            ], order='invoice_date desc, id desc')
-            upcoming = request.env['subscription.subscription'].search([
-                ('partner_id', 'in', partner_ids),
-                ('state', '=', 'active'),
-                ('next_billing_date', '!=', False),
-            ], order='next_billing_date, id', limit=1)
-            plans = self._get_available_subscription_plans()[:3]
-            values.update({
-                'page_name': 'home',
-                'portal_subscriptions': subscriptions,
-                'portal_active_subscriptions': subscriptions.filtered(
-                    lambda subscription: subscription.state == 'active'
-                ),
-                'portal_invoices': invoices[:5],
-                'portal_invoice_count': len(invoices),
-                'portal_pending_invoice_count': len(invoices.filtered(
-                    lambda invoice: invoice.payment_state != 'paid'
-                    and invoice.amount_residual > 0
-                    and invoice.state not in ('cancel', 'paid')
-                )),
-                'portal_upcoming_subscription': upcoming,
-                'portal_plans': plans,
-            })
-            return request.render('portal.portal_my_home', values)
-        except Exception:
-            import traceback
-            traceback.print_exc()
-            raise
+        partner_ids = self._get_portal_partner_ids()
+        subscriptions = request.env['subscription.subscription'].search([
+            ('partner_id', 'in', partner_ids),
+        ], order='create_date desc, id desc')
+        invoices = request.env['subscription.invoice'].search([
+            ('partner_id', 'in', partner_ids),
+        ], order='invoice_date desc, id desc')
+        upcoming = request.env['subscription.subscription'].search([
+            ('partner_id', 'in', partner_ids),
+            ('state', '=', 'active'),
+            ('next_billing_date', '!=', False),
+        ], order='next_billing_date, id', limit=1)
+        plans = self._get_available_subscription_plans()[:3]
+        values.update({
+            'page_name': 'home',
+            'portal_subscriptions': subscriptions,
+            'portal_active_subscriptions': subscriptions.filtered(
+                lambda subscription: subscription.state == 'active'
+            ),
+            'portal_invoices': invoices[:5],
+            'portal_invoice_count': len(invoices),
+            'portal_pending_invoice_count': len(invoices.filtered(
+                lambda invoice: invoice.payment_state != 'paid'
+                and invoice.amount_residual > 0
+                and invoice.state not in ('cancel', 'paid')
+            )),
+            'portal_upcoming_subscription': upcoming,
+            'portal_plans': plans,
+        })
+        return request.render('portal.portal_my_home', values)
 
     def _prepare_home_portal_values(self, counters):
         values = super()._prepare_home_portal_values(counters)
