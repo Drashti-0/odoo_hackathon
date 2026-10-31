@@ -402,11 +402,11 @@
                         <p t-else="" class="text-muted">No invoices have been generated for this subscription.</p>
                     </section>
                     <div class="d-flex flex-wrap gap-2">
-                        <form t-if="subscription.state in ('active', 'paused')" method="post" t-att-action="'/my/subscriptions/%s/request-cancellation' % subscription.id">
+                        <form t-if="subscription.state in ('active', 'paused')" method="post" t-att-action="'/my/subscriptions/%s/request-cancellation' % subscription.id" onsubmit="return confirm('Send a cancellation request to the Brightloop team? Your subscription will remain active until they review it.');">
                             <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
                             <button type="submit" class="btn btn-outline-danger">Request cancellation</button>
                         </form>
-                        <form t-if="subscription.state in ('active', 'expired', 'closed') and subscription.plan_id.allow_renewal" method="post" t-att-action="'/my/subscriptions/%s/request-renewal' % subscription.id">
+                        <form t-if="subscription.state in ('active', 'expired', 'closed') and subscription.plan_id.allow_renewal" method="post" t-att-action="'/my/subscriptions/%s/request-renewal' % subscription.id" onsubmit="return confirm('Send a renewal request to the Brightloop team?');">
                             <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
                             <button type="submit" class="btn btn-primary">Request renewal</button>
                         </form>

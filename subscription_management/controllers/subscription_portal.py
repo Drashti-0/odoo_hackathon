@@ -42,9 +42,7 @@ class SubscriptionCustomerPortal(CustomerPortal):
 
     @http.route(['/my', '/my/home'], type='http', auth='user', website=True)
     def home(self, **kwargs):
-        print(">>> ENTERED SUBSCRIPTION_PORTAL HOME <<<", flush=True)
-        try:
-            values = self._prepare_portal_layout_values()
+        values = self._prepare_portal_layout_values()
             partner_ids = self._get_portal_partner_ids()
             subscriptions = request.env['subscription.subscription'].search([
                 ('partner_id', 'in', partner_ids),
