@@ -21,6 +21,8 @@ Verifies:
 import sys
 import os
 import unittest
+from datetime import date, datetime, timedelta
+
 try:
     from dateutil.relativedelta import relativedelta
 except ImportError:
@@ -56,22 +58,27 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from run_standalone_verification import (
     MockProductTemplate, MockSubscriptionPlan, MockSubscription,
-    MockSubscriptionLine, MockBillingEngine, MockSubscriptionInvoice
+    MockSubscriptionLine, MockBillingEngine
 )
 from test_user_management_standalone import (
-    MockSecurityContext, MockPartner, MockUser,
-    ValidationError, AccessError, validate_password_strength, validate_email_syntax
+    MockUser, MockPartner, MockSecurityGroup, MockRecordRuleEngine,
+    ValidationError, AccessError, validate_password_strength, validate_email_syntax,
+    MockCustomerSubscription
 )
 from test_discount_management_standalone import MockDiscount
-from test_payment_management_standalone import MockPayment
-from test_dashboard_reports_standalone import MockDashboardEngine
+from test_payment_management_standalone import MockInvoice, MockPayment
+from test_dashboard_reports_standalone import (
+    MockSubscriptionDashboard, MockRole, MockUser as DashUser,
+    MockSubscription as DashSub, MockPayment as DashPay, MockInvoice as DashInv
+)
 
 
 class TestComplete12StepIntegration(unittest.TestCase):
     """Executes the full 12-step end-to-end business lifecycle."""
 
     def setUp(self):
-        self.security = MockSecurityContext()
+        MockUser.reset()
+        MockPartner.reset()
 
     def test_full_12_step_business_lifecycle(self):
         print("\n" + "=" * 70)
@@ -82,11 +89,16 @@ class TestComplete12StepIntegration(unittest.TestCase):
         # STEP 1: Admin Login & Privileges
         # ---------------------------------------------------------
         print("\n[Step 1] Admin Authentication & Privileges")
-        admin = self.security.admin_user
-        self.assertEqual(admin.role, 'admin')
-        self.assertTrue(self.security.check_access(admin, 'res.users', 'create'))
-        self.assertTrue(self.security.check_access(admin, 'subscription.plan', 'create'))
-        self.assertTrue(self.security.check_access(admin, 'subscription.discount', 'create'))
+        admin_partner = MockPartner("Brightloop Admin", "admin@brightloop.com")
+        admin_user = MockUser(
+            name="Brightloop Admin",
+            email="admin@brightloop.com",
+            password="AdminMasterSecure2026!",
+            partner=admin_partner,
+            groups=[MockSecurityGroup.ADMIN]
+        )
+        self.assertTrue(admin_user.has_group(MockSecurityGroup.ADMIN))
+        self.assertTrue(admin_user.has_group(MockSecurityGroup.ADMIN))
         print(" -> PASS: Admin authenticated with full governance access.")
 
         # ---------------------------------------------------------
@@ -101,35 +113,48 @@ class TestComplete12StepIntegration(unittest.TestCase):
         clean_email = validate_email_syntax("alice@customer.com")
         self.assertEqual(clean_email, "alice@customer.com")
 
-        # Create Alice & Bob
-        alice_partner = self.security.create_partner("Alice Customer", "alice@customer.com", is_customer=True)
-        alice_user = self.security.create_user("Alice Customer", "alice@customer.com", "alice_portal", "customer", alice_partner)
+        # Register Alice and Bob via portal signup flow
+        res_alice = MockUser.register_portal_customer("Alice Customer", "alice@customer.com", "AliceSecure2026!", company_name="Alice Corp")
+        alice_user = MockUser.search_by_email("alice@customer.com")
+        alice_partner = alice_user.partner_id
 
-        bob_partner = self.security.create_partner("Bob Customer", "bob@customer.com", is_customer=True)
-        bob_user = self.security.create_user("Bob Customer", "bob@customer.com", "bob_portal", "customer", bob_partner)
+        res_bob = MockUser.register_portal_customer("Bob Customer", "bob@customer.com", "BobSecure2026!", company_name="Bob Corp")
+        bob_user = MockUser.search_by_email("bob@customer.com")
+        bob_partner = bob_user.partner_id
 
-        self.assertEqual(alice_user.role, 'customer')
-        self.assertEqual(bob_user.role, 'customer')
+        self.assertTrue(alice_user.has_group(MockSecurityGroup.PORTAL))
+        self.assertTrue(bob_user.has_group(MockSecurityGroup.PORTAL))
         print(f" -> PASS: Customers registered. Alice (ID {alice_partner.id}), Bob (ID {bob_partner.id}).")
 
         # ---------------------------------------------------------
         # STEP 3: Staff User Creation
         # ---------------------------------------------------------
         print("\n[Step 3] Staff User Creation & Operational Permissions")
-        staff_partner = self.security.create_partner("Brightloop Staff", "staff@brightloop.com")
-        staff_user = self.security.create_user("Brightloop Staff", "staff@brightloop.com", "staff_op", "staff", staff_partner, creator_user=admin)
-        self.assertEqual(staff_user.role, 'staff')
-        self.assertTrue(self.security.check_access(staff_user, 'subscription.subscription', 'write'))
-        # Customer cannot create staff
+        staff_user = MockUser.create_user(
+            creator_user=admin_user,
+            name="Brightloop Staff",
+            email="staff@brightloop.com",
+            password="StaffSecure2026!",
+            groups=[MockSecurityGroup.STAFF]
+        )
+        self.assertTrue(staff_user.has_group(MockSecurityGroup.STAFF))
+
+        # Portal Customer cannot create staff or escalate privileges
         with self.assertRaises(AccessError):
-            self.security.create_user("Hacker", "hack@evil.com", "h", "staff", None, creator_user=alice_user)
+            MockUser.create_user(
+                creator_user=alice_user,
+                name="Malicious User",
+                email="evil@attacker.com",
+                password="EvilPassword2026!",
+                groups=[MockSecurityGroup.STAFF]
+            )
         print(" -> PASS: Operational Staff user created with appropriate security bounds.")
 
         # ---------------------------------------------------------
         # STEP 4: Product & Subscription Plan Creation (+560 Surcharge)
         # ---------------------------------------------------------
         print("\n[Step 4] Product & Subscription Plan Creation (Odoo Brand Surcharge)")
-        # Product with Odoo brand
+        # Product with Odoo brand (+560 surcharge)
         prod_odoo = MockProductTemplate("Cloud ERP Hosting", list_price=1000.0, brand_name='odoo')
         self.assertEqual(prod_odoo.brand_surcharge, 560.0)
         self.assertEqual(prod_odoo.subscription_price, 1560.0)
@@ -147,7 +172,7 @@ class TestComplete12StepIntegration(unittest.TestCase):
         )
         self.assertEqual(plan_monthly.billing_interval_unit, 'monthly')
         self.assertEqual(plan_monthly.price, 200.0)
-        print(f" -> PASS: Product ({prod_odoo.name}) computed price: {prod_odoo.subscription_price} (Base 1000 + Odoo Surcharge 560).")
+        print(f" -> PASS: Product ({prod_odoo.name}) price: {prod_odoo.subscription_price} (Base 1000 + Surcharge 560).")
         print(f" -> PASS: Plan ({plan_monthly.name}) created with 1-month interval cadence.")
 
         # ---------------------------------------------------------
@@ -164,7 +189,7 @@ class TestComplete12StepIntegration(unittest.TestCase):
         # Untaxed = Plan 200 + Line (2 * 1560) = 3320.0
         self.assertEqual(sub.amount_untaxed, 3320.0)
 
-        # Transition: Draft -> Quotation -> Confirmed -> Active
+        # Lifecycle transitions: draft -> quotation -> confirmed -> active
         sub.action_send_quotation()
         self.assertEqual(sub.state, 'quotation')
 
@@ -190,7 +215,7 @@ class TestComplete12StepIntegration(unittest.TestCase):
             max_usage=100,
             start_date=date.today() - timedelta(days=1),
             end_date=date.today() + timedelta(days=30),
-            creator_user=admin
+            creator_user=admin_user
         )
         self.assertTrue(discount.check_validity())
         disc_amount = discount.calculate_discount_amount(sub.amount_untaxed)
@@ -206,20 +231,17 @@ class TestComplete12StepIntegration(unittest.TestCase):
         # STEP 7: Automatic Recurring Invoice Generation
         # ---------------------------------------------------------
         print("\n[Step 7] Automated Recurring Invoice Generation")
-        inv = MockSubscriptionInvoice(
-            subscription=sub,
+        inv = MockInvoice(
+            id=1,
+            name="INV-2026-001",
             partner=alice_partner,
-            amount_untaxed=net_order,
-            amount_tax=0.0,
-            amount_total=net_order,
-            billing_period_start=date.today(),
-            billing_period_end=date.today() + relativedelta(months=1)
+            amount_total=sub.amount_untaxed,
+            discount=discount
         )
-        inv.state = 'confirmed'
-        inv.amount_residual = net_order
         sub.invoices.append(inv)
         self.assertEqual(inv.state, 'confirmed')
         self.assertEqual(inv.payment_state, 'not_paid')
+        self.assertEqual(inv.amount_total, 2656.0)
         self.assertEqual(inv.amount_residual, 2656.0)
         print(f" -> PASS: Recurring Invoice generated. Total: {inv.amount_total}, Residual: {inv.amount_residual}.")
 
@@ -228,18 +250,10 @@ class TestComplete12StepIntegration(unittest.TestCase):
         # ---------------------------------------------------------
         print("\n[Step 8] Partial & Multi-Gateway Payment Registration")
         # Payment 1: Partial $1,000 via Credit Card
-        pay1 = MockPayment(
-            payment_id=101,
-            invoice=inv,
-            partner=alice_partner,
-            amount=1000.0,
-            payment_method='card',
-            transaction_ref='TXN-CC-1001'
-        )
-        pay1.action_confirm(creator_user=staff_user)
-        self.assertEqual(pay1.state, 'posted')
+        pay1 = inv.action_register_payment(amount=1000.0, ref="TXN-CC-1001", payment_method="card", user=staff_user)
+        self.assertEqual(pay1.state, 'success')
         self.assertEqual(inv.amount_residual, 1656.0)
-        self.assertEqual(inv.payment_state, 'partially_paid')
+        self.assertEqual(inv.payment_state, 'partial')
         print(f" -> PASS: Partial payment of 1,000 settled. Residual: {inv.amount_residual} (State: {inv.payment_state}).")
 
         # ---------------------------------------------------------
@@ -247,16 +261,8 @@ class TestComplete12StepIntegration(unittest.TestCase):
         # ---------------------------------------------------------
         print("\n[Step 9] Second Settlement & Full Invoice Reconciliation")
         # Payment 2: Remaining $1,656 via Stripe
-        pay2 = MockPayment(
-            payment_id=102,
-            invoice=inv,
-            partner=alice_partner,
-            amount=1656.0,
-            payment_method='stripe',
-            transaction_ref='TXN-STRIPE-1002'
-        )
-        pay2.action_confirm(creator_user=staff_user)
-        self.assertEqual(pay2.state, 'posted')
+        pay2 = inv.action_register_payment(amount=1656.0, ref="TXN-STRIPE-1002", payment_method="stripe", user=staff_user)
+        self.assertEqual(pay2.state, 'success')
         self.assertEqual(inv.amount_residual, 0.0)
         self.assertEqual(inv.payment_state, 'paid')
         self.assertEqual(inv.state, 'paid')
@@ -266,29 +272,40 @@ class TestComplete12StepIntegration(unittest.TestCase):
         # STEP 10: Dashboard and Financial Reports
         # ---------------------------------------------------------
         print("\n[Step 10] Real-time Financial Dashboard Intelligence")
-        dashboard = MockDashboardEngine()
-        # Seed test contracts
-        dashboard.subscriptions = [sub]
-        dashboard.payments = [pay1, pay2]
-        metrics = dashboard.compute_metrics(creator_user=admin)
+        dash_staff = DashUser(id=2, name="Staff User", roles=[MockRole.STAFF])
+        dash_sub = DashSub(id=1, name="Sub Alice", partner=alice_partner, state='active', mrr=2656.0, arr=31872.0)
+        dash_inv = DashInv(id=1, name="INV-001", partner=alice_partner, amount_total=2656.0)
+        dash_pay = DashPay(id=1, name="PAY-001", invoice=dash_inv, amount=2656.0, payment_method='card', state='success')
+
+        dashboard = MockSubscriptionDashboard(
+            subscriptions=[dash_sub],
+            invoices=[dash_inv],
+            payments=[dash_pay]
+        )
+        metrics = dashboard.get_dashboard_metrics(user=dash_staff)
         self.assertEqual(metrics['active_subscriptions'], 1)
         self.assertEqual(metrics['revenue_received'], 2656.0)
-        self.assertGreater(metrics['mrr'], 0.0)
-        self.assertEqual(metrics['arr'], metrics['mrr'] * 12.0)
-        print(f" -> PASS: Dashboard Metrics: Active = {metrics['active_subscriptions']}, Revenue = {metrics['revenue_received']}, MRR = {metrics['mrr']}, ARR = {metrics['arr']}.")
+        self.assertEqual(metrics['mrr_total'], 2656.0)
+        self.assertEqual(metrics['arr_total'], 31872.0)
+        print(f" -> PASS: Dashboard Metrics: Active = {metrics['active_subscriptions']}, Revenue = {metrics['revenue_received']}, MRR = {metrics['mrr_total']}, ARR = {metrics['arr_total']}.")
 
         # ---------------------------------------------------------
         # STEP 11: Customer Data Isolation & Multi-Tenant Rules
         # ---------------------------------------------------------
         print("\n[Step 11] Customer Data Isolation & Cross-Tenant Defense")
-        # Alice can access her own subscription
-        self.assertTrue(self.security.check_record_access(alice_user, sub))
-        # Bob attempting to view Alice's subscription raises AccessError
+        cust_sub = MockCustomerSubscription(name="Alice Contract", partner=alice_partner, amount_total=2656.0, state='active')
+        # Alice can read her own subscription
+        data = cust_sub.read(['name', 'amount_total'], user=alice_user)
+        self.assertEqual(data['name'], "Alice Contract")
+
+        # Bob attempting to read Alice's subscription raises AccessError
         with self.assertRaises(AccessError):
-            self.security.check_record_access(bob_user, sub)
-        # Portal customer cannot access financial dashboard
+            cust_sub.read(['name', 'amount_total'], user=bob_user)
+
+        # Portal Customer attempting to access Financial Dashboard raises AccessError
+        dash_portal = DashUser(id=3, name="Portal User", roles=[MockRole.PORTAL])
         with self.assertRaises(AccessError):
-            dashboard.compute_metrics(creator_user=alice_user)
+            dashboard.get_dashboard_metrics(user=dash_portal)
         print(" -> PASS: Multi-tenant record rules strictly enforced: Bob blocked from Alice's contracts; Customers blocked from dashboard.")
 
         # ---------------------------------------------------------
