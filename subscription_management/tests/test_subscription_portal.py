@@ -10,6 +10,15 @@ class TestSubscriptionCustomerPortal(HttpCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
+        # Clean up any leftover test records from prior runs
+        cls.env['subscription.invoice'].sudo().search([('partner_id.email', 'in', ['portal.customer@example.test', 'portal.other@example.test'])]).unlink()
+        cls.env['subscription.subscription'].sudo().search([('partner_id.email', 'in', ['portal.customer@example.test', 'portal.other@example.test'])]).unlink()
+        cls.env['res.users'].sudo().search([('login', 'in', ['portal.customer@example.test', 'portal.other@example.test'])]).unlink()
+        cls.env['res.partner'].sudo().search([('email', 'in', ['portal.customer@example.test', 'portal.other@example.test'])]).unlink()
+        cls.env['subscription.plan'].sudo().search([('code', 'in', ['PORTAL-MONTHLY-TEST', 'PORTAL-MONTHLY-DUPLICATE-TEST', 'PORTAL-UNAVAILABLE-TEST'])]).unlink()
+        cls.env['product.product'].sudo().search([('name', '=', 'Portal Test Service')]).unlink()
+        cls.env.cr.commit()
+
         cls.customer = cls.env['res.partner'].create({
             'name': 'Portal Test Customer',
             'email': 'portal.customer@example.test',
@@ -241,7 +250,7 @@ class TestSubscriptionCustomerPortal(HttpCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(self.own_subscription.state, 'active')
-        self.env.invalidate_all()
+        self.env.cr.commit()
         request_activity = self.env['mail.activity'].sudo().with_context(active_test=False).search([
             ('res_id', '=', self.own_subscription.id),
             ('summary', '=', 'Customer cancellation request'),

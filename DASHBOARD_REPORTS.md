@@ -89,7 +89,7 @@ Located in [`views/dashboard_views.xml`](file:///c:/Users/Bhanderi%20Drashti/One
 ### Summary of Verification Suites:
 * Native Odoo `TransactionCase` suite: `subscription_management/tests/test_dashboard_reports.py` (15 scenarios)
 * Standalone Verification suite: `tests/test_dashboard_reports_standalone.py` (16 scenarios)
-* Unified Regression Verification: `tests/run_standalone_verification.py` (85/85 passed)
+* Unified Regression Verification: `tests/run_standalone_verification.py` (92/92 passed)
 
 ### Verification Matrix:
 
