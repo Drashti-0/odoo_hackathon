@@ -47,6 +47,16 @@ Subscription businesses need recurring product/plan pricing, customer contract l
 
 The source contains substantial end-to-end subscription functionality and demo fixtures, but the stated verification gaps prevent an unconditional claim of production-grade readiness. Use the synthetic local dataset, avoid claiming payments/emails occurred unless separately demonstrated, and verify portal and invoice output on an isolated local setup before presenting those flows.
 
+**Requirement coverage estimate: 60%.** This uses the 20 equally weighted areas in [FINAL_PROJECT_GAP_AUDIT.md](../FINAL_PROJECT_GAP_AUDIT.md): 5 COMPLETE (1 point each), 14 PARTIAL (0.5 point each), and 1 BROKEN (0 points), yielding `(5 + 14 × 0.5) / 20 = 60%`. This is a coverage estimate, not a quality score or test pass rate.
+
+## Final security and integration notes
+
+- **Configuration hygiene: PASS, source/config review.** `.env` is ignored and not tracked; `.env.example` contains blank password fields. Compose requires values through environment configuration, supplies the Odoo master password as a required runtime argument, and binds its published port to loopback. This review did not certify secrets in external deployment environments.
+- **Portal access: PARTIAL.** Portal route lookups and record rules use partner scopes; no separate customer login was available for adversarial cross-customer testing. Two controllers declare `/my/subscriptions`; the portal owner should consolidate this duplicate route.
+- **Elevated access: PARTIAL.** Source inspection found `sudo()` in defined registration, cron/audit, report-rendering, and staff-activity flows. Route/model boundaries were reviewed selectively, not through a comprehensive security test or independent penetration review.
+- **Email action: BROKEN for actual delivery.** The invoice action writes a chatter message rather than sending an email.
+- **Payment gateway: NOT TESTED.** Payment method labels and transaction records are not proof of provider connectivity.
+
 ## Submission documents
 
 - [Project architecture](PROJECT_ARCHITECTURE.md)
