@@ -112,6 +112,8 @@ class TestSubscriptionCustomerPortal(HttpCase):
         invoices = self.url_open('/my/invoices')
         billing_history = self.url_open('/my/billing-history')
 
+        if home.status_code != 200:
+            print("ERROR IN HOME:", home.status_code, home.text[:1000])
         self.assertEqual(home.status_code, 200)
         self.assertEqual(subscriptions.status_code, 200)
         self.assertEqual(quotations.status_code, 200)

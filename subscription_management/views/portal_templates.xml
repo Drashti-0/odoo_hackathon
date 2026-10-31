@@ -12,7 +12,7 @@
                         <a href="/my" t-att-class="'is-active' if page_name == 'home' else ''">Dashboard</a>
                         <a href="/my/subscriptions" t-att-class="'is-active' if page_name in ('subscription', 'subscription_detail') else ''">Subscriptions</a>
                         <a href="/my/quotations" t-att-class="'is-active' if page_name == 'quotation' else ''">Quotations</a>
-                        <a href="/my/plans" t-att-class="'is-active' if page_name == 'subscription_plans' else ''">Plans</a>
+                        <a href="/my/plans" t-att-class="'is-active' if page_name in ('subscription_plans', 'subscription_plan_detail') else ''">Plans</a>
                         <a href="/my/invoices" t-att-class="'is-active' if page_name in ('subscription_invoice', 'subscription_invoice_detail') else ''">Invoices</a>
                         <a href="/my/billing-history" t-att-class="'is-active' if page_name == 'billing_history' else ''">Billing history</a>
                     </div>
@@ -224,7 +224,7 @@
         <t t-call="portal.portal_layout">
             <t t-set="page_name" t-value="'subscription'"/>
             <div class="o_portal_wrap">
-                <div class="container py-4">
+                <div class="container py-4 bl-portal-content">
                     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
                         <div>
                             <h1 class="h2 mb-1">My Subscriptions</h1>
@@ -251,7 +251,7 @@
                                         </a>
                                     </td>
                                     <td><span t-field="subscription.plan_id.name"/></td>
-                                    <td><span class="badge rounded-pill text-bg-primary" t-field="subscription.state"/></td>
+                                    <td><span t-attf-class="bl-status bl-status-#{subscription.state}" t-field="subscription.state"/></td>
                                     <td><span t-field="subscription.next_billing_date"/></td>
                                     <td class="text-end">
                                         <span t-field="subscription.amount_total" t-options="{'widget': 'monetary', 'display_currency': subscription.currency_id}"/>
@@ -272,7 +272,7 @@
         <t t-call="portal.portal_layout">
             <t t-set="page_name" t-value="'quotation'"/>
             <div class="o_portal_wrap">
-                <div class="container py-4">
+                <div class="container py-4 bl-portal-content">
                     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
                         <div>
                             <h1 class="h2 mb-1">My Quotations</h1>
@@ -299,7 +299,7 @@
                                         </a>
                                     </td>
                                     <td><span t-field="subscription.plan_id.name"/></td>
-                                    <td><span class="badge rounded-pill text-bg-info" t-field="subscription.state"/></td>
+                                    <td><span t-attf-class="bl-status bl-status-#{subscription.state}" t-field="subscription.state"/></td>
                                     <td><span t-field="subscription.quotation_validity_date"/></td>
                                     <td class="text-end">
                                         <span t-field="subscription.amount_total" t-options="{'widget': 'monetary', 'display_currency': subscription.currency_id}"/>
@@ -320,7 +320,7 @@
         <t t-call="portal.portal_layout">
             <t t-set="page_name" t-value="'subscription_detail'"/>
             <div class="o_portal_wrap">
-                <div class="container py-4">
+                <div class="container py-4 bl-portal-content">
                     <nav aria-label="Breadcrumb" class="mb-3">
                         <ol class="breadcrumb mb-0">
                             <li class="breadcrumb-item"><a href="/my">Portal</a></li>
@@ -421,7 +421,7 @@
         <t t-call="portal.portal_layout">
             <t t-set="page_name" t-value="'subscription_invoice'"/>
             <div class="o_portal_wrap">
-                <div class="container py-4">
+                <div class="container py-4 bl-portal-content">
                     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
                         <div>
                             <h1 class="h2 mb-1">Subscription Invoices</h1>
@@ -440,7 +440,7 @@
                                     <td><a t-att-href="'/my/subscriptions/%s' % invoice.subscription_id.id"><span t-field="invoice.subscription_id.name"/></a></td>
                                     <td><span t-field="invoice.invoice_date"/></td>
                                     <td><span t-field="invoice.due_date"/></td>
-                                    <td><span t-field="invoice.payment_state"/></td>
+                                    <td><span t-attf-class="bl-status bl-status-#{invoice.payment_state}" t-field="invoice.payment_state"/></td>
                                     <td class="text-end"><span t-field="invoice.amount_residual" t-options="{'widget': 'monetary', 'display_currency': invoice.currency_id}"/></td>
                                 </tr>
                             </tbody>
@@ -505,7 +505,7 @@
         <t t-call="portal.portal_layout">
             <t t-set="page_name" t-value="'subscription_invoice_detail'"/>
             <div class="o_portal_wrap">
-                <div class="container py-4">
+                <div class="container py-4 bl-portal-content">
                     <nav aria-label="Breadcrumb" class="mb-3">
                         <ol class="breadcrumb mb-0">
                             <li class="breadcrumb-item"><a href="/my">Portal</a></li>
@@ -529,8 +529,8 @@
                             <div class="row g-3">
                                 <div class="col-6 col-lg-3"><strong>Invoice date</strong><br/><span t-field="invoice.invoice_date"/></div>
                                 <div class="col-6 col-lg-3"><strong>Due date</strong><br/><span t-field="invoice.due_date"/></div>
-                                <div class="col-6 col-lg-3"><strong>Payment status</strong><br/><span t-field="invoice.payment_state"/></div>
-                                <div class="col-6 col-lg-3"><strong>Invoice status</strong><br/><span t-field="invoice.state"/></div>
+                                <div class="col-6 col-lg-3"><strong>Payment status</strong><br/><span t-attf-class="bl-status bl-status-#{invoice.payment_state}" t-field="invoice.payment_state"/></div>
+                                <div class="col-6 col-lg-3"><strong>Invoice status</strong><br/><span t-attf-class="bl-status bl-status-#{invoice.state}" t-field="invoice.state"/></div>
                                 <div class="col-6 col-lg-3"><strong>Billing period</strong><br/><span t-field="invoice.billing_period_start"/> – <span t-field="invoice.billing_period_end"/></div>
                                 <div class="col-6 col-lg-3"><strong>Total</strong><br/><span t-field="invoice.amount_total" t-options="{'widget': 'monetary', 'display_currency': invoice.currency_id}"/></div>
                                 <div class="col-6 col-lg-3"><strong>Paid</strong><br/><span t-field="invoice.amount_paid" t-options="{'widget': 'monetary', 'display_currency': invoice.currency_id}"/></div>

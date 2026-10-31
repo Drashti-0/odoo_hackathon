@@ -614,6 +614,69 @@ body:has(.bl-portal-nav) #bottom {
     margin-bottom: 0;
 }
 
+.bl-portal-content {
+    max-width: 1200px;
+    padding-top: 36px !important;
+    padding-bottom: 72px !important;
+}
+
+.bl-portal-content h1,
+.bl-portal-content h2,
+.bl-portal-content h3 {
+    color: var(--bl-navy);
+    font-weight: 750;
+    letter-spacing: -0.45px;
+}
+
+.bl-portal-content .text-muted {
+    color: var(--bl-muted) !important;
+}
+
+.bl-portal-content .card {
+    border: 1px solid var(--bl-line);
+    border-radius: 15px;
+    box-shadow: 0 4px 14px rgba(20, 33, 61, 0.035);
+}
+
+.bl-portal-content .card-body {
+    padding: 22px;
+}
+
+.bl-portal-content .table {
+    margin-bottom: 0;
+    color: var(--bl-ink);
+}
+
+.bl-portal-content .table thead th {
+    color: var(--bl-muted);
+    background: #f7f9fc;
+    border-bottom-color: var(--bl-line);
+    font-size: 11px;
+    font-weight: 750;
+    text-transform: uppercase;
+    letter-spacing: 0.45px;
+    white-space: nowrap;
+}
+
+.bl-portal-content .table tbody td {
+    vertical-align: middle;
+}
+
+.bl-portal-content .table a {
+    color: var(--bl-blue);
+    font-weight: 650;
+}
+
+.bl-portal-content .btn-primary {
+    background: var(--bl-blue);
+    border-color: var(--bl-blue);
+}
+
+.bl-portal-content .btn-primary:hover {
+    background: var(--bl-blue-dark);
+    border-color: var(--bl-blue-dark);
+}
+
 .bl-plan-note {
     margin: 0;
     color: var(--bl-muted);
@@ -735,6 +798,15 @@ body:has(.bl-portal-nav) #bottom {
     .bl-portal-dashboard,
     .bl-portal-page {
         padding-top: 20px;
+    }
+
+    .bl-portal-content {
+        padding-top: 20px !important;
+        padding-bottom: 44px !important;
+    }
+
+    .bl-portal-content .card-body {
+        padding: 16px;
     }
 
     .bl-portal-hero {
