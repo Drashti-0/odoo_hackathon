@@ -118,6 +118,28 @@ class SubscriptionCustomerPortal(CustomerPortal):
             'subscription_management.portal_subscription_plans', values
         )
 
+    @http.route(
+        ['/my/plans/<int:plan_id>'],
+        type='http',
+        auth='user',
+        website=True,
+    )
+    def portal_subscription_plan_detail(self, plan_id, **kwargs):
+        plan = self._get_available_subscription_plans().filtered(
+            lambda available_plan: available_plan.id == plan_id
+        )
+        if not plan:
+            raise NotFound()
+        values = self._prepare_portal_layout_values()
+        values.update({
+            'page_name': 'subscription_plan_detail',
+            'plan': plan,
+        })
+        return request.render(
+            'subscription_management.portal_subscription_plan_detail',
+            values,
+        )
+
     def _get_customer_subscription(self, subscription_id):
         partner_ids = self._get_portal_partner_ids()
         subscription = request.env['subscription.subscription'].search([
@@ -256,7 +278,31 @@ class SubscriptionCustomerPortal(CustomerPortal):
         website=True,
     )
     def portal_billing_history(self, page=1, **kwargs):
-        return self.portal_my_invoices(page=page, **kwargs)
+        payments_model = request.env['subscription.payment']
+        domain = [('partner_id', 'in', self._get_portal_partner_ids())]
+        total = payments_model.search_count(domain)
+        pager = portal_pager(
+            url='/my/billing-history',
+            total=total,
+            page=page,
+            step=self._items_per_page,
+        )
+        payments = payments_model.search(
+            domain,
+            order='payment_date desc, id desc',
+            limit=self._items_per_page,
+            offset=pager['offset'],
+        )
+        values = self._prepare_portal_layout_values()
+        values.update({
+            'page_name': 'billing_history',
+            'payments': payments,
+            'pager': pager,
+        })
+        return request.render(
+            'subscription_management.portal_billing_history',
+            values,
+        )
 
     @http.route(
         ['/my/invoices/<int:invoice_id>'],

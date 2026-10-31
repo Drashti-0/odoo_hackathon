@@ -359,7 +359,8 @@ body:has(.bl-portal-nav) #bottom {
 }
 
 .bl-status-active,
-.bl-status-paid {
+.bl-status-paid,
+.bl-status-success {
     color: #087443;
     background: #e7f7ef;
 }
@@ -379,7 +380,8 @@ body:has(.bl-portal-nav) #bottom {
 .bl-status-expired,
 .bl-status-closed,
 .bl-status-cancel,
-.bl-status-cancelled {
+.bl-status-cancelled,
+.bl-status-failed {
     color: #b42318;
     background: #ffebe9;
 }
@@ -536,6 +538,79 @@ body:has(.bl-portal-nav) #bottom {
 }
 
 .bl-plan-description p:last-child {
+    margin-bottom: 0;
+}
+
+.bl-plan-detail {
+    max-width: 820px;
+    margin: 0 auto;
+    padding: 32px;
+    background: var(--bl-surface);
+    border: 1px solid var(--bl-line);
+    border-radius: 16px;
+    box-shadow: 0 4px 14px rgba(20, 33, 61, 0.035);
+}
+
+.bl-plan-detail h1 {
+    margin: 0;
+    color: var(--bl-navy);
+    font-size: 30px;
+    font-weight: 750;
+    letter-spacing: -0.75px;
+    overflow-wrap: anywhere;
+}
+
+.bl-plan-detail-price {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 9px;
+    margin: 13px 0;
+}
+
+.bl-plan-detail-price strong {
+    color: var(--bl-navy);
+    font-size: 28px;
+    font-weight: 750;
+}
+
+.bl-plan-detail-price span {
+    color: var(--bl-muted);
+    font-size: 13px;
+}
+
+.bl-plan-detail-meta {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+    margin: 22px 0;
+    padding: 18px 0;
+    border-top: 1px solid var(--bl-line);
+    border-bottom: 1px solid var(--bl-line);
+}
+
+.bl-plan-detail-meta dt {
+    margin-bottom: 5px;
+    color: var(--bl-muted);
+    font-size: 11px;
+    font-weight: 650;
+}
+
+.bl-plan-detail-meta dd {
+    margin: 0;
+    color: var(--bl-navy);
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.bl-portal-table {
+    overflow: hidden;
+    background: var(--bl-surface);
+    border: 1px solid var(--bl-line);
+    border-radius: 15px;
+}
+
+.bl-portal-table .table {
     margin-bottom: 0;
 }
 
@@ -715,6 +790,19 @@ body:has(.bl-portal-nav) #bottom {
         grid-template-columns: 32px minmax(0, 1fr) auto;
         gap: 9px;
         padding: 12px;
+    }
+
+    .bl-plan-detail {
+        padding: 22px;
+    }
+
+    .bl-plan-detail h1 {
+        font-size: 23px;
+    }
+
+    .bl-plan-detail-meta {
+        grid-template-columns: 1fr;
+        gap: 12px;
     }
 
     .bl-invoice-row .bl-status {

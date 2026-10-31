@@ -14,7 +14,7 @@
                         <a href="/my/quotations" t-att-class="'is-active' if page_name == 'quotation' else ''">Quotations</a>
                         <a href="/my/plans" t-att-class="'is-active' if page_name == 'subscription_plans' else ''">Plans</a>
                         <a href="/my/invoices" t-att-class="'is-active' if page_name in ('subscription_invoice', 'subscription_invoice_detail') else ''">Invoices</a>
-                        <a href="/my/billing-history">Billing history</a>
+                        <a href="/my/billing-history" t-att-class="'is-active' if page_name == 'billing_history' else ''">Billing history</a>
                     </div>
                     <div class="bl-portal-account">
                         <a href="/my/account">My profile</a>
@@ -129,7 +129,7 @@
                             <h3 t-field="plan.name"/>
                             <div class="bl-plan-price"><strong t-field="plan.price" t-options="{'widget': 'monetary', 'display_currency': plan.currency_id}"/><span> / <t t-out="plan.billing_interval_count"/> <t t-out="plan.billing_interval_unit"/></span></div>
                             <div t-if="plan.description" class="bl-plan-description" t-field="plan.description"/>
-                            <a href="/my/plans" class="bl-button bl-button-outline">View plan details</a>
+                            <a t-att-href="'/my/plans/%s' % plan.id" class="bl-button bl-button-outline">View plan details</a>
                         </article>
                     </div>
                     <div t-else="" class="bl-empty-state bl-empty-compact">
@@ -165,6 +165,7 @@
                         <div class="bl-plan-price"><strong t-field="plan.price" t-options="{'widget': 'monetary', 'display_currency': plan.currency_id}"/><span> / <t t-out="plan.billing_interval_count"/> <t t-out="plan.billing_interval_unit"/></span></div>
                         <div t-if="plan.description" class="bl-plan-description" t-field="plan.description"/>
                         <p class="bl-plan-note">Plan base fee per billing interval.</p>
+                        <a t-att-href="'/my/plans/%s' % plan.id" class="bl-button bl-button-outline mt-3">View plan details</a>
                     </article>
                 </div>
                 <div t-else="" class="bl-empty-state">
@@ -172,6 +173,49 @@
                     <p>Please check back later or contact your Brightloop account manager.</p>
                 </div>
                 <t t-call="portal.pager"/>
+            </main>
+        </t>
+    </template>
+
+    <template id="portal_subscription_plan_detail" name="Subscription Plan Details">
+        <t t-call="portal.portal_layout">
+            <t t-set="page_name" t-value="'subscription_plan_detail'"/>
+            <main class="bl-portal-page">
+                <nav aria-label="Breadcrumb" class="mb-3">
+                    <ol class="breadcrumb mb-0">
+                        <li class="breadcrumb-item"><a href="/my">Portal</a></li>
+                        <li class="breadcrumb-item"><a href="/my/plans">Subscription plans</a></li>
+                        <li class="breadcrumb-item active" aria-current="page"><span t-field="plan.name"/></li>
+                    </ol>
+                </nav>
+                <section class="bl-plan-detail">
+                    <span class="bl-plan-frequency">
+                        <t t-out="plan.billing_interval_count"/>
+                        <t t-out="plan.billing_interval_unit"/>
+                    </span>
+                    <h1 t-field="plan.name"/>
+                    <p class="bl-plan-detail-price">
+                        <strong t-field="plan.price" t-options="{'widget': 'monetary', 'display_currency': plan.currency_id}"/>
+                        <span>per billing interval</span>
+                    </p>
+                    <div t-if="plan.description" class="bl-plan-description" t-field="plan.description"/>
+                    <dl class="bl-plan-detail-meta">
+                        <div>
+                            <dt>Billing frequency</dt>
+                            <dd><t t-out="plan.billing_interval_count"/> <t t-out="plan.billing_interval_unit"/></dd>
+                        </div>
+                        <div>
+                            <dt>Minimum quantity</dt>
+                            <dd t-field="plan.min_quantity"/>
+                        </div>
+                        <div>
+                            <dt>Renewal</dt>
+                            <dd><t t-if="plan.allow_renewal">Available by request</t><t t-else="">Not available</t></dd>
+                        </div>
+                    </dl>
+                    <p class="text-muted mb-0">To start a subscription on this plan, contact your Brightloop account manager.</p>
+                    <a href="/my/plans" class="bl-button bl-button-outline mt-3">Back to plans</a>
+                </section>
             </main>
         </t>
     </template>
@@ -407,6 +451,53 @@
                     </div>
                 </div>
             </div>
+        </t>
+    </template>
+
+    <template id="portal_billing_history" name="Subscription Billing History">
+        <t t-call="portal.portal_layout">
+            <t t-set="page_name" t-value="'billing_history'"/>
+            <main class="bl-portal-page">
+                <header class="bl-page-heading">
+                    <span class="bl-eyebrow">PAYMENT ACTIVITY</span>
+                    <h1>Billing history</h1>
+                    <p>Payment transactions recorded against your subscription invoices.</p>
+                </header>
+                <div t-if="payments" class="table-responsive bl-portal-table">
+                    <t t-call="portal.portal_table">
+                        <thead>
+                            <tr>
+                                <th>Transaction</th>
+                                <th>Date</th>
+                                <th>Invoice</th>
+                                <th>Method</th>
+                                <th>Status</th>
+                                <th class="text-end">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr t-foreach="payments" t-as="payment">
+                                <td><span t-field="payment.name"/></td>
+                                <td><span t-field="payment.payment_date"/></td>
+                                <td>
+                                    <a t-att-href="'/my/invoices/%s' % payment.invoice_id.id">
+                                        <span t-field="payment.invoice_id.name"/>
+                                    </a>
+                                </td>
+                                <td><span t-field="payment.payment_method"/></td>
+                                <td><span t-attf-class="bl-status bl-status-#{payment.state}" t-field="payment.state"/></td>
+                                <td class="text-end"><span t-field="payment.amount" t-options="{'widget': 'monetary', 'display_currency': payment.currency_id}"/></td>
+                            </tr>
+                        </tbody>
+                    </t>
+                </div>
+                <div t-else="" class="bl-empty-state">
+                    <h2>No payment transactions yet</h2>
+                    <p>Transactions recorded against your subscription invoices will appear here.</p>
+                    <a href="/my/invoices" class="bl-button bl-button-primary">View invoices</a>
+                </div>
+                <t t-call="portal.pager"/>
+            </main>
         </t>
     </template>
 
