@@ -1,6 +1,8 @@
 # Project Overview
 ## Brightloop Subscription Management System
 
+> **Evidence note:** This is the original product vision/overview, not a verification report. Performance, end-to-end, gateway, and security guarantees below are not independently certified by the final run. See [FINAL_PROJECT_REPORT.md](FINAL_PROJECT_REPORT.md), [TESTING_REPORT.md](TESTING_REPORT.md), and [SECURITY_DOCUMENTATION.md](SECURITY_DOCUMENTATION.md) for current evidence and limitations.
+
 **Project:** Subscription Management System – Brightloop Software  
 **Team:** AuraMinds  
 **Target Version:** Odoo 17.0 / 18.0  

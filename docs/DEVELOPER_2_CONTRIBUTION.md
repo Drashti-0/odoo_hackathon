@@ -1,5 +1,7 @@
 # Developer 2 Technical Contribution Report
 
+> **Historical contribution note:** This report records an earlier implementation snapshot (including older test counts and branch references). Its pass-rate and end-to-end statements do not describe the final verification snapshot. Current evidence is in [TESTING_REPORT.md](TESTING_REPORT.md) and [FINAL_PROJECT_REPORT.md](FINAL_PROJECT_REPORT.md).
+
 **Project:** Subscription Management System – Brightloop Software  
 **Developer:** Developer 2 (Drashti Bhanderi, Team AuraMinds)  
 **Assigned Responsibility:** Operations, Security, Financial Controls, Analytics & Lifecycle Extensions (Modules 5–8 / Tasks 2–5)  

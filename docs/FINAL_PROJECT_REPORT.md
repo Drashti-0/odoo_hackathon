@@ -57,6 +57,23 @@ The source contains substantial end-to-end subscription functionality and demo f
 - **Email action: BROKEN for actual delivery.** The invoice action writes a chatter message rather than sending an email.
 - **Payment gateway: NOT TESTED.** Payment method labels and transaction records are not proof of provider connectivity.
 
+## High-impact improvement audit
+
+| Improvement area | Current implementation/evidence | Final status |
+|---|---|---|
+| Subscription lifecycle timeline | Lifecycle states and chatter tracking exist; a dedicated chronological timeline widget was not confirmed. | PARTIAL |
+| Upcoming renewal/billing reminders | Daily notification cron is defined and enabled in the inspected database; execution and delivery were not tested. | PARTIAL |
+| Failed-payment and overdue alerts | Failed-payment actions write chatter; overdue fields/filters and dashboard metrics exist. Automated customer-facing alert delivery was not verified. | PARTIAL |
+| Subscription/MRR insights | Dashboard includes MRR/ARR, totals, filters, and chart actions and rendered live. Native aggregate tests were not clean on the populated database. | PARTIAL |
+| Customer subscription overview | Portal routes and dashboard customer filters exist. A genuine portal-user session was unavailable; duplicate subscription-list route declarations remain. | PARTIAL |
+| Plan comparison and pricing | Plan list/detail and internal plan views exist; no dedicated side-by-side plan comparison workflow was verified. | PARTIAL |
+| Search, filters, and quick actions | Odoo action/search views and dashboard quick actions are present; only the dashboard was visually inspected in the final browser pass. | PARTIAL |
+| Invoice/quotation PDF presentation | QWeb invoice report is declared; PDF output was not generated. No quotation PDF report was found in the addon manifest. | PARTIAL |
+| Activity and audit visibility | Chatter/activity support and billing log model/views exist; generated notification/audit side effects were not tested. | PARTIAL |
+| Financial reports | Dashboard graph/pivot analytics exist; the contract-listed separate `financial_report.xml` was absent. | PARTIAL |
+
+No additional UI/backend feature was added in this final pass: the identified screens/actions already exist in owner-controlled implementation, while the remaining work involves verification or owner coordination. This avoids introducing duplicate or untested functionality immediately before evaluation.
+
 ## Submission documents
 
 - [Project architecture](PROJECT_ARCHITECTURE.md)

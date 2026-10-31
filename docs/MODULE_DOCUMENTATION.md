@@ -1,6 +1,8 @@
 # Module-Wise Technical Documentation
 ## Brightloop Subscription Management System
 
+> **Evidence note:** This is a technical design/history document. Performance figures and feature descriptions are not a substitute for current runtime proof; in particular, no 5,000-record benchmark was run for this final task. Consult [TESTING_REPORT.md](TESTING_REPORT.md) for measured test evidence and limits.
+
 **Project:** Subscription Management System – Brightloop Software  
 **Team:** AuraMinds  
 **Target Version:** Odoo 17.0 / 18.0  

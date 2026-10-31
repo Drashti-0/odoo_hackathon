@@ -1,6 +1,8 @@
 # Brightloop Software – Subscription Management System
 # Comprehensive Demonstration & Presentation Guide
 
+> **Final verification note (2026-10-31):** This guide contains the original project/demo scope and may describe gateway, email, performance, or workflow capabilities more broadly than were verified. For the demo sequence and claims that are safe to make, use [docs/FINAL_HACKATHON_DEMO.md](docs/FINAL_HACKATHON_DEMO.md) and [docs/TESTING_REPORT.md](docs/TESTING_REPORT.md). The native suite was not a clean pass; live provider, email, cron side effects, portal ownership, and PDF output were not fully verified.
+
 **Team:** AuraMinds  
 **Developer 1:** Dhruti Viradiya (Core Modules: Product & Variants, Plans, Subscriptions, Recurring Billing Engine)  
 **Developer 2:** Drashti Bhanderi (Operational Modules: User Management, Discounts, Payments, Financial Dashboard)  
