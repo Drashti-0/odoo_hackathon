@@ -871,8 +871,8 @@
 
     function openPaymentModal(invoiceId) {
         if (currentRole === 'customer') return showToast('Access restricted', 'Payment recording is an admin/staff demo operation.', 'warning');
-        updatePaymentModalOptions(invoiceId);
         openModal('modal_register_payment');
+        updatePaymentModalOptions(invoiceId);
     }
 
     function submitPayment(event) {
@@ -889,7 +889,7 @@
             id: 'TXN-DEMO-' + String(data.payments.length + 1).padStart(4, '0'),
             invoiceId: invoice.id,
             amount,
-            method: method + ' (Simulated)',
+            method,
             date: localDate()
         });
         persist();
