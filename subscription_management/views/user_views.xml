@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Customer Registration Wizard Form View -->
+    <record id="view_subscription_customer_register_wizard_form" model="ir.ui.view">
+        <field name="name">subscription.customer.register.wizard.form</field>
+        <field name="model">subscription.customer.register.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Customer Registration">
+                <sheet>
+                    <div class="oe_title">
+                        <h2>Register New Customer</h2>
+                        <p class="text-muted">Create a secure portal customer account with automated password policy enforcement and email uniqueness validation.</p>
+                    </div>
+                    <group>
+                        <group string="Personal &amp; Company Details">
+                            <field name="name" placeholder="e.g. John Doe"/>
+                            <field name="email" placeholder="e.g. john.doe@example.com"/>
+                            <field name="company_name" placeholder="e.g. Acme Corp (optional)"/>
+                        </group>
+                        <group string="Authentication Credentials">
+                            <field name="password" password="True" placeholder="Min. 9 chars, uppercase, lowercase, special char"/>
+                            <field name="password_confirm" password="True" placeholder="Re-type password"/>
+                        </group>
+                    </group>
+                </sheet>
+                <footer>
+                    <button name="action_register" string="Create Customer Account" type="object" class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- Action: Customer Registration Wizard -->
+    <record id="action_subscription_customer_register_wizard" model="ir.actions.act_window">
+        <field name="name">Register Portal Customer</field>
+        <field name="res_model">subscription.customer.register.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <!-- Menu Item: Customer Registration under Configuration -->
+    <menuitem id="menu_subscription_customer_register"
+              name="Register Customer"
+              parent="menu_subscription_config"
+              action="action_subscription_customer_register_wizard"
+              groups="group_subscription_user"
+              sequence="50"/>
+
+</odoo>

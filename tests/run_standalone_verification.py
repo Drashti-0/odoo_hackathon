@@ -1084,6 +1084,42 @@ class TestSubscriptionModules(unittest.TestCase):
         sub_quote.action_cancel()
         self.assertEqual(sub_quote.state, 'closed')
 
+# Import Developer 2 User Management Verification Suite
+try:
+    from test_user_management_standalone import TestUserManagementAuthentication
+except ImportError:
+    try:
+        from tests.test_user_management_standalone import TestUserManagementAuthentication
+    except ImportError:
+        pass
+
+# Import Developer 2 Discount Management Verification Suite
+try:
+    from test_discount_management_standalone import TestDiscountManagementStandalone
+except ImportError:
+    try:
+        from tests.test_discount_management_standalone import TestDiscountManagementStandalone
+    except ImportError:
+        pass
+
+# Import Developer 2 Payment Management Verification Suite
+try:
+    from test_payment_management_standalone import TestPaymentManagementStandalone
+except ImportError:
+    try:
+        from tests.test_payment_management_standalone import TestPaymentManagementStandalone
+    except ImportError:
+        pass
+
+# Import Developer 2 Dashboard & Financial Reports Verification Suite
+try:
+    from test_dashboard_reports_standalone import TestDashboardReportsStandalone
+except ImportError:
+    try:
+        from tests.test_dashboard_reports_standalone import TestDashboardReportsStandalone
+    except ImportError:
+        pass
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -6,3 +6,7 @@ from . import subscription_invoice
 from . import billing_log
 from . import discount_hook
 from . import payment_hook
+from . import user_management
+from . import discount
+from . import payment
+from . import dashboard
