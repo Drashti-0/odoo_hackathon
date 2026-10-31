@@ -116,3 +116,26 @@ class TestSubscriptionLifecycle(TransactionCase):
         sub.action_close(reason="Client completed project")
         self.assertEqual(sub.state, 'closed')
         self.assertEqual(sub.close_reason, "Client completed project")
+
+    def test_04_duplicate_surcharge_prevention(self):
+        """Test that Odoo brand surcharge of 560 is not applied twice."""
+        # Product with Odoo brand template
+        tmpl = self.env['product.template'].create({
+            'name': 'ERP Pro Suite',
+            'list_price': 800.0,
+            'is_subscription': True,
+            'brand_name': 'odoo',
+        })
+        prod = tmpl.product_variant_id
+        # Surcharge must be exactly 560
+        self.assertEqual(prod.subscription_price, 1360.0)
+        self.assertEqual(prod.get_subscription_price(), 1360.0)
+
+    def test_05_currency_fallback_safety(self):
+        """Test currency fallback safety when currency is initially unassigned."""
+        sub = self.env['subscription.subscription'].new({
+            'partner_id': self.partner.id,
+            'plan_id': self.plan.id,
+        })
+        sub._compute_currency_id()
+        self.assertTrue(sub.currency_id, "Currency should fall back to company currency")

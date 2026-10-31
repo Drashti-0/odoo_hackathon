@@ -97,3 +97,26 @@ class TestBillingEngine(TransactionCase):
         self.assertTrue(len(logs) >= 2, "Both initial generation and skipped retry must be logged")
         self.assertIn('success', logs.mapped('status'))
         self.assertIn('skipped', logs.mapped('status'))
+
+    def test_03_active_subscription_empty_next_billing_date(self):
+        """Test that an active subscription with an empty next_billing_date is safely initialized and billed."""
+        today = date.today()
+        sub = self.env['subscription.subscription'].create({
+            'partner_id': self.partner.id,
+            'plan_id': self.monthly_plan.id,
+            'start_date': today,
+            'next_billing_date': False,  # explicitly empty
+            'state': 'active',
+            'line_ids': [(0, 0, {
+                'product_id': self.product.id,
+                'name': self.product.name,
+                'quantity': 1.0,
+                'unit_price': 500.0,
+            })]
+        })
+        self.assertFalse(sub.next_billing_date)
+
+        # Trigger recurring billing cron logic
+        sub._process_recurring_billing_catchup(today)
+        self.assertTrue(sub.next_billing_date, "next_billing_date should have been initialized and advanced")
+        self.assertEqual(len(sub.invoice_ids), 1, "Invoice must be generated even if next_billing_date was initially empty")

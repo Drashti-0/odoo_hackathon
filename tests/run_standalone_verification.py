@@ -69,15 +69,26 @@ class MockProductTemplate:
 
 
 class MockProductProduct:
-    def __init__(self, template, variant_extra=0.0):
+    def __init__(self, template, variant_extra=0.0, variant_attr_name=None):
         self.template = template
         self.name = template.name
         self.brand_name = template.brand_name
         self.variant_extra = float(variant_extra)
+        self.variant_attr_name = variant_attr_name
 
     def get_subscription_price(self, plan=None, partner=None):
         base = self.template.list_price
-        brand_extra = 560.0 if self.brand_name == 'odoo' else 0.0
+        is_odoo_template = (self.brand_name == 'odoo')
+        has_odoo_attr = (self.variant_attr_name and self.variant_attr_name.strip().lower() == 'odoo')
+
+        if is_odoo_template or has_odoo_attr:
+            if has_odoo_attr and self.variant_extra >= 560.0:
+                brand_extra = 0.0
+            else:
+                brand_extra = 560.0
+        else:
+            brand_extra = self.template.brand_surcharge
+
         return base + brand_extra + self.variant_extra
 
 
@@ -205,6 +216,13 @@ class MockSubscription:
     @property
     def amount_total(self):
         return self.amount_untaxed + self.amount_tax
+
+    @property
+    def currency_symbol(self):
+        """Currency fallback safety: returns currency symbol or default company fallback."""
+        if getattr(self, 'currency_id', None) and hasattr(self.currency_id, 'symbol'):
+            return self.currency_id.symbol
+        return "$"
 
     @property
     def mrr(self):
@@ -339,7 +357,29 @@ class MockBillingEngine:
             })
             return 0
 
-        # 2. Check contract expiry
+        # 2. Check plan assignment
+        if not sub.plan:
+            sub.billing_logs.append({
+                'status': 'failed',
+                'message': f"Subscription {sub.name} has no plan assigned."
+            })
+            return 0
+
+        # 3. Handle empty next_billing_date safely
+        if not sub.next_billing_date:
+            if sub.last_billing_date:
+                sub.next_billing_date = sub.plan.calculate_next_billing_date(sub.last_billing_date)
+            else:
+                sub.next_billing_date = sub.start_date or today
+
+        if sub.next_billing_date > today:
+            sub.billing_logs.append({
+                'status': 'skipped',
+                'message': f"Subscription {sub.name} next billing date {sub.next_billing_date} in future; skipped."
+            })
+            return 0
+
+        # 4. Check contract expiry
         if sub.expiry_date and sub.next_billing_date > sub.expiry_date:
             sub.state = 'expired'
             sub.billing_logs.append({
@@ -348,7 +388,7 @@ class MockBillingEngine:
             })
             return 0
 
-        # 3. Check plan availability
+        # 5. Check plan availability
         if not sub.plan.is_available_on(sub.next_billing_date):
             sub.billing_logs.append({
                 'status': 'failed',
@@ -705,6 +745,56 @@ class TestSubscriptionModules(unittest.TestCase):
         self.assertEqual(sub.amount_untaxed, 378.0)
         self.assertEqual(sub.amount_tax, 48.0)
         self.assertEqual(sub.amount_total, 426.0)
+
+    def test_09_duplicate_surcharge_prevention(self):
+        """Test Product ORM logic: Odoo +560 surcharge must not be double applied."""
+        tmpl_odoo = MockProductTemplate("Odoo Cloud Host", list_price=1000.0, brand_name='odoo')
+        self.assertEqual(tmpl_odoo.brand_surcharge, 560.0)
+        self.assertEqual(tmpl_odoo.subscription_price, 1560.0)
+
+        # Standard variant inherits 560 surcharge
+        prod_standard = MockProductProduct(tmpl_odoo)
+        self.assertEqual(prod_standard.get_subscription_price(), 1560.0)
+
+        # If a variant attribute already configured 560 surcharge, do not double-add to 2120
+        prod_with_odoo_attr = MockProductProduct(tmpl_odoo, variant_extra=560.0, variant_attr_name='Odoo')
+        self.assertEqual(prod_with_odoo_attr.get_subscription_price(), 1560.0)
+
+    def test_10_empty_next_billing_date_safety(self):
+        """Test Recurring Billing Cron: Active subscription with empty next_billing_date is safely initialized and billed."""
+        today = date(2026, 6, 1)
+        sub = MockSubscription("Unset Date Client", self.plan_monthly, start_date=today)
+        prod = MockProductProduct(MockProductTemplate("Service A", list_price=200.0))
+        sub.add_line(prod, quantity=2.0)
+        sub.action_confirm()
+        sub.action_activate()
+
+        # Explicitly simulate missing/empty next_billing_date
+        sub.next_billing_date = None
+
+        # Run cron billing engine
+        invoices_count = MockBillingEngine.process_subscription_catchup(sub, target_date=today)
+        self.assertEqual(invoices_count, 1, "Should generate exactly 1 invoice")
+        self.assertEqual(len(sub.invoice_ids), 1)
+        self.assertEqual(sub.next_billing_date, today + relativedelta(months=1))
+
+        # Re-run same day (idempotent duplicate defense)
+        sub.next_billing_date = today  # force date back
+        retry_count = MockBillingEngine.process_subscription_catchup(sub, target_date=today)
+        self.assertEqual(retry_count, 0, "Retry must not create duplicate invoice")
+        self.assertEqual(len(sub.invoice_ids), 1)
+
+    def test_11_currency_fallback_safety(self):
+        """Test Currency Fallback Safety: Records with missing/unset currency do not crash tax/total computations."""
+        sub = MockSubscription("Currency Test Client", self.plan_monthly, start_date=date(2026, 1, 1))
+        prod = MockProductProduct(MockProductTemplate("Test Service", list_price=150.0))
+        sub.add_line(prod, quantity=2.0, tax_rate=10.0)
+
+        # Confirm calculation worked without errors
+        # plan 100 + 2 * 150 = 400 untaxed. Tax 10% on 300 = 30. Total = 430
+        self.assertEqual(sub.amount_tax, 30.0)
+        self.assertEqual(sub.amount_total, 430.0)
+        self.assertEqual(sub.currency_symbol, "$")
 
 
 
