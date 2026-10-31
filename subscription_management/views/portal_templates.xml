@@ -2,7 +2,7 @@
 <odoo>
     <template id="portal_brightloop_navigation" inherit_id="portal.portal_layout" name="Brightloop Portal Navigation">
         <xpath expr="//div[@id='wrap']" position="before">
-            <nav t-if="request.env.user.share" class="bl-portal-nav" aria-label="Brightloop customer navigation">
+            <nav t-if="(user or env.user).share" class="bl-portal-nav" aria-label="Brightloop customer navigation">
                 <div class="bl-portal-nav-inner">
                     <a class="bl-portal-brand" href="/my" aria-label="Brightloop dashboard">
                         <span class="bl-brand-mark">B</span>
@@ -36,7 +36,7 @@
                 <section class="bl-portal-hero">
                     <div>
                         <span class="bl-eyebrow">YOUR BRIGHTLOOP ACCOUNT</span>
-                        <h1>Welcome back, <t t-out="request.env.user.partner_id.name"/>.</h1>
+                        <h1>Welcome back, <t t-out="(user or env.user).partner_id.name"/>.</h1>
                         <p>Manage your subscriptions, review upcoming billing, and find your invoices in one place.</p>
                     </div>
                     <a href="/my/plans" class="bl-button bl-button-light">Explore plans <span aria-hidden="true">→</span></a>

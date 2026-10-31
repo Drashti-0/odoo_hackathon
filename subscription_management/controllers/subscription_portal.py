@@ -8,27 +8,53 @@ from werkzeug.exceptions import InternalServerError, NotFound
 class SubscriptionCustomerPortal(CustomerPortal):
     _items_per_page = 20
 
-    @http.route(['/my', '/my/home'], type='http', auth='user', website=True)
-    def home(self, **kwargs):
-        values = self._prepare_portal_layout_values()
-        partner = request.env.user.partner_id
-        subscriptions = request.env['subscription.subscription'].search([
-            ('partner_id', '=', partner.id),
-        ], order='create_date desc, id desc')
-        invoices = request.env['subscription.invoice'].search([
-            ('partner_id', '=', partner.id),
-        ], order='invoice_date desc, id desc')
-        upcoming = request.env['subscription.subscription'].search([
-            ('partner_id', '=', partner.id),
-            ('state', '=', 'active'),
-            ('next_billing_date', '!=', False),
-        ], order='next_billing_date, id', limit=1)
+    def _get_available_subscription_plans(self):
         today = fields.Date.today()
         plans = request.env['subscription.plan'].search([
             ('active', '=', True),
         ], order='sequence, name').filtered(
             lambda plan: plan.is_available_on(today)
-        )[:3]
+        )
+        unique_plan_ids = []
+        seen_offers = set()
+        for plan in plans:
+            offer = (
+                plan.name,
+                plan.price,
+                plan.currency_id.id,
+                plan.billing_interval_unit,
+                plan.billing_interval_count,
+                plan.min_quantity,
+                plan.description or '',
+            )
+            if offer not in seen_offers:
+                seen_offers.add(offer)
+                unique_plan_ids.append(plan.id)
+        return request.env['subscription.plan'].browse(unique_plan_ids)
+
+    def _get_portal_partner_ids(self):
+        partner = request.env.user.partner_id
+        partner_ids = [partner.id]
+        if partner.commercial_partner_id and partner.commercial_partner_id.id != partner.id:
+            partner_ids.append(partner.commercial_partner_id.id)
+        return partner_ids
+
+    @http.route(['/my', '/my/home'], type='http', auth='user', website=True)
+    def home(self, **kwargs):
+        values = self._prepare_portal_layout_values()
+        partner_ids = self._get_portal_partner_ids()
+        subscriptions = request.env['subscription.subscription'].search([
+            ('partner_id', 'in', partner_ids),
+        ], order='create_date desc, id desc')
+        invoices = request.env['subscription.invoice'].search([
+            ('partner_id', 'in', partner_ids),
+        ], order='invoice_date desc, id desc')
+        upcoming = request.env['subscription.subscription'].search([
+            ('partner_id', 'in', partner_ids),
+            ('state', '=', 'active'),
+            ('next_billing_date', '!=', False),
+        ], order='next_billing_date, id', limit=1)
+        plans = self._get_available_subscription_plans()[:3]
         values.update({
             'page_name': 'home',
             'portal_subscriptions': subscriptions,
@@ -49,22 +75,22 @@ class SubscriptionCustomerPortal(CustomerPortal):
 
     def _prepare_home_portal_values(self, counters):
         values = super()._prepare_home_portal_values(counters)
-        partner = request.env.user.partner_id
+        partner_ids = self._get_portal_partner_ids()
         if 'subscription_count' in counters:
             values['subscription_count'] = request.env[
                 'subscription.subscription'
-            ].search_count([('partner_id', '=', partner.id)])
+            ].search_count([('partner_id', 'in', partner_ids)])
         if 'quotation_count' in counters:
             values['quotation_count'] = request.env[
                 'subscription.subscription'
             ].search_count([
-                ('partner_id', '=', partner.id),
+                ('partner_id', 'in', partner_ids),
                 ('state', 'in', ('draft', 'quotation')),
             ])
         if 'subscription_invoice_count' in counters:
             values['subscription_invoice_count'] = request.env[
                 'subscription.invoice'
-            ].search_count([('partner_id', '=', partner.id)])
+            ].search_count([('partner_id', 'in', partner_ids)])
         return values
 
     @http.route(
@@ -74,12 +100,7 @@ class SubscriptionCustomerPortal(CustomerPortal):
         website=True,
     )
     def portal_subscription_plans(self, page=1, **kwargs):
-        today = fields.Date.today()
-        plans_model = request.env['subscription.plan']
-        available_plans = plans_model.search(
-            [('active', '=', True)],
-            order='sequence, name',
-        ).filtered(lambda plan: plan.is_available_on(today))
+        available_plans = self._get_available_subscription_plans()
         total = len(available_plans)
         pager = portal_pager(
             url='/my/plans',
@@ -98,18 +119,20 @@ class SubscriptionCustomerPortal(CustomerPortal):
         )
 
     def _get_customer_subscription(self, subscription_id):
+        partner_ids = self._get_portal_partner_ids()
         subscription = request.env['subscription.subscription'].search([
             ('id', '=', subscription_id),
-            ('partner_id', '=', request.env.user.partner_id.id),
+            ('partner_id', 'in', partner_ids),
         ], limit=1)
         if not subscription:
             raise NotFound()
         return subscription
 
     def _get_customer_invoice(self, invoice_id):
+        partner_ids = self._get_portal_partner_ids()
         invoice = request.env['subscription.invoice'].search([
             ('id', '=', invoice_id),
-            ('partner_id', '=', request.env.user.partner_id.id),
+            ('partner_id', 'in', partner_ids),
         ], limit=1)
         if not invoice:
             raise NotFound()
@@ -145,7 +168,7 @@ class SubscriptionCustomerPortal(CustomerPortal):
         website=True,
     )
     def portal_my_subscriptions(self, page=1, **kwargs):
-        domain = [('partner_id', '=', request.env.user.partner_id.id)]
+        domain = [('partner_id', 'in', self._get_portal_partner_ids())]
         return request.render(
             'subscription_management.portal_my_subscriptions',
             self._prepare_subscription_list(
@@ -161,7 +184,7 @@ class SubscriptionCustomerPortal(CustomerPortal):
     )
     def portal_my_quotations(self, page=1, **kwargs):
         domain = [
-            ('partner_id', '=', request.env.user.partner_id.id),
+            ('partner_id', 'in', self._get_portal_partner_ids()),
             ('state', 'in', ('draft', 'quotation')),
         ]
         return request.render(
@@ -181,7 +204,7 @@ class SubscriptionCustomerPortal(CustomerPortal):
         subscription = self._get_customer_subscription(subscription_id)
         invoices = request.env['subscription.invoice'].search([
             ('subscription_id', '=', subscription.id),
-            ('partner_id', '=', request.env.user.partner_id.id),
+            ('partner_id', 'in', self._get_portal_partner_ids()),
         ], order='invoice_date desc, id desc')
         values = self._prepare_portal_layout_values()
         values.update({
@@ -202,7 +225,7 @@ class SubscriptionCustomerPortal(CustomerPortal):
     )
     def portal_my_invoices(self, page=1, **kwargs):
         invoices_model = request.env['subscription.invoice']
-        domain = [('partner_id', '=', request.env.user.partner_id.id)]
+        domain = [('partner_id', 'in', self._get_portal_partner_ids())]
         total = invoices_model.search_count(domain)
         pager = portal_pager(
             url='/my/invoices',

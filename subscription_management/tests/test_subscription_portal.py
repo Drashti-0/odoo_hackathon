@@ -131,6 +131,25 @@ class TestSubscriptionCustomerPortal(HttpCase):
         self.assertIn(self.own_invoice.name.encode(), invoices.content)
         self.assertNotIn(self.other_invoice.name.encode(), invoices.content)
 
+    def test_plan_list_deduplicates_identical_customer_offers(self):
+        self.env['subscription.plan'].create({
+            'name': self.plan.name,
+            'code': 'PORTAL-MONTHLY-DUPLICATE-TEST',
+            'sequence': self.plan.sequence + 1,
+            'price': self.plan.price,
+            'currency_id': self.plan.currency_id.id,
+            'billing_interval_unit': self.plan.billing_interval_unit,
+            'billing_interval_count': self.plan.billing_interval_count,
+            'min_quantity': self.plan.min_quantity,
+            'description': self.plan.description,
+        })
+        self.assertTrue(self.authenticate(self.login, self.password))
+
+        plans = self.url_open('/my/plans')
+
+        self.assertEqual(plans.status_code, 200)
+        self.assertEqual(plans.content.count(self.plan.name.encode()), 1)
+
     def test_details_and_invoice_documents_enforce_ownership(self):
         self.assertTrue(self.authenticate(self.login, self.password))
 
