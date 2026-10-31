@@ -105,7 +105,7 @@ Additional product/plan, quotation, invoice, payment, and customer portal screen
 
 ## Slide 11 — Testing and current limitations
 
-- Standalone regression verification: 92 tests passed.
+- Standalone regression verification: 93 tests passed on the final run.
 - All 16 addon XML files parsed successfully.
 - Native Odoo suite on populated local DB: 14 failures and 6 errors in 132 tests; not a clean isolated run.
 - Portal, PDF output, cron side effects, and provider transactions not verified for this submission.

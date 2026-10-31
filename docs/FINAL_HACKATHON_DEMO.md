@@ -96,7 +96,7 @@ The project combines a configurable subscription lifecycle, recurring billing an
 
 ## Likely evaluator follow-up
 
-Use [JUDGE_QA.md](JUDGE_QA.md) for concise technical and business answers. If asked about current test limitations, state plainly that the standalone suite passed 92 tests, while a native run on the populated database had 14 failures and 6 errors out of 132 and is not a clean isolated result.
+Use [JUDGE_QA.md](JUDGE_QA.md) for concise technical and business answers. If asked about current test limitations, state plainly that the standalone suite passed 93 tests, while a previously recorded native run on the populated database had 14 failures and 6 errors out of 132 and is not a clean isolated result.
 
 ## Known limitations to disclose
 

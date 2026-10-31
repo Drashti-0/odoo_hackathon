@@ -23,7 +23,7 @@ Subscription businesses need recurring product/plan pricing, customer contract l
 
 ## Verification summary
 
-- Standalone suite: **PASS, 92 tests**.
+- Standalone suite: **PASS, 93 tests** on the latest run.
 - XML parse check: **PASS, 16 files**.
 - Module active in the inspected Odoo 17 local database: **PASS**.
 - Live admin dashboard rendering: **PASS, LIMITED**. The authenticated page rendered real KPI/filter/chart content, reload showed no browser console/page errors, and a screenshot was displayed in the task conversation. The screenshot could not be exported to a valid repository image file; the pre-existing tracked image shows only the Odoo form toolbar.

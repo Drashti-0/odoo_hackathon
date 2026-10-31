@@ -352,16 +352,6 @@ class SubscriptionCustomerPortal(CustomerPortal):
             ('Content-Disposition', content_disposition(
                 '%s.%s' % (invoice.name, extension)
             )),
-        pdf, content_type = request.env['ir.actions.report'].sudo()._render_qweb_pdf(
-            report.report_name, [invoice.id]
-        )
-        if content_type != 'pdf':
-            raise InternalServerError(
-                _("The invoice document could not be generated.")
-            )
-        return request.make_response(pdf, headers=[
-            ('Content-Type', 'application/pdf'),
-            ('Content-Disposition', content_disposition('%s.pdf' % invoice.name)),
         ])
 
     def _submit_staff_request(self, subscription, summary, note):

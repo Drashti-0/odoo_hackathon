@@ -7,7 +7,7 @@
 
 | Check | Result | Evidence / qualification |
 |---|---|---|
-| Standalone verification suite | **PASS** | `python3 tests/run_standalone_verification.py -v` completed with 92 tests passed (observed during the audit). |
+| Standalone verification suite | **PASS** | `python3 tests/run_standalone_verification.py -q` completed with 93 tests passed during the final mission. |
 | Addon XML well-formedness | **PASS** | All 16 `subscription_management/**/*.xml` files parsed successfully. |
 | Odoo module registration | **PASS** | `subscription_management` was reported installed in `brightloop_test_db`. |
 | Scheduled action registration | **PASS** | The recurring billing, expiry monitor, and upcoming billing notification actions were present and enabled in the inspected database. Their jobs were not triggered in this documentation verification. |

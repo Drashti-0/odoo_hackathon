@@ -44,7 +44,7 @@ Detailed installation, upgrade, demo data, and stop commands are in [docs/INSTAL
 
 ## Verification snapshot
 
-At the 2026-10-31 verification snapshot, the standalone regression runner passed **92 tests** and all **16 addon XML files** parsed. A native Odoo suite run against the already-populated local database reported **14 failures and 6 errors out of 132 tests**; see [docs/TESTING_REPORT.md](docs/TESTING_REPORT.md). Do not interpret that database run as a clean isolated test pass.
+At the 2026-10-31 final verification snapshot, the standalone regression runner passed **93 tests** and all **16 addon XML files** parsed. A previously recorded native Odoo suite run against the already-populated local database reported **14 failures and 6 errors out of 132 tests**; see [docs/TESTING_REPORT.md](docs/TESTING_REPORT.md). Do not interpret that database run as a clean isolated test pass.
 
 Actual demo evidence and known verification gaps are recorded in [docs/FINAL_PROJECT_REPORT.md](docs/FINAL_PROJECT_REPORT.md). Screenshot capture/export limitations are documented in [docs/screenshots/README.md](docs/screenshots/README.md).
 

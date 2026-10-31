@@ -650,6 +650,9 @@
                     <p t-else="" class="text-muted">No invoice lines are available.</p>
                 </div>
             </div>
+        </t>
+    </template>
+
     <template id="portal_subscription_invoices" name="My Brightloop Invoices">
         <t t-call="portal.portal_layout">
             <t t-set="title">My invoices</t>

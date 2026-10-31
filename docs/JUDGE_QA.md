@@ -82,7 +82,7 @@ The addon defines a QWeb invoice report and backend dashboard graph/pivot analyt
 
 ### 19. What testing has passed?
 
-The standalone runner passed 92 tests, and all 16 addon XML files parsed. The module was installed in the inspected local Odoo 17 database and cron records were enabled. These facts do not substitute for the native Odoo end-to-end test suite.
+The standalone runner passed 93 tests, and all 16 addon XML files parsed. The module was installed in the inspected local Odoo 17 database and cron records were enabled. These facts do not substitute for the native Odoo end-to-end test suite.
 
 ### 20. What did the native Odoo tests report?
 
