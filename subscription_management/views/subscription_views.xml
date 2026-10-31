@@ -105,6 +105,21 @@
                                 <group string="Coupon &amp; Voucher Integration">
                                     <field name="discount_code" placeholder="e.g. SUMMER2026, BRIGHT10"/>
                                     <field name="discount_rate"/>
+                                    <button name="action_apply_discount_code"
+                                            string="Apply Coupon"
+                                            type="object"
+                                            class="btn-primary"/>
+                                </group>
+                                <group string="Applied Discount Summary">
+                                    <field name="discount_id" readonly="1"/>
+                                    <field name="amount_discount"
+                                           widget="monetary"
+                                           options="{'currency_field': 'currency_id'}"
+                                           readonly="1"/>
+                                    <field name="amount_total"
+                                           widget="monetary"
+                                           options="{'currency_field': 'currency_id'}"
+                                           readonly="1"/>
                                 </group>
                             </group>
                         </page>
