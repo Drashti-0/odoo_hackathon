@@ -13,7 +13,7 @@
 - **Python:** 3.10, 3.11, or 3.12 (standard for Odoo 17/18)
 - **Database:** PostgreSQL 12+ (standard Odoo requirement)
 - **Odoo Base Modules:** `base`, `mail`, `product` (included in all standard Odoo distributions)
-
+ 
 ---
 
 ## 2. Installing the Module in Odoo
