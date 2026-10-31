@@ -28,6 +28,7 @@ Integration Ready:
     'data': [
         'security/security.xml',
         'security/ir.model.access.csv',
+        'security/user_security.xml',
         'data/sequence_data.xml',
         'data/cron_data.xml',
         'reports/invoice_report.xml',
@@ -41,9 +42,10 @@ Integration Ready:
         'views/discount_views.xml',
         'views/payment_views.xml',
         'views/dashboard_views.xml',
-        'security/user_security.xml',
     ],
-    'demo': [],
+    'demo': [
+        'demo/demo_data.xml',
+    ],
     'installable': True,
     'application': True,
     'auto_install': False,
