@@ -256,7 +256,6 @@ class SubscriptionDashboard(models.AbstractModel):
             ('amount_residual', '>', 0.0),
             ('due_date', '<', today)
         ] + invoice_domain
-        ]
         if partner_id:
             overdue_domain.append(('partner_id', '=', partner_id))
         if parsed_from:

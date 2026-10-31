@@ -57,6 +57,8 @@ Actual demo evidence and known verification gaps are recorded in [docs/FINAL_PRO
 - [Testing report](docs/TESTING_REPORT.md)
 - [Final project report](docs/FINAL_PROJECT_REPORT.md)
 - [Hackathon presentation content](docs/PRESENTATION_CONTENT.md)
+- [Final hackathon demonstration script](docs/FINAL_HACKATHON_DEMO.md)
+- [Judge Q&A](docs/JUDGE_QA.md)
 - [Integration contract](INTEGRATION_CONTRACT.md)
 
 ## License and team

@@ -26,7 +26,7 @@ Subscription businesses need recurring product/plan pricing, customer contract l
 - Standalone suite: **PASS, 92 tests**.
 - XML parse check: **PASS, 16 files**.
 - Module active in the inspected Odoo 17 local database: **PASS**.
-- Dashboard browser capture: **PARTIAL**. The integrated browser displayed the live dashboard screenshot, but the file-export attempt saved only the Odoo form toolbar. The pre-existing tracked image has the same limitation; no valid dashboard screenshot file is included.
+- Live admin dashboard rendering: **PASS, LIMITED**. The authenticated page rendered real KPI/filter/chart content, reload showed no browser console/page errors, and a screenshot was displayed in the task conversation. The screenshot could not be exported to a valid repository image file; the pre-existing tracked image shows only the Odoo form toolbar.
 - Native Odoo suite on populated database: **FAIL / inconclusive**, 14 failed and 6 errors out of 132.
 - Authenticated portal visual verification, actual PDF download, actual cron side effects, actual external payment-provider flow, and real email delivery: **NOT TESTED** or unsupported as detailed in [TESTING_REPORT.md](TESTING_REPORT.md).
 
@@ -55,4 +55,6 @@ The source contains substantial end-to-end subscription functionality and demo f
 - [Installation guide](INSTALLATION_GUIDE.md)
 - [Testing report](TESTING_REPORT.md)
 - [Presentation content](PRESENTATION_CONTENT.md)
+- [Final demo script](FINAL_HACKATHON_DEMO.md)
+- [Judge Q&A](JUDGE_QA.md)
 - [Screenshot evidence status](screenshots/README.md)
