@@ -102,11 +102,13 @@ class TestSubscriptionCustomerPortal(HttpCase):
         subscriptions = self.url_open('/my/subscriptions')
         quotations = self.url_open('/my/quotations')
         invoices = self.url_open('/my/invoices')
+        legacy_invoices = self.url_open('/my/subscription-invoices')
 
         self.assertEqual(home.status_code, 200)
         self.assertEqual(subscriptions.status_code, 200)
         self.assertEqual(quotations.status_code, 200)
         self.assertEqual(invoices.status_code, 200)
+        self.assertEqual(legacy_invoices.status_code, 200)
         self.assertIn(self.own_subscription.name.encode(), subscriptions.content)
         self.assertNotIn(self.other_subscription.name.encode(), subscriptions.content)
         self.assertIn(self.own_invoice.name.encode(), invoices.content)
@@ -144,13 +146,11 @@ class TestSubscriptionCustomerPortal(HttpCase):
 
     def test_customer_requests_review_without_changing_subscription_state(self):
         self.assertTrue(self.authenticate(self.login, self.password))
-        page = self.url_open(
-            '/my/subscriptions/%s' % self.own_subscription.id
-        )
+        page = self.url_open('/subscription/signup')
         token = re.search(
             rb'name="csrf_token"\s+value="([^"]+)"', page.content
         )
-        self.assertTrue(token, "Portal cancellation form must include a CSRF token.")
+        self.assertTrue(token, "Signup page must provide a session CSRF token.")
 
         response = self.url_open(
             '/my/subscriptions/%s/request-cancellation'

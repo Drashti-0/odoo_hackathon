@@ -78,7 +78,7 @@ class SubscriptionCustomerPortal(CustomerPortal):
     def portal_my_subscriptions(self, page=1, **kwargs):
         domain = [('partner_id', '=', request.env.user.partner_id.id)]
         return request.render(
-            'subscription_management.portal_my_subscriptions',
+            'subscription_management.portal_subscriptions',
             self._prepare_subscription_list(
                 '/my/subscriptions', domain, page, 'subscription'
             ),
@@ -96,7 +96,7 @@ class SubscriptionCustomerPortal(CustomerPortal):
             ('state', 'in', ('draft', 'quotation')),
         ]
         return request.render(
-            'subscription_management.portal_my_quotations',
+            'subscription_management.portal_subscriptions',
             self._prepare_subscription_list(
                 '/my/quotations', domain, page, 'quotation'
             ),
@@ -118,11 +118,12 @@ class SubscriptionCustomerPortal(CustomerPortal):
         values.update({
             'page_name': 'subscription_detail',
             'subscription': subscription,
+            'subscriptions': subscription,
             'invoices': invoices,
             'request_status': kwargs.get('request'),
         })
         return request.render(
-            'subscription_management.portal_subscription_detail', values
+            'subscription_management.portal_subscriptions', values
         )
 
     @http.route(
@@ -154,7 +155,7 @@ class SubscriptionCustomerPortal(CustomerPortal):
             'pager': pager,
         })
         return request.render(
-            'subscription_management.portal_my_invoices', values
+            'subscription_management.portal_subscription_invoices', values
         )
 
     @http.route(
@@ -169,9 +170,10 @@ class SubscriptionCustomerPortal(CustomerPortal):
         values.update({
             'page_name': 'subscription_invoice_detail',
             'invoice': invoice,
+            'invoices': invoice,
         })
         return request.render(
-            'subscription_management.portal_invoice_detail', values
+            'subscription_management.portal_subscription_invoices', values
         )
 
     @http.route(

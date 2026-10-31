@@ -219,11 +219,6 @@ class SubscriptionDashboard(models.AbstractModel):
             invoice_domain.append(('invoice_date', '>=', parsed_from))
         if parsed_to:
             invoice_domain.append(('invoice_date', '<=', parsed_to))
-            inv_domain.append(('state', '=', invoice_status))
-        if parsed_from:
-            inv_domain.append(('invoice_date', '>=', parsed_from))
-        if parsed_to:
-            inv_domain.append(('invoice_date', '<=', parsed_to))
 
         # Outstanding balances (current uncollected receivables)
         outstanding_agg = self.env['subscription.invoice'].read_group(
@@ -248,13 +243,6 @@ class SubscriptionDashboard(models.AbstractModel):
             ('amount_residual', '>', 0.0),
             ('due_date', '<', today)
         ] + invoice_domain
-        ]
-        if partner_id:
-            overdue_domain.append(('partner_id', '=', partner_id))
-        if parsed_from:
-            overdue_domain.append(('invoice_date', '>=', parsed_from))
-        if parsed_to:
-            overdue_domain.append(('invoice_date', '<=', parsed_to))
 
         overdue_agg = self.env['subscription.invoice'].read_group(
             overdue_domain,
@@ -270,7 +258,6 @@ class SubscriptionDashboard(models.AbstractModel):
         # Paid vs outstanding grouped by month
         monthly_inv_groups = self.env['subscription.invoice'].read_group(
             invoice_domain + [('state', 'in', ('confirmed', 'paid'))],
-            inv_domain,
             ['amount_total:sum', 'amount_paid:sum', 'amount_residual:sum', 'id:count'],
             ['invoice_date:month']
         )
