@@ -188,7 +188,6 @@
         <field name="res_model">subscription.dashboard.console</field>
         <field name="view_mode">form</field>
         <field name="target">current</field>
-        <field name="context">{'tz': 'Asia/Kolkata' if tz == 'Asia/Calcutta' else tz}</field>
     </record>
 
     <!-- ============================================== -->

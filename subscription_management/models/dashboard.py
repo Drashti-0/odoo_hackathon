@@ -56,6 +56,11 @@ class SubscriptionDashboard(models.AbstractModel):
         return None, None
 
     @api.model
+    def _normalized_timezone(self):
+        timezone = self.env.context.get('tz')
+        return 'Asia/Kolkata' if timezone == 'Asia/Calcutta' else timezone
+
+    @api.model
     def get_dashboard_metrics(self, date_range='all', date_from=None, date_to=None,
                               partner_id=None, subscription_status=None,
                               invoice_status=None, payment_method=None,
@@ -65,6 +70,9 @@ class SubscriptionDashboard(models.AbstractModel):
         Returns a dictionary of raw metrics and formatted aggregates.
         """
         self._check_dashboard_access()
+        timezone = self._normalized_timezone()
+        if timezone and timezone != self.env.context.get('tz'):
+            self = self.with_context(tz=timezone)
 
         parsed_from, parsed_to = self._parse_date_range(date_range, date_from, date_to)
         if parsed_from and parsed_to and parsed_to < parsed_from:
@@ -839,7 +847,14 @@ class SubscriptionDashboardConsole(models.TransientModel):
                 )
 
         action['domain'] = action_domain
-        action['context'] = {'search_default_filter_success': 1} if chart_name == 'revenue' else {}
+        action_context = (
+            {'search_default_filter_success': 1}
+            if chart_name == 'revenue' else {}
+        )
+        timezone = self.env['subscription.dashboard']._normalized_timezone()
+        if timezone and timezone != self.env.context.get('tz'):
+            action_context['tz'] = timezone
+        action['context'] = action_context
         return action
 
     def action_view_received_payments(self):
