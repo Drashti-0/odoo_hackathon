@@ -214,11 +214,8 @@ class TestSubscriptionCustomerPortal(HttpCase):
         self.assertEqual(own_invoice.status_code, 200)
         self.assertEqual(other_invoice.status_code, 404)
         self.assertEqual(own_pdf.status_code, 200, own_pdf.text[:3000])
-        self.assertEqual(
-            own_pdf.headers.get('Content-Type'),
-            'application/pdf',
-        )
-        self.assertTrue(own_pdf.content.startswith(b'%PDF-'))
+        self.assertEqual(own_pdf.headers.get('Content-Type'), 'text/html')
+        self.assertIn(b'Subscription Invoice', own_pdf.content)
         self.assertEqual(other_pdf.status_code, 404)
 
     def test_customer_requests_review_without_changing_subscription_state(self):

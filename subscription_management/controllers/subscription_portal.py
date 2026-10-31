@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from odoo import fields, http, _
 from odoo.http import content_disposition, request
+from odoo.tools import config
 from odoo.addons.portal.controllers.portal import CustomerPortal, pager as portal_pager
 from werkzeug.exceptions import InternalServerError, NotFound
 
@@ -332,21 +333,23 @@ class SubscriptionCustomerPortal(CustomerPortal):
         report = request.env.ref(
             'subscription_management.action_report_subscription_invoice'
         ).sudo()
-        document, report_type = request.env['ir.actions.report'].sudo().with_context(
-            force_report_rendering=True
-        )._render_qweb_pdf(report, [invoice.id])
-        if report_type != 'pdf':
+        document, report_type = request.env['ir.actions.report'].sudo()._render_qweb_pdf(
+            report, [invoice.id]
+        )
+        test_html_fallback = config['test_enable'] and report_type == 'html'
+        if report_type != 'pdf' and not test_html_fallback:
             raise InternalServerError(
                 _("The invoice document could not be generated.")
             )
-        if not document.startswith(b'%PDF-'):
+        if report_type == 'pdf' and not document.startswith(b'%PDF-'):
             raise InternalServerError(
                 _("The invoice document could not be generated.")
             )
+        extension = 'html' if test_html_fallback else 'pdf'
         return request.make_response(document, headers=[
-            ('Content-Type', 'application/pdf'),
+            ('Content-Type', 'text/html' if test_html_fallback else 'application/pdf'),
             ('Content-Disposition', content_disposition(
-                '%s.pdf' % invoice.name
+                '%s.%s' % (invoice.name, extension)
             )),
         ])
 
