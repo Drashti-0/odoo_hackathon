@@ -230,15 +230,19 @@ class ResUsers(models.Model):
         if existing_user:
             raise ValidationError(_("An account with the email '%s' is already registered.") % clean_email)
 
-        # Check existing partner or create partner
+        # Public signup cannot prove ownership of an existing partner by email alone.
         partner = self.env['res.partner'].sudo().search([('email', '=ilike', clean_email)], limit=1)
-        if not partner:
-            partner = self.env['res.partner'].sudo().create({
-                'name': name.strip(),
-                'email': clean_email,
-                'company_type': 'company' if company_name else 'person',
-                'customer_rank': 1,
-            })
+        if partner:
+            raise ValidationError(
+                _("An existing customer or contact already uses this email. Please contact support to access that account.")
+            )
+
+        partner = self.env['res.partner'].sudo().create({
+            'name': name.strip(),
+            'email': clean_email,
+            'company_type': 'company' if company_name else 'person',
+            'customer_rank': 1,
+        })
 
         # Fetch portal group
         portal_group = self.env.ref('subscription_management.group_subscription_portal', raise_if_not_found=False) \

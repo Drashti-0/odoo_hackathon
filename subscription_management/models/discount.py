@@ -179,8 +179,8 @@ class SubscriptionDiscount(models.Model):
             return False, _("Total item quantity (%s) is below the minimum required quantity (%s).") % (
                 total_quantity, self.min_quantity
             )
-        if self.applicable_product_ids and product_ids:
-            matching = set(self.applicable_product_ids.ids).intersection(set(product_ids))
+        if self.applicable_product_ids:
+            matching = set(self.applicable_product_ids.ids).intersection(set(product_ids or []))
             if not matching:
                 return False, _("Discount coupon '%s' does not apply to any of the selected products.") % self.name
 
@@ -214,24 +214,23 @@ class SubscriptionDiscount(models.Model):
         - Enforces usage_limit strictly.
         """
         self.ensure_one()
-        try:
-            self.env.cr.execute(
-                "SELECT id, usage_count, usage_limit FROM subscription_discount WHERE id = %s FOR UPDATE",
-                [self.id]
-            )
-            row = self.env.cr.fetchone()
-            if row:
-                current_count = row[1]
-                limit = row[2]
-                if limit > 0 and current_count >= limit:
-                    raise UserError(_("Coupon '%s' has reached its maximum usage limit.") % self.code)
-                self.sudo().write({'usage_count': current_count + 1})
-                _logger.info("Discount %s usage recorded. New count: %d", self.code, current_count + 1)
-        except Exception as e:
-            # Fallback if raw SQL lock unavailable
-            if self.usage_limit > 0 and self.usage_count >= self.usage_limit:
-                raise UserError(_("Coupon '%s' has reached its maximum usage limit.") % self.code)
-            self.sudo().write({'usage_count': self.usage_count + 1})
+        self.env.cr.execute(
+            "SELECT usage_count, usage_limit FROM subscription_discount WHERE id = %s FOR UPDATE",
+            [self.id]
+        )
+        row = self.env.cr.fetchone()
+        if not row:
+            raise UserError(_("The discount coupon no longer exists."))
+
+        current_count, limit = row
+        current_count = current_count or 0
+        limit = limit or 0
+        if limit > 0 and current_count >= limit:
+            raise UserError(_("Coupon '%s' has reached its maximum usage limit.") % self.code)
+
+        new_count = current_count + 1
+        self.sudo().write({'usage_count': new_count})
+        _logger.info("Discount %s usage recorded. New count: %d", self.code, new_count)
 
 
 # ------------------------------------------------------------
@@ -290,7 +289,7 @@ class SubscriptionSubscriptionDiscountExtension(models.Model):
         """
         Public API for applying discount coupon to subscription:
         - Validates code existence and eligibility
-        - Assigns discount_id and synchronizes discount_rate
+        - Assigns discount_id without duplicating the coupon as a line discount
         - Recomputes contract financial totals
         """
         self.ensure_one()
@@ -301,6 +300,21 @@ class SubscriptionSubscriptionDiscountExtension(models.Model):
         disc = self.env['subscription.discount'].search([('code', '=ilike', promo_code)], limit=1)
         if not disc:
             raise UserError(_("No active discount rule found matching code '%s'.") % promo_code)
+
+        if self.discount_id == disc:
+            return {
+                'type': 'ir.actions.client',
+                'tag': 'display_notification',
+                'params': {
+                    'title': _("Coupon already applied"),
+                    'message': _("Coupon '%s' is already applied. Current subscription total: %s %s") % (
+                        disc.code, self.currency_id.symbol or self.currency_id.name,
+                        format(self.amount_total, ',.2f')
+                    ),
+                    'type': 'info',
+                    'sticky': False,
+                }
+            }
 
         today = fields.Date.today()
         base_plan_price = self.plan_id.price if self.plan_id else 0.0
@@ -319,14 +333,27 @@ class SubscriptionSubscriptionDiscountExtension(models.Model):
 
         self.discount_id = disc.id
         self.discount_code = disc.code
-        if disc.discount_type == 'percentage':
-            self.discount_rate = disc.value
+        self.discount_rate = 0.0
 
         self._compute_amounts()
         self.message_post(body=_("Discount '%s' (%s) successfully applied. Deduction: %s") % (
             disc.name, disc.code, self.amount_discount
         ))
-        return True
+        return {
+            'type': 'ir.actions.client',
+            'tag': 'display_notification',
+            'params': {
+                'title': _("Coupon applied"),
+                'message': _("Coupon '%s' applied. Discount: %s %s. Updated subscription total: %s %s") % (
+                    disc.code, self.currency_id.symbol or self.currency_id.name,
+                    format(self.amount_discount, ',.2f'),
+                    self.currency_id.symbol or self.currency_id.name,
+                    format(self.amount_total, ',.2f')
+                ),
+                'type': 'success',
+                'sticky': False,
+            }
+        }
 
 
 # ------------------------------------------------------------

@@ -385,6 +385,12 @@ class SubscriptionSubscription(models.Model):
         for sub in self:
             if sub.plan_id:
                 for line in sub.line_ids:
+                    eligible_plans = line.product_id.product_tmpl_id.subscription_plan_ids
+                    if eligible_plans and sub.plan_id not in eligible_plans:
+                        raise ValidationError(
+                            _("Product '%s' is not eligible for subscription plan '%s'.") %
+                            (line.product_id.display_name, sub.plan_id.name)
+                        )
                     if line.quantity < sub.plan_id.min_quantity:
                         raise ValidationError(
                             _("Product '%s' has quantity %s, which is below the minimum required quantity (%s) for plan '%s'.") %
@@ -504,8 +510,8 @@ class SubscriptionSubscription(models.Model):
         """Transitions: Active / Expired / Closed -> Renewed (Requires plan.allow_renewal)"""
         today = fields.Date.today()
         for sub in self:
-            if sub.state in ('draft', 'quotation'):
-                raise UserError(_("Quotations cannot be renewed before confirmation."))
+            if sub.state not in ('active', 'expired', 'closed'):
+                raise UserError(_("Only active, expired, or closed subscriptions can be renewed."))
             if not sub.plan_id.allow_renewal:
                 raise UserError(_("The plan '%s' does not permit renewal.") % sub.plan_id.name)
 
