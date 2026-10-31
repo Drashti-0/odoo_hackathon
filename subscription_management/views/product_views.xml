@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Product Template Form View Extension -->
+    <record id="view_product_template_form_subscription" model="ir.ui.view">
+        <field name="name">product.template.form.subscription</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="product.product_template_form_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[@name='options']" position="inside">
+                <span class="d-inline-block">
+                    <field name="is_subscription"/>
+                    <label for="is_subscription"/>
+                </span>
+            </xpath>
+            <xpath expr="//page[@name='general_information']" position="after">
+                <page name="subscription_config" string="Subscription Configuration" invisible="not is_subscription">
+                    <group>
+                        <group string="Edition / Brand Pricing Engine">
+                            <field name="brand_name"/>
+                            <field name="brand_surcharge" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                            <field name="subscription_price" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                            <div class="text-muted" colspan="2" invisible="brand_name != 'odoo'">
+                                <strong>Note:</strong> Selecting the <em>Odoo</em> brand automatically applies an enterprise surcharge of <strong>560.00</strong> to the base price.
+                            </div>
+                        </group>
+                        <group string="Subscription Compatibility">
+                            <field name="subscription_plan_ids" widget="many2many_tags" placeholder="Applicable across all plans if left empty"/>
+                        </group>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Product Template Tree View Extension -->
+    <record id="view_product_template_tree_subscription" model="ir.ui.view">
+        <field name="name">product.template.tree.subscription</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="product.product_template_tree_view"/>
+        <field name="arch" type="xml">
+            <field name="list_price" position="after">
+                <field name="brand_name" optional="show"/>
+                <field name="brand_surcharge" optional="show"/>
+                <field name="subscription_price" optional="show"/>
+            </field>
+        </field>
+    </record>
+
+    <!-- Subscription Products Action -->
+    <record id="action_subscription_products" model="ir.actions.act_window">
+        <field name="name">Subscription Products</field>
+        <field name="res_model">product.template</field>
+        <field name="view_mode">tree,form</field>
+        <field name="domain">[('is_subscription', '=', True)]</field>
+        <field name="context">{'default_is_subscription': True}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Define your subscription products and software packages.
+            </p>
+            <p>
+                Configure variant surcharges such as adding 560 for the Odoo brand variant.
+            </p>
+        </field>
+    </record>
+
+</odoo>

@@ -1,0 +1,245 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Subscription Form View -->
+    <record id="view_subscription_subscription_form" model="ir.ui.view">
+        <field name="name">subscription.subscription.form</field>
+        <field name="model">subscription.subscription</field>
+        <field name="arch" type="xml">
+            <form string="Subscription Contract">
+                <header>
+                    <button name="action_send_quotation" string="Send Quotation" type="object" class="oe_highlight" invisible="state != 'draft'"/>
+                    <button name="action_confirm" string="Confirm Order" type="object" class="oe_highlight" invisible="state not in ('draft', 'quotation')"/>
+                    <button name="action_activate" string="Activate Subscription" type="object" class="btn-success" invisible="state != 'confirmed'"/>
+                    <button name="action_generate_invoice_manual" string="Generate Next Invoice" type="object" class="oe_highlight" invisible="state != 'active'"/>
+                    <button name="action_pause" string="Pause Subscription" type="object" class="btn-warning" invisible="state != 'active'"/>
+                    <button name="action_resume" string="Resume Subscription" type="object" class="btn-success" invisible="state != 'paused'"/>
+                    <button name="action_renew" string="Renew Contract" type="object" class="btn-outline-primary" invisible="state not in ('active', 'expired', 'closed')"/>
+                    <button name="action_close" string="Terminate / Close" type="object" class="btn-outline-danger" invisible="state not in ('active', 'paused')"/>
+
+                    <field name="state" widget="statusbar" statusbar_visible="draft,quotation,confirmed,active,closed"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_invoices" type="object" class="oe_stat_button" icon="fa-pencil-square-o">
+                            <field name="invoice_count" widget="statinfo" string="Invoices"/>
+                        </button>
+                    </div>
+
+                    <div class="oe_title">
+                        <label for="name" string="Contract Reference" class="oe_edit_only"/>
+                        <h1>
+                            <field name="name" readonly="1"/>
+                        </h1>
+                    </div>
+
+                    <group>
+                        <group string="Subscriber &amp; Plan Configuration">
+                            <field name="partner_id" widget="res_partner_many2one" context="{'show_address': 1}" options="{'always_reload': True}" readonly="state in ('closed', 'expired')"/>
+                            <field name="plan_id" readonly="state in ('closed', 'expired')"/>
+                            <field name="template_id" invisible="state != 'draft'"/>
+                            <field name="user_id" widget="many2one_avatar_user"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                        </group>
+
+                        <group string="Contract Schedule &amp; Invoicing Dates">
+                            <field name="start_date" readonly="state in ('closed', 'expired')"/>
+                            <field name="expiry_date" readonly="state in ('closed', 'expired')"/>
+                            <field name="quotation_validity_date" invisible="state not in ('draft', 'quotation')"/>
+                            <field name="next_billing_date" invisible="state in ('draft', 'quotation')" readonly="state in ('closed', 'expired')"/>
+                            <field name="last_billing_date" invisible="state in ('draft', 'quotation')"/>
+                            <field name="payment_terms"/>
+                            <field name="currency_id" invisible="1"/>
+                        </group>
+                    </group>
+
+                    <notebook>
+                        <page name="lines" string="Subscription Items">
+                            <field name="line_ids" readonly="state in ('closed', 'expired')">
+                                <tree editable="bottom">
+                                    <field name="product_id" domain="[('is_subscription', '=', True)]"/>
+                                    <field name="name"/>
+                                    <field name="quantity"/>
+                                    <field name="unit_price" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                                    <field name="discount_rate" optional="show"/>
+                                    <field name="tax_ids" widget="many2many_tags" optional="show"/>
+                                    <field name="price_subtotal" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                                    <field name="price_tax" widget="monetary" options="{'currency_field': 'currency_id'}" optional="hide"/>
+                                    <field name="price_total" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                                    <field name="currency_id" column_invisible="True"/>
+                                </tree>
+                            </field>
+
+                            <group col="12" class="oe_invoice_amount_total">
+                                <group colspan="8"/>
+                                <group colspan="4">
+                                    <field name="amount_untaxed" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                                    <field name="amount_discount" widget="monetary" options="{'currency_field': 'currency_id'}" invisible="amount_discount == 0.0"/>
+                                    <field name="amount_tax" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                                    <div class="oe_subtotal_footer_separator oe_inline o_td_label">
+                                        <label for="amount_total"/>
+                                    </div>
+                                    <field name="amount_total" nolabel="1" class="oe_subtotal_footer_separator" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                                </group>
+                            </group>
+                        </page>
+
+                        <page name="lifecycle_history" string="Milestones &amp; Audit Trail">
+                            <group>
+                                <group string="Lifecycle Milestones">
+                                    <field name="pause_date" invisible="not pause_date"/>
+                                    <field name="close_date" invisible="not close_date"/>
+                                    <field name="close_reason" invisible="not close_reason"/>
+                                </group>
+                                <group string="Revenue Analytics (Dev 2 Interface)">
+                                    <field name="mrr" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                                    <field name="arr" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                                </group>
+                            </group>
+                        </page>
+
+                        <page name="discounts_promotions" string="Promotions &amp; Discounts">
+                            <group>
+                                <group string="Coupon &amp; Voucher Integration">
+                                    <field name="discount_code" placeholder="e.g. SUMMER2026, BRIGHT10"/>
+                                    <field name="discount_rate"/>
+                                </group>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="activity_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <!-- Subscription Tree View -->
+    <record id="view_subscription_subscription_tree" model="ir.ui.view">
+        <field name="name">subscription.subscription.tree</field>
+        <field name="model">subscription.subscription</field>
+        <field name="arch" type="xml">
+            <tree string="Subscriptions" decoration-info="state == 'quotation'" decoration-warning="state == 'paused'" decoration-success="state == 'active'" decoration-muted="state in ('closed', 'expired')">
+                <field name="name"/>
+                <field name="partner_id"/>
+                <field name="plan_id"/>
+                <field name="next_billing_date"/>
+                <field name="expiry_date" optional="show"/>
+                <field name="amount_untaxed" widget="monetary" options="{'currency_field': 'currency_id'}" optional="hide"/>
+                <field name="amount_total" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                <field name="mrr" widget="monetary" options="{'currency_field': 'currency_id'}" optional="show"/>
+                <field name="state" widget="badge" decoration-info="state in ('draft', 'quotation')" decoration-primary="state == 'confirmed'" decoration-success="state == 'active'" decoration-warning="state == 'paused'" decoration-danger="state in ('closed', 'expired')"/>
+                <field name="currency_id" column_invisible="True"/>
+            </tree>
+        </field>
+    </record>
+
+    <!-- Subscription Search View -->
+    <record id="view_subscription_subscription_search" model="ir.ui.view">
+        <field name="name">subscription.subscription.search</field>
+        <field name="model">subscription.subscription</field>
+        <field name="arch" type="xml">
+            <search string="Search Subscriptions">
+                <field name="name" string="Subscription or Customer" filter_domain="['|', ('name', 'ilike', self), ('partner_id', 'ilike', self)]"/>
+                <field name="partner_id"/>
+                <field name="plan_id"/>
+                <filter string="Quotations" name="filter_quotations" domain="[('state', 'in', ('draft', 'quotation'))]"/>
+                <filter string="Active Contracts" name="filter_active" domain="[('state', '=', 'active')]"/>
+                <filter string="Paused" name="filter_paused" domain="[('state', '=', 'paused')]"/>
+                <filter string="Closed" name="filter_closed" domain="[('state', '=', 'closed')]"/>
+                <filter string="Expired" name="filter_expired" domain="[('state', '=', 'expired')]"/>
+                <separator/>
+                <filter string="Due for Recurring Billing" name="filter_billing_due" domain="[('state', '=', 'active'), ('next_billing_date', '&lt;=', context_today())]"/>
+                <group expand="0" string="Group By">
+                    <filter string="Customer" name="group_partner" context="{'group_by': 'partner_id'}"/>
+                    <filter string="Subscription Plan" name="group_plan" context="{'group_by': 'plan_id'}"/>
+                    <filter string="Stage / Status" name="group_state" context="{'group_by': 'state'}"/>
+                    <filter string="Next Billing Date" name="group_next_billing" context="{'group_by': 'next_billing_date:month'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Action: All Subscriptions -->
+    <record id="action_subscriptions_all" model="ir.actions.act_window">
+        <field name="name">Subscriptions</field>
+        <field name="res_model">subscription.subscription</field>
+        <field name="view_mode">tree,form</field>
+        <field name="search_view_id" ref="view_subscription_subscription_search"/>
+        <field name="context">{'search_default_filter_active': 1}</field>
+    </record>
+
+    <!-- Action: Quotations -->
+    <record id="action_subscription_quotations" model="ir.actions.act_window">
+        <field name="name">Subscription Quotations</field>
+        <field name="res_model">subscription.subscription</field>
+        <field name="view_mode">tree,form</field>
+        <field name="search_view_id" ref="view_subscription_subscription_search"/>
+        <field name="domain">[('state', 'in', ('draft', 'quotation'))]</field>
+        <field name="context">{'default_state': 'draft'}</field>
+    </record>
+
+    <!-- Quotation Template Form View -->
+    <record id="view_subscription_quotation_template_form" model="ir.ui.view">
+        <field name="name">subscription.quotation.template.form</field>
+        <field name="model">subscription.quotation.template</field>
+        <field name="arch" type="xml">
+            <form string="Quotation Template">
+                <sheet>
+                    <div class="oe_title">
+                        <label for="name" string="Template Name"/>
+                        <h1>
+                            <field name="name" placeholder="e.g. Enterprise Cloud Annual Bundle"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="plan_id"/>
+                        </group>
+                        <group>
+                            <field name="validity_days"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page name="lines" string="Predefined Products">
+                            <field name="line_ids">
+                                <tree editable="bottom">
+                                    <field name="product_id" domain="[('is_subscription', '=', True)]"/>
+                                    <field name="quantity"/>
+                                    <field name="unit_price"/>
+                                </tree>
+                            </field>
+                        </page>
+                        <page name="terms" string="Terms &amp; Conditions">
+                            <field name="terms_and_conditions" placeholder="Default contractual clauses..."/>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Quotation Template Tree View -->
+    <record id="view_subscription_quotation_template_tree" model="ir.ui.view">
+        <field name="name">subscription.quotation.template.tree</field>
+        <field name="model">subscription.quotation.template</field>
+        <field name="arch" type="xml">
+            <tree string="Quotation Templates">
+                <field name="name"/>
+                <field name="plan_id"/>
+                <field name="validity_days"/>
+            </tree>
+        </field>
+    </record>
+
+    <!-- Action: Quotation Templates -->
+    <record id="action_subscription_quotation_templates" model="ir.actions.act_window">
+        <field name="name">Quotation Templates</field>
+        <field name="res_model">subscription.quotation.template</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+</odoo>

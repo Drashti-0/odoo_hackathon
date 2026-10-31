@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Top-Level Root Application Menu -->
+    <menuitem id="menu_subscription_root"
+              name="Brightloop Subscriptions"
+              web_icon="subscription_management,static/description/icon.png"
+              sequence="15"/>
+
+    <!-- ============================================== -->
+    <!-- SUBMENU 1: SUBSCRIPTIONS & CONTRACTS           -->
+    <!-- ============================================== -->
+    <menuitem id="menu_subscription_contracts"
+              name="Subscriptions"
+              parent="menu_subscription_root"
+              sequence="10"/>
+
+    <menuitem id="menu_subscription_quotations_act"
+              name="Quotations"
+              parent="menu_subscription_contracts"
+              action="action_subscription_quotations"
+              sequence="10"/>
+
+    <menuitem id="menu_subscription_all_act"
+              name="Contracts &amp; Subscriptions"
+              parent="menu_subscription_contracts"
+              action="action_subscriptions_all"
+              sequence="20"/>
+
+    <!-- ============================================== -->
+    <!-- SUBMENU 2: BILLING & INVOICING ENGINE          -->
+    <!-- ============================================== -->
+    <menuitem id="menu_subscription_billing"
+              name="Billing &amp; Invoices"
+              parent="menu_subscription_root"
+              sequence="20"/>
+
+    <menuitem id="menu_subscription_invoices_act"
+              name="Recurring Invoices"
+              parent="menu_subscription_billing"
+              action="action_subscription_invoices"
+              sequence="10"/>
+
+    <menuitem id="menu_subscription_billing_logs_act"
+              name="Automated Engine Audit Logs"
+              parent="menu_subscription_billing"
+              action="action_subscription_billing_logs"
+              sequence="20"/>
+
+    <!-- ============================================== -->
+    <!-- SUBMENU 3: PRODUCTS & PLANS                    -->
+    <!-- ============================================== -->
+    <menuitem id="menu_subscription_catalog"
+              name="Products &amp; Plans"
+              parent="menu_subscription_root"
+              sequence="30"/>
+
+    <menuitem id="menu_subscription_plans_act"
+              name="Subscription Plans"
+              parent="menu_subscription_catalog"
+              action="action_subscription_plans"
+              sequence="10"/>
+
+    <menuitem id="menu_subscription_products_act"
+              name="Subscription Products"
+              parent="menu_subscription_catalog"
+              action="action_subscription_products"
+              sequence="20"/>
+
+    <menuitem id="menu_subscription_templates_act"
+              name="Quotation Templates"
+              parent="menu_subscription_catalog"
+              action="action_subscription_quotation_templates"
+              sequence="30"/>
+
+    <!-- ============================================== -->
+    <!-- SUBMENU 4: CONFIGURATION                       -->
+    <!-- ============================================== -->
+    <menuitem id="menu_subscription_config"
+              name="Configuration"
+              parent="menu_subscription_root"
+              groups="group_subscription_manager"
+              sequence="100"/>
+
+    <menuitem id="menu_subscription_config_plans"
+              name="Plans"
+              parent="menu_subscription_config"
+              action="action_subscription_plans"
+              sequence="10"/>
+
+    <menuitem id="menu_subscription_config_templates"
+              name="Quotation Templates"
+              parent="menu_subscription_config"
+              action="action_subscription_quotation_templates"
+              sequence="20"/>
+
+</odoo>

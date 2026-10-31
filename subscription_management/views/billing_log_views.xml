@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Subscription Billing Log Form View -->
+    <record id="view_subscription_billing_log_form" model="ir.ui.view">
+        <field name="name">subscription.billing.log.form</field>
+        <field name="model">subscription.billing.log</field>
+        <field name="arch" type="xml">
+            <form string="Billing Execution Audit Log" create="false" edit="false">
+                <sheet>
+                    <div class="oe_title">
+                        <label for="status" string="Execution Result"/>
+                        <h1>
+                            <field name="status" widget="badge" decoration-success="status == 'success'" decoration-info="status == 'skipped'" decoration-danger="status == 'failed'"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group string="Run Details">
+                            <field name="execution_date"/>
+                            <field name="subscription_id"/>
+                            <field name="invoice_id"/>
+                        </group>
+                        <group string="Billing Period &amp; Financials">
+                            <label for="billing_period_start" string="Target Period"/>
+                            <div class="o_row">
+                                <field name="billing_period_start"/>
+                                <span> to </span>
+                                <field name="billing_period_end"/>
+                            </div>
+                            <field name="amount" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                            <field name="currency_id" invisible="1"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page name="log_message" string="Summary &amp; Outcome">
+                            <field name="message" readonly="1"/>
+                        </page>
+                        <page name="diagnostics" string="Error Traceback / Diagnostics" invisible="not error_traceback">
+                            <field name="error_traceback" readonly="1" widget="text"/>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Subscription Billing Log Tree View -->
+    <record id="view_subscription_billing_log_tree" model="ir.ui.view">
+        <field name="name">subscription.billing.log.tree</field>
+        <field name="model">subscription.billing.log</field>
+        <field name="arch" type="xml">
+            <tree string="Billing Engine Logs" create="false" edit="false" decoration-danger="status == 'failed'" decoration-info="status == 'skipped'" decoration-success="status == 'success'">
+                <field name="execution_date"/>
+                <field name="subscription_id"/>
+                <field name="invoice_id"/>
+                <field name="billing_period_start"/>
+                <field name="billing_period_end"/>
+                <field name="amount" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                <field name="status" widget="badge" decoration-success="status == 'success'" decoration-info="status == 'skipped'" decoration-danger="status == 'failed'"/>
+                <field name="message"/>
+                <field name="currency_id" column_invisible="True"/>
+            </tree>
+        </field>
+    </record>
+
+    <!-- Subscription Billing Log Search View -->
+    <record id="view_subscription_billing_log_search" model="ir.ui.view">
+        <field name="name">subscription.billing.log.search</field>
+        <field name="model">subscription.billing.log</field>
+        <field name="arch" type="xml">
+            <search string="Search Billing Logs">
+                <field name="subscription_id"/>
+                <field name="invoice_id"/>
+                <filter string="Failures / Exceptions" name="filter_failed" domain="[('status', '=', 'failed')]"/>
+                <filter string="Successful Invoices" name="filter_success" domain="[('status', '=', 'success')]"/>
+                <filter string="Skipped / Idempotent" name="filter_skipped" domain="[('status', '=', 'skipped')]"/>
+                <separator/>
+                <group expand="0" string="Group By">
+                    <filter string="Status" name="group_status" context="{'group_by': 'status'}"/>
+                    <filter string="Subscription" name="group_subscription" context="{'group_by': 'subscription_id'}"/>
+                    <filter string="Execution Date" name="group_exec_date" context="{'group_by': 'execution_date:day'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Action: Subscription Billing Logs -->
+    <record id="action_subscription_billing_logs" model="ir.actions.act_window">
+        <field name="name">Billing Engine Audit Logs</field>
+        <field name="res_model">subscription.billing.log</field>
+        <field name="view_mode">tree,form</field>
+        <field name="search_view_id" ref="view_subscription_billing_log_search"/>
+    </record>
+
+</odoo>

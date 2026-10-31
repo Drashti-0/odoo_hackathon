@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Report Action -->
+    <record id="action_report_subscription_invoice" model="ir.actions.report">
+        <field name="name">Subscription Invoice</field>
+        <field name="model">subscription.invoice</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">subscription_management.report_subscription_invoice_template</field>
+        <field name="report_file">subscription_management.report_subscription_invoice_template</field>
+        <field name="print_report_name">'Invoice - %s' % (object.name)</field>
+        <field name="binding_model_id" ref="model_subscription_invoice"/>
+        <field name="binding_type">report</field>
+    </record>
+
+    <!-- QWeb Template -->
+    <template id="report_subscription_invoice_template">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="o">
+                <t t-call="web.external_layout">
+                    <div class="page">
+                        <div class="row mb-4">
+                            <div class="col-6">
+                                <h2 class="text-primary">
+                                    <span>Subscription Invoice</span>
+                                    <span t-field="o.name"/>
+                                </h2>
+                                <div><strong>Subscription:</strong> <span t-field="o.subscription_id.name"/></div>
+                                <div><strong>Billing Period:</strong> <span t-field="o.billing_period_start"/> to <span t-field="o.billing_period_end"/></div>
+                            </div>
+                            <div class="col-6 text-end">
+                                <div><strong>Invoice Date:</strong> <span t-field="o.invoice_date"/></div>
+                                <div><strong>Due Date:</strong> <span t-field="o.due_date"/></div>
+                                <div><strong>Payment Terms:</strong> <span t-field="o.payment_terms"/></div>
+                                <div class="mt-2">
+                                    <span class="badge bg-success" t-if="o.payment_state == 'paid'">PAID</span>
+                                    <span class="badge bg-warning" t-if="o.payment_state == 'not_paid'">PENDING PAYMENT</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row mb-4">
+                            <div class="col-6">
+                                <h5>Invoiced To:</h5>
+                                <div t-field="o.partner_id" t-options='{"widget": "contact", "fields": ["address", "name", "email", "phone"], "no_marker": False}'/>
+                            </div>
+                        </div>
+
+                        <table class="table table-sm o_main_table table-striped mt-4">
+                            <thead>
+                                <tr>
+                                    <th>Product / Service</th>
+                                    <th class="text-end">Quantity</th>
+                                    <th class="text-end">Unit Price</th>
+                                    <th class="text-end">Discount</th>
+                                    <th class="text-end">Taxes</th>
+                                    <th class="text-end">Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <t t-foreach="o.line_ids" t-as="line">
+                                    <tr>
+                                        <td>
+                                            <strong t-field="line.name"/>
+                                        </td>
+                                        <td class="text-end">
+                                            <span t-field="line.quantity"/>
+                                        </td>
+                                        <td class="text-end">
+                                            <span t-field="line.unit_price" t-options='{"widget": "monetary", "display_currency": o.currency_id}'/>
+                                        </td>
+                                        <td class="text-end">
+                                            <span t-if="line.discount_rate"><span t-field="line.discount_rate"/>%</span>
+                                            <span t-else="">-</span>
+                                        </td>
+                                        <td class="text-end">
+                                            <span t-esc="', '.join(map(lambda x: (x.description or x.name), line.tax_ids))"/>
+                                        </td>
+                                        <td class="text-end">
+                                            <span t-field="line.price_subtotal" t-options='{"widget": "monetary", "display_currency": o.currency_id}'/>
+                                        </td>
+                                    </tr>
+                                </t>
+                            </tbody>
+                        </table>
+
+                        <div class="row justify-content-end mt-4">
+                            <div class="col-4">
+                                <table class="table table-sm table-borderless">
+                                    <tr>
+                                        <td><strong>Subtotal</strong></td>
+                                        <td class="text-end"><span t-field="o.amount_untaxed" t-options='{"widget": "monetary", "display_currency": o.currency_id}'/></td>
+                                    </tr>
+                                    <tr t-if="o.amount_discount > 0">
+                                        <td><strong>Discount</strong></td>
+                                        <td class="text-end text-danger">-<span t-field="o.amount_discount" t-options='{"widget": "monetary", "display_currency": o.currency_id}'/></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Taxes</strong></td>
+                                        <td class="text-end"><span t-field="o.amount_tax" t-options='{"widget": "monetary", "display_currency": o.currency_id}'/></td>
+                                    </tr>
+                                    <tr class="border-top">
+                                        <td><h5>Total Due</h5></td>
+                                        <td class="text-end"><h5><span t-field="o.amount_total" t-options='{"widget": "monetary", "display_currency": o.currency_id}'/></h5></td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="mt-4 p-3 bg-light rounded">
+                            <p><strong>Brightloop Software Services:</strong> Thank you for your continued partnership. For payment inquiries or billing support, please contact support@brightloopsoftware.com.</p>
+                        </div>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+
+</odoo>

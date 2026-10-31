@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Subscription Plan Form View -->
+    <record id="view_subscription_plan_form" model="ir.ui.view">
+        <field name="name">subscription.plan.form</field>
+        <field name="model">subscription.plan</field>
+        <field name="arch" type="xml">
+            <form string="Subscription Plan">
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_subscriptions" type="object" class="oe_stat_button" icon="fa-repeat">
+                            <field name="subscription_count" widget="statinfo" string="Subscriptions"/>
+                        </button>
+                    </div>
+                    <widget name="web_ribbon" title="Archived" bg_color="bg-danger" invisible="active"/>
+                    <div class="oe_title">
+                        <label for="name" class="oe_edit_only"/>
+                        <h1>
+                            <field name="name" placeholder="e.g. Enterprise Monthly, Cloud Daily Starter"/>
+                        </h1>
+                        <h3>
+                            <field name="code" readonly="1" class="text-muted"/>
+                        </h3>
+                    </div>
+
+                    <group>
+                        <group string="Billing Frequency &amp; Pricing">
+                            <label for="billing_interval_count" string="Billing Cadence"/>
+                            <div class="o_row">
+                                <field name="billing_interval_count" class="oe_inline"/>
+                                <field name="billing_interval_unit" class="oe_inline"/>
+                            </div>
+                            <field name="price" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                            <field name="min_quantity"/>
+                            <field name="currency_id" invisible="1"/>
+                            <field name="active" invisible="1"/>
+                        </group>
+
+                        <group string="Plan Availability Window">
+                            <field name="start_date"/>
+                            <field name="end_date"/>
+                            <field name="sequence"/>
+                        </group>
+                    </group>
+
+                    <notebook>
+                        <page name="lifecycle_policies" string="Lifecycle &amp; Termination Policies">
+                            <group>
+                                <group string="Expiry &amp; Closure">
+                                    <field name="auto_close"/>
+                                    <field name="auto_close_days" invisible="not auto_close"/>
+                                    <field name="allow_early_close"/>
+                                </group>
+                                <group string="Pause &amp; Renewal Permissions">
+                                    <field name="allow_pause"/>
+                                    <field name="allow_renewal"/>
+                                </group>
+                            </group>
+                        </page>
+                        <page name="description" string="Terms &amp; SLA Description">
+                            <field name="description" placeholder="Specify contractual SLAs, fair usage policies, and service entitlements..."/>
+                        </page>
+                    </notebook>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="activity_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <!-- Subscription Plan Tree View -->
+    <record id="view_subscription_plan_tree" model="ir.ui.view">
+        <field name="name">subscription.plan.tree</field>
+        <field name="model">subscription.plan</field>
+        <field name="arch" type="xml">
+            <tree string="Subscription Plans" decoration-muted="not active">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="code"/>
+                <field name="billing_interval_unit" widget="badge" decoration-info="billing_interval_unit == 'monthly'" decoration-success="billing_interval_unit == 'yearly'" decoration-warning="billing_interval_unit in ('daily', 'weekly')"/>
+                <field name="price" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                <field name="min_quantity"/>
+                <field name="start_date" optional="show"/>
+                <field name="end_date" optional="show"/>
+                <field name="allow_pause" widget="boolean_toggle" optional="hide"/>
+                <field name="allow_renewal" widget="boolean_toggle" optional="hide"/>
+                <field name="auto_close" widget="boolean_toggle" optional="hide"/>
+                <field name="currency_id" column_invisible="True"/>
+                <field name="active" column_invisible="True"/>
+            </tree>
+        </field>
+    </record>
+
+    <!-- Subscription Plan Search View -->
+    <record id="view_subscription_plan_search" model="ir.ui.view">
+        <field name="name">subscription.plan.search</field>
+        <field name="model">subscription.plan</field>
+        <field name="arch" type="xml">
+            <search string="Search Plans">
+                <field name="name"/>
+                <field name="code"/>
+                <filter string="Daily" name="filter_daily" domain="[('billing_interval_unit', '=', 'daily')]"/>
+                <filter string="Weekly" name="filter_weekly" domain="[('billing_interval_unit', '=', 'weekly')]"/>
+                <filter string="Monthly" name="filter_monthly" domain="[('billing_interval_unit', '=', 'monthly')]"/>
+                <filter string="Yearly" name="filter_yearly" domain="[('billing_interval_unit', '=', 'yearly')]"/>
+                <separator/>
+                <filter string="Archived" name="filter_inactive" domain="[('active', '=', False)]"/>
+                <group expand="0" string="Group By">
+                    <filter string="Billing Cadence" name="group_cadence" context="{'group_by': 'billing_interval_unit'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Action: Subscription Plans -->
+    <record id="action_subscription_plans" model="ir.actions.act_window">
+        <field name="name">Subscription Plans</field>
+        <field name="res_model">subscription.plan</field>
+        <field name="view_mode">tree,form</field>
+        <field name="search_view_id" ref="view_subscription_plan_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Create a recurring subscription plan.
+            </p>
+            <p>
+                Configure billing intervals (daily, weekly, monthly, yearly), minimum quantities, and lifecycle policies.
+            </p>
+        </field>
+    </record>
+
+</odoo>
