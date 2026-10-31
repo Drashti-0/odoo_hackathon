@@ -150,6 +150,44 @@ class TestSubscriptionCustomerPortal(HttpCase):
         self.assertEqual(plans.status_code, 200)
         self.assertEqual(plans.content.count(self.plan.name.encode()), 1)
 
+    def test_available_plan_details_are_scoped_to_available_plans(self):
+        unavailable_plan = self.env['subscription.plan'].create({
+            'name': 'Unavailable Portal Plan',
+            'code': 'PORTAL-UNAVAILABLE-TEST',
+            'price': 99.0,
+            'active': False,
+        })
+        self.assertTrue(self.authenticate(self.login, self.password))
+
+        available = self.url_open('/my/plans/%s' % self.plan.id)
+        unavailable = self.url_open('/my/plans/%s' % unavailable_plan.id)
+
+        self.assertEqual(available.status_code, 200)
+        self.assertIn(self.plan.name.encode(), available.content)
+        self.assertIn(b'Billing frequency', available.content)
+        self.assertEqual(unavailable.status_code, 404)
+
+    def test_billing_history_shows_only_customer_payment_transactions(self):
+        self.own_invoice.action_confirm()
+        self.own_invoice.action_register_payment(
+            amount=10.0,
+            ref='PORTAL-OWN-PAYMENT',
+        )
+        self.other_invoice.action_confirm()
+        self.other_invoice.action_register_payment(
+            amount=10.0,
+            ref='PORTAL-OTHER-PAYMENT',
+        )
+        self.assertTrue(self.authenticate(self.login, self.password))
+
+        history = self.url_open('/my/billing-history')
+
+        self.assertEqual(history.status_code, 200)
+        self.assertIn(b'PORTAL-OWN-PAYMENT', history.content)
+        self.assertIn(self.own_invoice.name.encode(), history.content)
+        self.assertNotIn(b'PORTAL-OTHER-PAYMENT', history.content)
+        self.assertNotIn(self.other_invoice.name.encode(), history.content)
+
     def test_details_and_invoice_documents_enforce_ownership(self):
         self.assertTrue(self.authenticate(self.login, self.password))
 
