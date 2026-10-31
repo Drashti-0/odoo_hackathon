@@ -1,28 +1,234 @@
+/* ==========================================================================
+   BRIGHTLOOP SUBSCRIPTION MANAGEMENT – ENTERPRISE SAAS BACKEND THEME
+   Palette: Modern Blue (#1d4ed8), White (#ffffff), Subtle Purple (#7c3aed), 
+            Slate (#0f172a / #f8fafc), Emerald (#10b981), Amber (#f59e0b)
+   ========================================================================== */
+
+/* 1. TOP NAVBAR BRANDING */
 .o_web_client .o_main_navbar {
-    background: linear-gradient(100deg, #173a8a, #2456b8);
+    background: linear-gradient(135deg, #1e3a8a 0%, #1d4ed8 60%, #4338ca 100%) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12) !important;
+    box-shadow: 0 4px 20px -4px rgba(30, 58, 138, 0.35) !important;
 }
 
-.o_web_client .o_main_navbar .o_menu_brand,
+.o_web_client .o_main_navbar .o_menu_brand {
+    font-weight: 800 !important;
+    letter-spacing: -0.02em !important;
+    color: #ffffff !important;
+    font-size: 1.05rem !important;
+}
+
 .o_web_client .o_main_navbar .o_nav_entry,
 .o_web_client .o_main_navbar .dropdown-toggle {
-    color: #fff;
+    color: #f1f5f9 !important;
+    font-weight: 500 !important;
+    font-size: 0.88rem !important;
+    transition: all 0.2s ease !important;
 }
 
+.o_web_client .o_main_navbar .o_nav_entry:hover,
+.o_web_client .o_main_navbar .dropdown-toggle:hover,
+.o_web_client .o_menu_sections .o_nav_entry:focus {
+    color: #ffffff !important;
+    background-color: rgba(255, 255, 255, 0.15) !important;
+    border-radius: 6px !important;
+}
+
+/* 2. CONTROL PANEL & BREADCRUMBS */
 .o_web_client .o_control_panel {
-    border-bottom-color: #e4e9f2;
+    background: #ffffff !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.03) !important;
+    padding: 0.75rem 1.25rem !important;
 }
 
+.o_web_client .breadcrumb-item.active {
+    font-weight: 700 !important;
+    color: #0f172a !important;
+}
+
+.o_web_client .breadcrumb-item a {
+    color: #64748b !important;
+    text-decoration: none !important;
+}
+
+.o_web_client .breadcrumb-item a:hover {
+    color: #1d4ed8 !important;
+}
+
+/* 3. PRIMARY & SECONDARY ACTION BUTTONS */
 .o_web_client .btn-primary {
-    border-color: #1d4ed8;
-    background-color: #1d4ed8;
+    background: linear-gradient(135deg, #1d4ed8 0%, #4338ca 100%) !important;
+    border: none !important;
+    color: #ffffff !important;
+    font-weight: 600 !important;
+    border-radius: 8px !important;
+    padding: 0.5rem 1rem !important;
+    box-shadow: 0 2px 8px rgba(29, 78, 216, 0.25) !important;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 .o_web_client .btn-primary:hover {
-    border-color: #173a8a;
-    background-color: #173a8a;
+    background: linear-gradient(135deg, #1e40af 0%, #3730a3 100%) !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 14px rgba(29, 78, 216, 0.35) !important;
 }
 
-.o_web_client .o_menu_sections .o_nav_entry:hover,
-.o_web_client .o_menu_sections .o_nav_entry:focus {
-    color: #c4b5fd;
+.o_web_client .btn-secondary {
+    background: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    color: #334155 !important;
+    font-weight: 600 !important;
+    border-radius: 8px !important;
+    transition: all 0.2s ease !important;
+}
+
+.o_web_client .btn-secondary:hover {
+    background: #f8fafc !important;
+    border-color: #94a3b8 !important;
+    color: #0f172a !important;
+}
+
+/* 4. DASHBOARD KPI STAT CARDS */
+.o_dashboard_kpis .card {
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 16px !important;
+    box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.05) !important;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    position: relative !important;
+    overflow: hidden !important;
+}
+
+.o_dashboard_kpis .card:hover {
+    transform: translateY(-3px) !important;
+    box-shadow: 0 12px 30px -4px rgba(15, 23, 42, 0.1) !important;
+    border-color: #cbd5e1 !important;
+}
+
+.o_dashboard_kpis .card::before {
+    content: '' !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    height: 4px !important;
+}
+
+.o_dashboard_kpis .card.border-primary::before { background: linear-gradient(90deg, #1d4ed8, #6366f1) !important; }
+.o_dashboard_kpis .card.border-success::before { background: linear-gradient(90deg, #10b981, #059669) !important; }
+.o_dashboard_kpis .card.border-warning::before { background: linear-gradient(90deg, #f59e0b, #d97706) !important; }
+.o_dashboard_kpis .card.border-danger::before { background: linear-gradient(90deg, #ef4444, #dc2626) !important; }
+.o_dashboard_kpis .card.border-info::before { background: linear-gradient(90deg, #06b6d4, #0284c7) !important; }
+
+.o_dashboard_kpis .card h6 {
+    font-size: 0.72rem !important;
+    letter-spacing: 0.08em !important;
+    font-weight: 700 !important;
+    color: #64748b !important;
+}
+
+.o_dashboard_kpis .card h2 {
+    font-weight: 800 !important;
+    letter-spacing: -0.03em !important;
+}
+
+/* 5. FORM VIEWS & SHEETS */
+.o_web_client .o_form_view .o_form_sheet_bg {
+    background-color: #f8fafc !important;
+}
+
+.o_web_client .o_form_view .o_form_sheet {
+    border-radius: 16px !important;
+    border: 1px solid #e2e8f0 !important;
+    box-shadow: 0 10px 30px -5px rgba(15, 23, 42, 0.04) !important;
+    padding: 2rem !important;
+}
+
+.o_web_client .o_form_view .o_input {
+    border-radius: 8px !important;
+    border: 1px solid #cbd5e1 !important;
+    padding: 0.45rem 0.75rem !important;
+    transition: all 0.2s ease !important;
+}
+
+.o_web_client .o_form_view .o_input:focus {
+    border-color: #3b82f6 !important;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15) !important;
+    outline: none !important;
+}
+
+/* 6. LIST & TREE VIEWS (DATA TABLES) */
+.o_web_client .o_list_table {
+    border-collapse: separate !important;
+    border-spacing: 0 !important;
+}
+
+.o_web_client .o_list_table thead th {
+    background: #f8fafc !important;
+    color: #475569 !important;
+    font-size: 0.75rem !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+    padding: 0.85rem 1rem !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+}
+
+.o_web_client .o_list_table tbody tr {
+    transition: background-color 0.15s ease !important;
+}
+
+.o_web_client .o_list_table tbody tr:hover {
+    background-color: #f1f5f9 !important;
+}
+
+.o_web_client .o_list_table tbody td {
+    padding: 0.85rem 1rem !important;
+    border-bottom: 1px solid #f1f5f9 !important;
+    vertical-align: middle !important;
+}
+
+/* 7. MODERN STATUS BADGES (PILLS) */
+.badge-status-active,
+.o_field_badge.badge-success {
+    background-color: #ecfdf5 !important;
+    color: #065f46 !important;
+    border: 1px solid #a7f3d0 !important;
+    font-weight: 700 !important;
+    border-radius: 9999px !important;
+    padding: 0.25rem 0.65rem !important;
+    font-size: 0.72rem !important;
+}
+
+.badge-status-draft,
+.badge-status-quotation {
+    background-color: #f1f5f9 !important;
+    color: #334155 !important;
+    border: 1px solid #cbd5e1 !important;
+    font-weight: 700 !important;
+    border-radius: 9999px !important;
+    padding: 0.25rem 0.65rem !important;
+    font-size: 0.72rem !important;
+}
+
+.badge-status-paused {
+    background-color: #fffbeb !important;
+    color: #92400e !important;
+    border: 1px solid #fde68a !important;
+    font-weight: 700 !important;
+    border-radius: 9999px !important;
+    padding: 0.25rem 0.65rem !important;
+    font-size: 0.72rem !important;
+}
+
+.badge-status-closed,
+.badge-status-expired {
+    background-color: #fef2f2 !important;
+    color: #991b1b !important;
+    border: 1px solid #fecaca !important;
+    font-weight: 700 !important;
+    border-radius: 9999px !important;
+    padding: 0.25rem 0.65rem !important;
+    font-size: 0.72rem !important;
 }

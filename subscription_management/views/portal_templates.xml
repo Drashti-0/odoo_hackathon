@@ -11,16 +11,20 @@
 
     <template id="portal_home_brightloop_links" inherit_id="portal.portal_my_home" priority="30">
         <xpath expr="//div[hasclass('o_portal_docs')]" position="inside">
-            <a href="/my/subscriptions" class="list-group-item list-group-item-action d-flex align-items-center">
-                <i class="fa fa-repeat fa-fw me-2 text-primary"/>
-                <span>My subscriptions</span>
-                <i class="fa fa-angle-right ms-auto"/>
-            </a>
-            <a href="/my/subscription-invoices" class="list-group-item list-group-item-action d-flex align-items-center">
-                <i class="fa fa-file-text-o fa-fw me-2 text-primary"/>
-                <span>My invoices</span>
-                <i class="fa fa-angle-right ms-auto"/>
-            </a>
+            <div class="o_portal_index_card col-12 col-md-6">
+                <a href="/my/subscriptions" class="d-flex align-items-center gap-2 p-3 h-100 border rounded bg-white text-decoration-none">
+                    <i class="fa fa-repeat fa-fw text-primary"/>
+                    <span>My subscriptions</span>
+                    <i class="fa fa-angle-right ms-auto"/>
+                </a>
+            </div>
+            <div class="o_portal_index_card col-12 col-md-6">
+                <a href="/my/subscription-invoices" class="d-flex align-items-center gap-2 p-3 h-100 border rounded bg-white text-decoration-none">
+                    <i class="fa fa-file-text-o fa-fw text-primary"/>
+                    <span>My invoices</span>
+                    <i class="fa fa-angle-right ms-auto"/>
+                </a>
+            </div>
         </xpath>
     </template>
 
@@ -121,7 +125,7 @@
                         <thead>
                             <tr>
                                 <th>Invoice</th><th>Invoice date</th><th>Due date</th>
-                                <th>Status</th><th class="text-end">Total</th><th class="text-end">Balance</th>
+                                <th>Payment status</th><th class="text-end">Total</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -134,13 +138,9 @@
                                     <span t-field="invoice.amount_total"
                                           t-options="{'widget': 'monetary', 'display_currency': invoice.currency_id}"/>
                                 </td>
-                                <td class="text-end">
-                                    <span t-field="invoice.amount_residual"
-                                          t-options="{'widget': 'monetary', 'display_currency': invoice.currency_id}"/>
-                                </td>
                             </tr>
                             <tr t-if="not invoices">
-                                <td colspan="6" class="bl-empty">No invoices are linked to your account yet.</td>
+                                <td colspan="5" class="bl-empty">No invoices are linked to your account yet.</td>
                             </tr>
                         </tbody>
                     </table>
