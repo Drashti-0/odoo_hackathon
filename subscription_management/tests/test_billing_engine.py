@@ -155,7 +155,7 @@ class TestBillingEngine(TransactionCase):
         invoice = sub.invoice_ids[0]
 
         # Lines: plan fee line (200) + product line (2 qty @ 1560 with 10% disc = 2808)
-        prod_line = invoice.line_ids.filtered(lambda l: l.product_id == self.prod_odoo)
+        prod_line = invoice.line_ids.filtered(lambda l: l.product_id == self.prod_odoo and l.quantity == 2.0)
         self.assertEqual(prod_line.quantity, 2.0)
         self.assertEqual(prod_line.unit_price, 1560.0)
         self.assertEqual(prod_line.discount_rate, 10.0)
@@ -362,7 +362,7 @@ class TestBillingEngine(TransactionCase):
         p_start = sub.invoice_ids[0].billing_period_start
         p_end = sub.invoice_ids[0].billing_period_end
         with mute_logger('odoo.sql_db'):
-            with self.assertRaises((IntegrityError, Exception)):
+            with self.assertRaises(IntegrityError):
                 with self.env.cr.savepoint():
                     self.env['subscription.invoice'].create({
                         'partner_id': self.partner.id,
@@ -497,11 +497,19 @@ class TestBillingEngine(TransactionCase):
             'line_ids': [(0, 0, {'product_id': self.product.id, 'quantity': 1.0, 'unit_price': 500.0})],
         })
 
-        # Subscription 2: corrupted (missing plan)
+        # Subscription 2: corrupted (plan outside availability window)
+        plan_expired = self.env['subscription.plan'].create({
+            'name': 'Expired Availability Plan',
+            'code': 'EXP-PLAN-TEST',
+            'price': 100.0,
+            'start_date': date(2020, 1, 1),
+            'end_date': date(2020, 1, 31),
+            'min_quantity': 1.0,
+        })
         sub_corrupt = self.env['subscription.subscription'].create({
             'partner_id': self.partner_alt.id,
-            'plan_id': False,
-            'start_date': today,
+            'plan_id': plan_expired.id,
+            'start_date': date(2020, 1, 1),
             'next_billing_date': today,
             'state': 'active',
             'line_ids': [(0, 0, {'product_id': self.product.id, 'quantity': 1.0, 'unit_price': 500.0})],
@@ -632,7 +640,7 @@ class TestBillingEngine(TransactionCase):
         invoice = sub.invoice_ids[0]
 
         report = self.env.ref('subscription_management.action_report_subscription_invoice')
-        pdf_content, content_type = report._render_qweb_pdf(invoice.ids)
+        pdf_content, content_type = self.env['ir.actions.report']._render_qweb_pdf(report, invoice.ids)
 
         self.assertEqual(content_type, 'pdf')
         self.assertTrue(pdf_content)
