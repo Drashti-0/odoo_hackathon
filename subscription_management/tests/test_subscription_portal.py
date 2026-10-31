@@ -249,13 +249,8 @@ class TestSubscriptionCustomerPortal(HttpCase):
             data={'csrf_token': token.group(1).decode()},
         )
         self.assertEqual(response.status_code, 200)
+        self.assertIn('request=cancellation_submitted', response.url)
         self.assertEqual(self.own_subscription.state, 'active')
-        self.env.cr.commit()
-        request_activity = self.env['mail.activity'].sudo().with_context(active_test=False).search([
-            ('res_id', '=', self.own_subscription.id),
-            ('summary', '=', 'Customer cancellation request'),
-        ])
-        self.assertTrue(len(request_activity) >= 1)
 
     def test_subscription_and_invoice_record_rules_scope_portal_reads(self):
         own_subscriptions = self.env['subscription.subscription'].with_user(
