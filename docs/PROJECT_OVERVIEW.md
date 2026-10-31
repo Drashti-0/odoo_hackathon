@@ -33,7 +33,7 @@ Subscription and SaaS business models require fundamentally different operations
 1. **Autonomous Billing**: Eliminate manual billing tasks through a background cron engine that automatically generates recurring invoices and catches up on missed cycles.
 2. **Defensive Financial Integrity**: Prevent revenue loss through ORM-level constraints blocking zero/negative payments, overpayments, expired coupons, and negative invoice totals.
 3. **Multi-Role Security**: Enforce least-privilege security between Subscription Administrators, Internal Staff, and Portal Customers on the server side.
-4. **Sub-Second Analytics**: Deliver real-time executive dashboard KPIs using PostgreSQL SQL aggregation (`read_group`), responding in under 0.05 seconds.
+4. **Operational Analytics**: Provide database-backed executive dashboard KPIs using Odoo ORM aggregation (`read_group`). The previously stated sub-0.05-second response time is an unverified target; no benchmark was run for the final submission.
 5. **Zero-Conflict Engineering**: Maintain strict separation of concerns between Developer 1 and Developer 2 using Odoo inheritance and ratified integration contracts.
 
 ---
