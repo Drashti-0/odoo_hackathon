@@ -8,3 +8,4 @@ from . import discount_hook
 from . import payment_hook
 from . import user_management
 from . import discount
+from . import payment

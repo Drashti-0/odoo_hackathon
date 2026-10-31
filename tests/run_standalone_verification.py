@@ -725,6 +725,15 @@ except ImportError:
     except ImportError:
         pass
 
+# Import Developer 2 Payment Management Verification Suite
+try:
+    from test_payment_management_standalone import TestPaymentManagementStandalone
+except ImportError:
+    try:
+        from tests.test_payment_management_standalone import TestPaymentManagementStandalone
+    except ImportError:
+        pass
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Subscription Payment Form View -->
+    <record id="view_subscription_payment_form" model="ir.ui.view">
+        <field name="name">subscription.payment.form</field>
+        <field name="model">subscription.payment</field>
+        <field name="arch" type="xml">
+            <form string="Payment Transaction">
+                <header>
+                    <button name="action_confirm_payment" string="Confirm &amp; Settle" type="object" class="btn-success" invisible="state != 'draft'"/>
+                    <button name="action_fail_payment" string="Mark as Failed" type="object" class="btn-outline-danger" invisible="state in ('success', 'failed')"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,success,failed"/>
+                </header>
+                <sheet>
+                    <widget name="web_ribbon" title="Settled" bg_color="bg-success" invisible="state != 'success'"/>
+                    <widget name="web_ribbon" title="Failed" bg_color="bg-danger" invisible="state != 'failed'"/>
+
+                    <div class="oe_title">
+                        <label for="name" string="Payment Reference" class="oe_edit_only"/>
+                        <h1>
+                            <field name="name" readonly="state != 'draft'"/>
+                        </h1>
+                    </div>
+
+                    <group>
+                        <group string="Billing &amp; Entity Reference">
+                            <field name="invoice_id" readonly="state != 'draft'"/>
+                            <field name="partner_id" widget="res_partner_many2one" readonly="1"/>
+                        </group>
+
+                        <group string="Payment Details">
+                            <field name="payment_date" readonly="state != 'draft'"/>
+                            <field name="amount" widget="monetary" options="{'currency_field': 'currency_id'}" readonly="state != 'draft'"/>
+                            <field name="currency_id" invisible="1"/>
+                            <field name="payment_method" widget="selection" readonly="state != 'draft'"/>
+                        </group>
+                    </group>
+
+                    <group string="Transaction Memo / Remarks">
+                        <field name="payment_note" placeholder="Add notes on bank wire confirmation, cheque number, or gateway ref..." readonly="state != 'draft'"/>
+                        <field name="gateway_response" invisible="not gateway_response" readonly="1"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Subscription Payment Tree View -->
+    <record id="view_subscription_payment_tree" model="ir.ui.view">
+        <field name="name">subscription.payment.tree</field>
+        <field name="model">subscription.payment</field>
+        <field name="arch" type="xml">
+            <tree string="Payments" decoration-success="state == 'success'" decoration-info="state == 'draft'" decoration-danger="state == 'failed'">
+                <field name="name"/>
+                <field name="payment_date"/>
+                <field name="invoice_id"/>
+                <field name="partner_id"/>
+                <field name="payment_method" widget="badge"/>
+                <field name="amount" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                <field name="state" widget="badge" decoration-success="state == 'success'" decoration-info="state == 'draft'" decoration-danger="state == 'failed'"/>
+                <field name="currency_id" column_invisible="True"/>
+            </tree>
+        </field>
+    </record>
+
+    <!-- Subscription Payment Search View -->
+    <record id="view_subscription_payment_search" model="ir.ui.view">
+        <field name="name">subscription.payment.search</field>
+        <field name="model">subscription.payment</field>
+        <field name="arch" type="xml">
+            <search string="Search Payments">
+                <field name="name" string="Transaction or Customer" filter_domain="['|', ('name', 'ilike', self), ('partner_id', 'ilike', self)]"/>
+                <field name="invoice_id"/>
+                <field name="partner_id"/>
+                <field name="payment_method"/>
+                <filter string="Settled / Confirmed" name="filter_success" domain="[('state', '=', 'success')]"/>
+                <filter string="Draft / Initiated" name="filter_draft" domain="[('state', '=', 'draft')]"/>
+                <filter string="Declined / Failed" name="filter_failed" domain="[('state', '=', 'failed')]"/>
+                <separator/>
+                <group expand="0" string="Group By">
+                    <filter string="Customer" name="group_partner" context="{'group_by': 'partner_id'}"/>
+                    <filter string="Invoice" name="group_invoice" context="{'group_by': 'invoice_id'}"/>
+                    <filter string="Payment Method" name="group_method" context="{'group_by': 'payment_method'}"/>
+                    <filter string="Status" name="group_status" context="{'group_by': 'state'}"/>
+                    <filter string="Payment Date" name="group_payment_date" context="{'group_by': 'payment_date:month'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Window Action: Payments -->
+    <record id="action_subscription_payments" model="ir.actions.act_window">
+        <field name="name">Payment Transactions</field>
+        <field name="res_model">subscription.payment</field>
+        <field name="view_mode">tree,form</field>
+        <field name="search_view_id" ref="view_subscription_payment_search"/>
+        <field name="context">{'search_default_filter_success': 1}</field>
+    </record>
+
+    <!-- Menu Item: Payments under Billing & Invoices -->
+    <menuitem id="menu_subscription_payments_act"
+              name="Payments &amp; Receipts"
+              parent="menu_subscription_billing"
+              action="action_subscription_payments"
+              sequence="15"/>
+
+    <!-- ============================================== -->
+    <!-- PAYMENT REGISTRATION WIZARD VIEW               -->
+    <!-- ============================================== -->
+
+    <record id="view_subscription_payment_register_wizard_form" model="ir.ui.view">
+        <field name="name">subscription.payment.register.wizard.form</field>
+        <field name="model">subscription.payment.register.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Register Payment">
+                <sheet>
+                    <div class="oe_title">
+                        <h2>Record Payment Settlement</h2>
+                    </div>
+                    <group>
+                        <group string="Invoice Balance Summary">
+                            <field name="invoice_id"/>
+                            <field name="partner_id"/>
+                            <field name="amount_total" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                            <field name="amount_residual" widget="monetary" options="{'currency_field': 'currency_id'}" class="text-danger fw-bold"/>
+                            <field name="currency_id" invisible="1"/>
+                        </group>
+                        <group string="Payment Transaction Details">
+                            <field name="amount" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                            <field name="payment_date"/>
+                            <field name="payment_method"/>
+                            <field name="payment_reference"/>
+                        </group>
+                    </group>
+                    <group string="Internal Payment Memo">
+                        <field name="payment_note" placeholder="Wire details, bank receipt #, cheque notes..."/>
+                    </group>
+                </sheet>
+                <footer>
+                    <button name="action_submit_payment" string="Record Payment" type="object" class="btn-success"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- ============================================== -->
+    <!-- INVOICE FORM VIEW INHERITANCE: PAYMENTS TAB    -->
+    <!-- ============================================== -->
+
+    <record id="view_subscription_invoice_form_inherit_payments" model="ir.ui.view">
+        <field name="name">subscription.invoice.form.inherit.payments</field>
+        <field name="model">subscription.invoice</field>
+        <field name="inherit_id" ref="subscription_management.view_subscription_invoice_form"/>
+        <field name="arch" type="xml">
+            <!-- Add Overdue Ribbon -->
+            <xpath expr="//widget[@name='web_ribbon'][@title='Paid']" position="after">
+                <widget name="web_ribbon" title="Overdue" bg_color="bg-danger" invisible="not is_overdue"/>
+            </xpath>
+
+            <!-- Add Outstanding Balance & Paid in Financials Group -->
+            <xpath expr="//group[hasclass('oe_invoice_amount_total')]//field[@name='amount_total']" position="after">
+                <field name="amount_paid" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                <div class="oe_subtotal_footer_separator oe_inline o_td_label">
+                    <label for="amount_residual"/>
+                </div>
+                <field name="amount_residual" nolabel="1" class="oe_subtotal_footer_separator text-danger" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                <field name="is_overdue" invisible="1"/>
+                <field name="days_overdue" invisible="not is_overdue" class="text-danger"/>
+            </xpath>
+
+            <!-- Add Payments Tab in Notebook -->
+            <xpath expr="//notebook" position="inside">
+                <page name="payment_history" string="Payment Transactions">
+                    <field name="payment_ids" readonly="1">
+                        <tree string="Payments" decoration-success="state == 'success'" decoration-danger="state == 'failed'">
+                            <field name="name"/>
+                            <field name="payment_date"/>
+                            <field name="payment_method" widget="badge"/>
+                            <field name="amount" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                            <field name="state" widget="badge" decoration-success="state == 'success'" decoration-danger="state == 'failed'"/>
+                            <field name="payment_note" optional="show"/>
+                            <field name="currency_id" column_invisible="True"/>
+                        </tree>
+                    </field>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

@@ -39,6 +39,7 @@ Integration Ready:
         'views/menu_views.xml',
         'views/user_views.xml',
         'views/discount_views.xml',
+        'views/payment_views.xml',
         'security/user_security.xml',
     ],
     'demo': [],
