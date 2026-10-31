@@ -11,5 +11,13 @@ ENV/
 # macOS
 .DS_Store
 
+# Environment & Secrets
+.env
+.env.local
+
+# Docker & Database Volumes
+postgres_data/
+odoo_data/
+
 # Odoo
 *.log

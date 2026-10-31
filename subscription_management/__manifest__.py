@@ -24,7 +24,7 @@ Integration Ready:
     'author': 'Team AuraMinds (Dhruti Viradiya & Drashti Bhanderi)',
     'website': 'https://brightloopsoftware.com',
     'license': 'LGPL-3',
-    'depends': ['base', 'mail', 'product'],
+    'depends': ['base', 'mail', 'product', 'account'],
     'data': [
         'security/security.xml',
         'security/ir.model.access.csv',

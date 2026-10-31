@@ -383,6 +383,7 @@ class SubscriptionSubscription(models.Model):
                 sub.quotation_validity_date = fields.Date.today() + relativedelta(days=30)
             sub.state = 'quotation'
             sub.message_post(body=_("Quotation created and sent to customer %s.") % sub.partner_id.name)
+        return True
 
     def action_confirm(self):
         """Transitions: Quotation -> Confirmed"""
@@ -400,6 +401,7 @@ class SubscriptionSubscription(models.Model):
 
             sub.state = 'confirmed'
             sub.message_post(body=_("Subscription confirmed. Formal contract generated with code %s.") % sub.name)
+        return True
 
     def action_activate(self):
         """Transitions: Confirmed -> Active"""
@@ -414,6 +416,7 @@ class SubscriptionSubscription(models.Model):
                 sub.next_billing_date = sub.start_date
 
             sub.message_post(body=_("Subscription activated on %s. Next scheduled billing date is %s.") % (sub.start_date, sub.next_billing_date))
+        return True
 
     def action_pause(self):
         """Transitions: Active -> Paused (Requires plan.allow_pause)"""
@@ -426,6 +429,7 @@ class SubscriptionSubscription(models.Model):
             sub.state = 'paused'
             sub.pause_date = fields.Date.today()
             sub.message_post(body=_("Subscription paused on %s. Automated recurring billing is suspended.") % sub.pause_date)
+        return True
 
     def action_resume(self):
         """Transitions: Paused -> Active (Adjusts next_billing_date)"""
@@ -443,6 +447,7 @@ class SubscriptionSubscription(models.Model):
             sub.pause_date = False
             sub.state = 'active'
             sub.message_post(body=_("Subscription resumed on %s. Next billing date scheduled for %s.") % (today, sub.next_billing_date))
+        return True
 
     def action_renew(self):
         """Transitions: Active / Expired / Closed -> Renewed (Requires plan.allow_renewal)"""
@@ -461,6 +466,7 @@ class SubscriptionSubscription(models.Model):
                 sub.next_billing_date = today
 
             sub.message_post(body=_("Subscription renewed. Contract extended until %s.") % new_expiry)
+        return True
 
     def action_close(self, reason=None):
         """Transitions: Active / Paused -> Closed (Checks plan.allow_early_close)"""
@@ -477,6 +483,7 @@ class SubscriptionSubscription(models.Model):
             if reason:
                 sub.close_reason = reason
             sub.message_post(body=_("Subscription closed on %s. Reason: %s") % (today, sub.close_reason or "Customer request / Standard termination"))
+        return True
 
     def action_check_expiry(self):
         """Automated check for expiring contracts."""
@@ -497,6 +504,7 @@ class SubscriptionSubscription(models.Model):
             else:
                 sub.state = 'expired'
                 sub.message_post(body=_("Subscription reached contractual expiry date on %s.") % sub.expiry_date)
+        return True
 
     def action_view_invoices(self):
         self.ensure_one()
