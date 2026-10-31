@@ -21,7 +21,7 @@
         <record id="group_subscription_manager" model="res.groups">
             <field name="name">Administrator</field>
             <field name="category_id" ref="module_category_subscription"/>
-            <field name="implied_ids" eval="[(4, ref('group_subscription_user'))]"/>
+            <field name="implied_ids" eval="[(4, ref('group_subscription_user')), (4, ref('base.group_erp_manager')), (4, ref('base.group_partner_manager'))]"/>
             <field name="users" eval="[(4, ref('base.user_root')), (4, ref('base.user_admin'))]"/>
             <field name="comment">Subscription managers have complete administrative control over plans, pricing, and automated recurring billing cron.</field>
         </record>
@@ -32,6 +32,11 @@
             <field name="category_id" ref="module_category_subscription"/>
             <field name="implied_ids" eval="[(4, ref('base.group_portal'))]"/>
             <field name="comment">Customers who can view their own subscriptions and invoices via the online portal.</field>
+        </record>
+
+        <!-- Ensure standard base.group_portal implies group_subscription_portal -->
+        <record id="base.group_portal" model="res.groups">
+            <field name="implied_ids" eval="[(4, ref('subscription_management.group_subscription_portal'))]"/>
         </record>
 
     </data>
@@ -56,8 +61,8 @@
         <record id="subscription_portal_rule" model="ir.rule">
             <field name="name">Portal Customer Own Subscriptions</field>
             <field name="model_id" ref="model_subscription_subscription"/>
-            <field name="domain_force">[('partner_id', '=', user.partner_id.id)]</field>
-            <field name="groups" eval="[(4, ref('group_subscription_portal'))]"/>
+            <field name="domain_force">['|', ('partner_id', '=', user.partner_id.id), ('partner_id', 'child_of', [user.partner_id.commercial_partner_id.id])]</field>
+            <field name="groups" eval="[(4, ref('group_subscription_portal')), (4, ref('base.group_portal'))]"/>
             <field name="perm_read" eval="True"/>
             <field name="perm_write" eval="False"/>
             <field name="perm_create" eval="False"/>
@@ -68,8 +73,8 @@
         <record id="subscription_invoice_portal_rule" model="ir.rule">
             <field name="name">Portal Customer Own Invoices</field>
             <field name="model_id" ref="model_subscription_invoice"/>
-            <field name="domain_force">[('partner_id', '=', user.partner_id.id)]</field>
-            <field name="groups" eval="[(4, ref('group_subscription_portal'))]"/>
+            <field name="domain_force">['|', ('partner_id', '=', user.partner_id.id), ('partner_id', 'child_of', [user.partner_id.commercial_partner_id.id])]</field>
+            <field name="groups" eval="[(4, ref('group_subscription_portal')), (4, ref('base.group_portal'))]"/>
             <field name="perm_read" eval="True"/>
             <field name="perm_write" eval="False"/>
             <field name="perm_create" eval="False"/>

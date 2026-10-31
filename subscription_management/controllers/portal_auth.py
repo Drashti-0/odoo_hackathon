@@ -157,8 +157,11 @@ class SubscriptionPortalAuthController(http.Controller):
         Customers cannot access other customers' subscriptions.
         """
         current_partner = request.env.user.partner_id
+        partner_ids = [current_partner.id]
+        if current_partner.commercial_partner_id and current_partner.commercial_partner_id.id != current_partner.id:
+            partner_ids.append(current_partner.commercial_partner_id.id)
         subs = request.env['subscription.subscription'].search([
-            ('partner_id', '=', current_partner.id)
+            ('partner_id', 'in', partner_ids)
         ])
         results = []
         for sub in subs:
@@ -179,8 +182,11 @@ class SubscriptionPortalAuthController(http.Controller):
         Isolated Portal API: Returns invoices belonging strictly to the authenticated user's partner.
         """
         current_partner = request.env.user.partner_id
+        partner_ids = [current_partner.id]
+        if current_partner.commercial_partner_id and current_partner.commercial_partner_id.id != current_partner.id:
+            partner_ids.append(current_partner.commercial_partner_id.id)
         invoices = request.env['subscription.invoice'].search([
-            ('partner_id', '=', current_partner.id)
+            ('partner_id', 'in', partner_ids)
         ])
         results = []
         for inv in invoices:
