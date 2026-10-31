@@ -21,7 +21,7 @@
         <record id="group_subscription_manager" model="res.groups">
             <field name="name">Administrator</field>
             <field name="category_id" ref="module_category_subscription"/>
-            <field name="implied_ids" eval="[(4, ref('group_subscription_user')), (4, ref('base.group_erp_manager'))]"/>
+            <field name="implied_ids" eval="[(4, ref('group_subscription_user')), (4, ref('base.group_erp_manager')), (4, ref('base.group_partner_manager'))]"/>
             <field name="users" eval="[(4, ref('base.user_root')), (4, ref('base.user_admin'))]"/>
             <field name="comment">Subscription managers have complete administrative control over plans, pricing, and automated recurring billing cron.</field>
         </record>

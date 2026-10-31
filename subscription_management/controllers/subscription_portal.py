@@ -332,22 +332,21 @@ class SubscriptionCustomerPortal(CustomerPortal):
         report = request.env.ref(
             'subscription_management.action_report_subscription_invoice'
         ).sudo()
-        document, report_type = request.env['ir.actions.report'].sudo()._render_qweb_pdf(
-            report, [invoice.id]
-        )
-        if report_type not in ('pdf', 'html'):
+        document, report_type = request.env['ir.actions.report'].sudo().with_context(
+            force_report_rendering=True
+        )._render_qweb_pdf(report, [invoice.id])
+        if report_type != 'pdf':
             raise InternalServerError(
                 _("The invoice document could not be generated.")
             )
-        if report_type == 'pdf' and not document.startswith(b'%PDF-'):
+        if not document.startswith(b'%PDF-'):
             raise InternalServerError(
                 _("The invoice document could not be generated.")
             )
-        extension = 'pdf' if report_type == 'pdf' else 'html'
         return request.make_response(document, headers=[
-            ('Content-Type', 'application/pdf' if report_type == 'pdf' else 'text/html'),
+            ('Content-Type', 'application/pdf'),
             ('Content-Disposition', content_disposition(
-                '%s.%s' % (invoice.name, extension)
+                '%s.pdf' % invoice.name
             )),
         ])
 
