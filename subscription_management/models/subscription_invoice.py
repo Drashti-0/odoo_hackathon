@@ -271,20 +271,16 @@ class SubscriptionInvoice(models.Model):
             residual = max(0.0, net_total - total_paid)
             inv.amount_residual = residual
 
-            if inv.state in ('confirmed', 'paid'):
-                if net_total > 0.001 and total_paid <= 0.001:
-                    inv.payment_state = 'not_paid'
-                    if inv.state == 'paid':
-                        inv.state = 'confirmed'
-                elif 0.001 < total_paid < net_total - 0.001:
-                    inv.payment_state = 'partial'
-                    if inv.state == 'paid':
-                        inv.state = 'confirmed'
-                elif residual <= 0.001 and (total_paid > 0.001 or net_total <= 0.001):
-                    inv.payment_state = 'paid'
-                    inv.state = 'paid'
-                else:
-                    inv.payment_state = 'not_paid'
+            if inv.state == 'draft':
+                inv.payment_state = 'not_paid'
+            elif total_paid <= 0.001 and net_total > 0.001:
+                inv.payment_state = 'not_paid'
+            elif 0.001 < total_paid < net_total - 0.001:
+                inv.payment_state = 'partial'
+            elif residual <= 0.001 and (total_paid > 0.001 or net_total <= 0.001):
+                inv.payment_state = 'paid'
+            else:
+                inv.payment_state = 'not_paid'
 
     def _compute_payment_and_residual(self):
         """Deprecated: retained for backwards compatibility; delegates to _compute_amounts."""
@@ -364,7 +360,9 @@ class SubscriptionInvoice(models.Model):
                     'state': 'success',
                 })
 
-            inv._compute_payment_and_residual()
+            inv._compute_amounts()
+            if inv.amount_residual <= 0.001:
+                inv.state = 'paid'
 
             inv.message_post(body=_(
                 "Payment registered. Reference: %s, Amount: %s %s. Remaining Balance: %s %s."
