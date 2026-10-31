@@ -69,7 +69,8 @@ from test_discount_management_standalone import MockDiscount
 from test_payment_management_standalone import MockInvoice, MockPayment
 from test_dashboard_reports_standalone import (
     MockSubscriptionDashboard, MockRole, MockUser as DashUser,
-    MockSubscription as DashSub, MockPayment as DashPay, MockInvoice as DashInv
+    MockSubscription as DashSub, MockPayment as DashPay, MockInvoice as DashInv,
+    AccessError as DashAccessError
 )
 
 

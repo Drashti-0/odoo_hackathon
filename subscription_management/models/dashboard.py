@@ -75,11 +75,14 @@ class SubscriptionDashboard(models.AbstractModel):
             sub_domain.append(('partner_id', '=', partner_id))
         if subscription_status and subscription_status != 'all':
             sub_domain.append(('state', '=', subscription_status))
+        if parsed_from:
+            sub_domain.append(('start_date', '>=', parsed_from))
+        if parsed_to:
+            sub_domain.append(('start_date', '<=', parsed_to))
 
         # Separate domain for active subscriptions specifically
-        active_sub_domain = list(sub_domain)
-        if not any(cond[0] == 'state' for cond in sub_domain):
-            active_sub_domain.append(('state', '=', 'active'))
+        active_sub_domain = [condition for condition in sub_domain if condition[0] != 'state']
+        active_sub_domain.append(('state', '=', 'active'))
 
         active_subs_count = self.env['subscription.subscription'].search_count(active_sub_domain)
         total_subs_count = self.env['subscription.subscription'].search_count(sub_domain)
@@ -95,7 +98,7 @@ class SubscriptionDashboard(models.AbstractModel):
 
         # Subscription status distribution
         status_groups = self.env['subscription.subscription'].read_group(
-            [('partner_id', '=', partner_id)] if partner_id else [],
+            sub_domain,
             ['id:count', 'mrr:sum'],
             ['state']
         )
@@ -168,6 +171,10 @@ class SubscriptionDashboard(models.AbstractModel):
             inv_domain.append(('partner_id', '=', partner_id))
         if invoice_status and invoice_status != 'all':
             inv_domain.append(('state', '=', invoice_status))
+        if parsed_from:
+            inv_domain.append(('invoice_date', '>=', parsed_from))
+        if parsed_to:
+            inv_domain.append(('invoice_date', '<=', parsed_to))
 
         # Outstanding balances (current uncollected receivables)
         outstanding_agg = self.env['subscription.invoice'].read_group(
@@ -188,6 +195,10 @@ class SubscriptionDashboard(models.AbstractModel):
         ]
         if partner_id:
             overdue_domain.append(('partner_id', '=', partner_id))
+        if parsed_from:
+            overdue_domain.append(('invoice_date', '>=', parsed_from))
+        if parsed_to:
+            overdue_domain.append(('invoice_date', '<=', parsed_to))
 
         overdue_agg = self.env['subscription.invoice'].read_group(
             overdue_domain,
@@ -199,7 +210,7 @@ class SubscriptionDashboard(models.AbstractModel):
 
         # Paid vs outstanding grouped by month
         monthly_inv_groups = self.env['subscription.invoice'].read_group(
-            [('state', 'in', ('confirmed', 'paid'))] + ([('partner_id', '=', partner_id)] if partner_id else []),
+            inv_domain,
             ['amount_total:sum', 'amount_paid:sum', 'amount_residual:sum', 'id:count'],
             ['invoice_date:month']
         )
