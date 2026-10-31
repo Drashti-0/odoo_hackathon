@@ -1,0 +1,20 @@
+[1mdiff --git a/subscription_management/tests/test_subscription_portal.py b/subscription_management/tests/test_subscription_portal.py[m
+[1mindex 74c4442..dcbe5e7 100644[m
+[1m--- a/subscription_management/tests/test_subscription_portal.py[m
+[1m+++ b/subscription_management/tests/test_subscription_portal.py[m
+[36m@@ -146,13 +146,11 @@[m [mclass TestSubscriptionCustomerPortal(HttpCase):[m
+ [m
+     def test_customer_requests_review_without_changing_subscription_state(self):[m
+         self.assertTrue(self.authenticate(self.login, self.password))[m
+[31m-        page = self.url_open([m
+[31m-            '/my/subscriptions/%s' % self.own_subscription.id[m
+[31m-        )[m
+[32m+[m[32m        page = self.url_open('/subscription/signup')[m
+         token = re.search([m
+             rb'name="csrf_token"\s+value="([^"]+)"', page.content[m
+         )[m
+[31m-        self.assertTrue(token, "Portal cancellation form must include a CSRF token.")[m
+[32m+[m[32m        self.assertTrue(token, "Signup page must provide a session CSRF token.")[m
+ [m
+         response = self.url_open([m
+             '/my/subscriptions/%s/request-cancellation'[m

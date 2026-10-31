@@ -1,5 +1,7 @@
 # Developer 2 Technical Contribution Report
 
+> **Historical contribution note:** This report records an earlier implementation snapshot (including older test counts and branch references). Its pass-rate and end-to-end statements do not describe the final verification snapshot. Current evidence is in [TESTING_REPORT.md](TESTING_REPORT.md) and [FINAL_PROJECT_REPORT.md](FINAL_PROJECT_REPORT.md).
+
 **Project:** Subscription Management System – Brightloop Software  
 **Developer:** Developer 2 (Drashti Bhanderi, Team AuraMinds)  
 **Assigned Responsibility:** Operations, Security, Financial Controls, Analytics & Lifecycle Extensions (Modules 5–8 / Tasks 2–5)  
@@ -15,7 +17,7 @@ In the Brightloop Software Subscription Management System project, development w
 - **Developer 1 (Dhruti Viradiya - Core):** Data modeling and business logic for Subscription Products, Service Plans, Core Subscriptions, and Recurring Billing Engine (Modules 1–4).
 - **Developer 2 (Drashti Bhanderi - Operations):** Authentication, Role-Based Access Control, Discount Management, Payment Processing, Financial Dashboards, and End-to-End Regression Testing (Modules 5–8 / Tasks 2–5).
 
-Developer 2 successfully delivered all assigned modules strictly adhering to the **Integration Contract** (`INTEGRATION_CONTRACT.md`), with **zero destructive modifications or direct overwrites** of Developer 1's core files, establishing clean non-invasive hooks, modular inheritance (`_inherit`), and an automated standalone test regression suite achieving a **100% pass rate (91/91 tests)**.
+Developer 2's historical contribution included these modules and standalone verification. The earlier **91/91** standalone result is not the current test count or proof of a 100% project pass rate; the latest standalone run passed 93 tests, while a recorded native Odoo run on the populated database had 14 failures and 6 errors. See the current [testing report](TESTING_REPORT.md).
 
 ---
 
@@ -32,10 +34,10 @@ Developer 2 successfully delivered all assigned modules strictly adhering to the
 *Target: Role-based authorization, secure portal signup, customer lifecycle binding, and authentication hardening.*
 
 #### Key Source Files Implemented:
-- [models/user_management.py](file:///c:/Users/Bhanderi%20Drashti/OneDrive/Desktop/ODOO_Hackathon/odoo_hackathon/models/user_management.py)
-- [controllers/portal_auth.py](file:///c:/Users/Bhanderi%20Drashti/OneDrive/Desktop/ODOO_Hackathon/odoo_hackathon/controllers/portal_auth.py)
-- [security/user_security.xml](file:///c:/Users/Bhanderi%20Drashti/OneDrive/Desktop/ODOO_Hackathon/odoo_hackathon/security/user_security.xml)
-- [views/user_views.xml](file:///c:/Users/Bhanderi%20Drashti/OneDrive/Desktop/ODOO_Hackathon/odoo_hackathon/views/user_views.xml)
+- [models/user_management.py](../subscription_management/models/user_management.py)
+- [controllers/portal_auth.py](../subscription_management/controllers/portal_auth.py)
+- [security/user_security.xml](../subscription_management/security/user_security.xml)
+- [views/user_views.xml](../subscription_management/views/user_views.xml)
 
 #### Implemented Features & Technical Architecture:
 1. **Multi-Tier Security Roles:**
@@ -58,9 +60,9 @@ Developer 2 successfully delivered all assigned modules strictly adhering to the
 *Target: Configurable promotions, coupon codes, maximum usage caps, date-validity windows, and invoice reconciliation.*
 
 #### Key Source Files Implemented:
-- [models/discount.py](file:///c:/Users/Bhanderi%20Drashti/OneDrive/Desktop/ODOO_Hackathon/odoo_hackathon/models/discount.py)
-- [models/discount_hook.py](file:///c:/Users/Bhanderi%20Drashti/OneDrive/Desktop/ODOO_Hackathon/odoo_hackathon/models/discount_hook.py)
-- [views/discount_views.xml](file:///c:/Users/Bhanderi%20Drashti/OneDrive/Desktop/ODOO_Hackathon/odoo_hackathon/views/discount_views.xml)
+- [models/discount.py](../subscription_management/models/discount.py)
+- [models/discount_hook.py](../subscription_management/models/discount_hook.py)
+- [views/discount_views.xml](../subscription_management/views/discount_views.xml)
 
 #### Implemented Features & Technical Architecture:
 1. **Promotional Engine (`subscription.discount`):**
@@ -79,9 +81,9 @@ Developer 2 successfully delivered all assigned modules strictly adhering to the
 *Target: Multi-gateway payment recording, invoice reconciliation, refund processing, idempotency, and automated lifecycle transitions.*
 
 #### Key Source Files Implemented:
-- [models/payment.py](file:///c:/Users/Bhanderi%20Drashti/OneDrive/Desktop/ODOO_Hackathon/odoo_hackathon/models/payment.py)
-- [models/payment_hook.py](file:///c:/Users/Bhanderi%20Drashti/OneDrive/Desktop/ODOO_Hackathon/odoo_hackathon/models/payment_hook.py)
-- [views/payment_views.xml](file:///c:/Users/Bhanderi%20Drashti/OneDrive/Desktop/ODOO_Hackathon/odoo_hackathon/views/payment_views.xml)
+- [models/payment.py](../subscription_management/models/payment.py)
+- [models/payment_hook.py](../subscription_management/models/payment_hook.py)
+- [views/payment_views.xml](../subscription_management/views/payment_views.xml)
 
 #### Implemented Features & Technical Architecture:
 1. **Transaction Registry (`subscription.payment`):**
@@ -101,8 +103,8 @@ Developer 2 successfully delivered all assigned modules strictly adhering to the
 *Target: Real-time SaaS metric calculations, KPI reporting, interactive charts, and executive financial summaries.*
 
 #### Key Source Files Implemented:
-- [models/dashboard.py](file:///c:/Users/Bhanderi%20Drashti/OneDrive/Desktop/ODOO_Hackathon/odoo_hackathon/models/dashboard.py)
-- [views/dashboard_views.xml](file:///c:/Users/Bhanderi%20Drashti/OneDrive/Desktop/ODOO_Hackathon/odoo_hackathon/views/dashboard_views.xml)
+- [models/dashboard.py](../subscription_management/models/dashboard.py)
+- [views/dashboard_views.xml](../subscription_management/views/dashboard_views.xml)
 
 #### Implemented Features & Technical Architecture:
 1. **Real-Time KPI Computation Engine:**

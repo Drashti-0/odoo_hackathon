@@ -10,9 +10,11 @@
 
 The **Dashboard & Financial Reports Module** is the fourth and final operational module implemented by Developer 2 in the Brightloop Subscription Management System. It delivers real-time business intelligence, financial health tracking, and operational analytics for subscription revenue, receivables aging, contract status, and payment performance.
 
+> **Final verification note (2026-10-31):** The latest live dashboard compute failed with `NameError: name 'inv_domain' is not defined` in monthly invoice aggregation. This document describes the intended implementation, not verified current runtime behavior. The module is Developer 2-owned; the issue remains unresolved pending owner authorization.
+
 ### Architectural Highlights:
 1. **Database-Level Aggregation (`read_group`)**: Metric calculations leverage PostgreSQL SQL aggregation (`SUM`, `COUNT`, `GROUP BY`) directly via the Odoo ORM, avoiding loading individual records into Python memory.
-2. **Sub-Second Performance**: Benchmarked to aggregate over 5,000 records in under **0.03 seconds**, far exceeding the 2.0-second project SLA.
+2. **Performance**: Odoo ORM `read_group` aggregation is used. The historic 5,000-record runtime claim was not reproduced during final verification and must not be presented as a verified benchmark.
 3. **Interactive Dashboard Console (`subscription.dashboard.console`)**: Live KPI cards with instant dynamic drill-downs to filtered subscriptions, invoices, and payments.
 4. **Multi-Dimensional Visual Analytics**: Native Odoo Graph (pie, bar) and Pivot views for subscription status, monthly revenue trends, payment methods, and receivables aging.
 5. **Strict Server-Side Security Isolation**: Portal customers are barred at the ORM layer (`AccessError`) from accessing company-wide financial metrics.
@@ -56,7 +58,7 @@ The dashboard console provides multi-criteria filtering:
 
 ## 4. Visual Reports & Analytics Views
 
-Located in [`views/dashboard_views.xml`](file:///c:/Users/Bhanderi%20Drashti/OneDrive/Desktop/ODOO_Hackathon/odoo_hackathon/subscription_management/views/dashboard_views.xml):
+Located in [`views/dashboard_views.xml`](subscription_management/views/dashboard_views.xml):
 
 1. **Dashboard Console Form View (`view_subscription_dashboard_console_form`)**:
    - Modern, responsive metric cards with monetary and integer badges.
@@ -89,7 +91,7 @@ Located in [`views/dashboard_views.xml`](file:///c:/Users/Bhanderi%20Drashti/One
 ### Summary of Verification Suites:
 * Native Odoo `TransactionCase` suite: `subscription_management/tests/test_dashboard_reports.py` (15 scenarios)
 * Standalone Verification suite: `tests/test_dashboard_reports_standalone.py` (16 scenarios)
-* Unified Regression Verification: `tests/run_standalone_verification.py` (85/85 passed)
+* Unified Regression Verification: `tests/run_standalone_verification.py` (93/93 passed on final verification)
 
 ### Verification Matrix:
 
@@ -110,7 +112,7 @@ Located in [`views/dashboard_views.xml`](file:///c:/Users/Bhanderi%20Drashti/One
 | 13 | Real-time update upon payment confirmation | `test_13_dashboard_update_after_payment` | `test_13_dashboard_update_after_payment` | **PASS** |
 | 14 | Real-time update upon invoice creation | `test_14_dashboard_update_after_invoice_changes` | `test_14_dashboard_update_after_invoice_changes` | **PASS** |
 | 15 | Regression verification with MRR, ARR, Discounts | `test_15_existing_modules_remain_intact` | `test_15_existing_modules_remain_intact` | **PASS** |
-| 16 | High-volume performance benchmark (5,000 records) | — | `test_16_high_volume_performance_benchmark` | **PASS (<0.03s)** |
+| 16 | High-volume performance benchmark (5,000 records) | — | `test_16_high_volume_performance_benchmark` | **HISTORICAL / UNVERIFIED** |
 
 ---
 

@@ -125,18 +125,18 @@ sequenceDiagram
 
 Developer 2 extended Developer 1's core architecture exclusively through clean Odoo class inheritance (`_inherit`), strictly avoiding modifications to core source files:
 
-1. **`subscription.subscription` Extension** (in [`models/discount.py`](file:///c:/Users/Bhanderi%20Drashti/OneDrive/Desktop/ODOO_Hackathon/odoo_hackathon/subscription_management/models/discount.py)):
+1. **`subscription.subscription` Extension** (in [`models/discount.py`](../subscription_management/models/discount.py)):
    - Hooks into `_compute_amounts()` to calculate promotional discounts.
    - Adds fields: `discount_id`, `discount_code`, `discount_rate`, `amount_discount`.
-2. **`subscription.invoice` Extension** (in [`models/discount.py`](file:///c:/Users/Bhanderi%20Drashti/OneDrive/Desktop/ODOO_Hackathon/odoo_hackathon/subscription_management/models/discount.py) & [`models/payment.py`](file:///c:/Users/Bhanderi%20Drashti/OneDrive/Desktop/ODOO_Hackathon/odoo_hackathon/subscription_management/models/payment.py)):
+2. **`subscription.invoice` Extension** (in [`models/discount.py`](../subscription_management/models/discount.py) & [`models/payment.py`](../subscription_management/models/payment.py)):
    - Adds fields: `discount_id`, `discount_amount`, `discount_usage_recorded`.
    - Adds payment reconciliation fields: `payment_ids`, `amount_paid`, `amount_residual`, `is_overdue`, `days_overdue`.
    - Extends methods: `_compute_payment_totals()`, `_compute_overdue()`, `action_register_payment()`.
-3. **`subscription.payment` Extension** (in [`models/payment.py`](file:///c:/Users/Bhanderi%20Drashti/OneDrive/Desktop/ODOO_Hackathon/odoo_hackathon/subscription_management/models/payment.py)):
+3. **`subscription.payment` Extension** (in [`models/payment.py`](../subscription_management/models/payment.py)):
    - Inherits `subscription.payment` skeleton from Developer 1's `payment_hook.py`.
    - Adds 7 payment methods, memo notes, and boundary constrains.
    - Implements idempotent settlement: `action_confirm_payment()`, `action_fail_payment()`.
-4. **`subscription.dashboard` Engine** (in [`models/dashboard.py`](file:///c:/Users/Bhanderi%20Drashti/OneDrive/Desktop/ODOO_Hackathon/odoo_hackathon/subscription_management/models/dashboard.py)):
+4. **`subscription.dashboard` Engine** (in [`models/dashboard.py`](../subscription_management/models/dashboard.py)):
    - Abstract analytics engine querying PostgreSQL directly via `read_group()`.
    - Transient model `subscription.dashboard.console` for interactive UI cards, dynamic date/customer filtering, and drill-downs.
 
