@@ -132,6 +132,8 @@ class MockSubscriptionPlan:
             raise ValueError("Minimum quantity must be at least 1.0.")
         if billing_interval_count < 1:
             raise ValueError("Billing interval count must be at least 1.")
+        if auto_close_days < 0:
+            raise ValueError("Auto-close grace period cannot be negative.")
         if start_date and end_date and end_date < start_date:
             raise ValueError(f"Availability end date ({end_date}) cannot precede start date ({start_date}).")
 
@@ -151,12 +153,14 @@ class MockSubscriptionPlan:
         self.active = True
 
     def is_available_on(self, check_date=None):
+        if not self.active:
+            return False
         target = check_date or date.today()
         if self.start_date and target < self.start_date:
             return False
         if self.end_date and target > self.end_date:
             return False
-        return self.active
+        return True
 
     def calculate_next_billing_date(self, current_date):
         if not current_date:
@@ -867,7 +871,57 @@ class TestSubscriptionModules(unittest.TestCase):
         with self.assertRaises(ValueError):
             MockProductTemplate("Invalid", list_price=100.0, brand_surcharge=-5.0)
 
+    def test_13_plan_cadence_clamping_and_policies(self):
+        """Step 3, 4, 5, 6: Test Cadences, Clamping, Leap Years, and Policies in Standalone Suite."""
+        # A. Daily
+        plan_daily = MockSubscriptionPlan("Daily Plan", "PLAN-D", price=10.0, billing_interval_unit='daily', billing_interval_count=1)
+        self.assertEqual(plan_daily.calculate_next_billing_date(date(2026, 5, 1)), date(2026, 5, 2))
+        plan_daily.billing_interval_count = 14
+        self.assertEqual(plan_daily.calculate_next_billing_date(date(2026, 5, 1)), date(2026, 5, 15))
+
+        # B. Weekly
+        plan_weekly = MockSubscriptionPlan("Weekly Plan", "PLAN-W", price=40.0, billing_interval_unit='weekly', billing_interval_count=1)
+        self.assertEqual(plan_weekly.calculate_next_billing_date(date(2026, 6, 1)), date(2026, 6, 8))
+        plan_weekly.billing_interval_count = 4
+        self.assertEqual(plan_weekly.calculate_next_billing_date(date(2026, 6, 1)), date(2026, 6, 29))
+
+        # C. Monthly & Clamping
+        plan_monthly = MockSubscriptionPlan("Monthly Plan", "PLAN-M", price=100.0, billing_interval_unit='monthly', billing_interval_count=1)
+        self.assertEqual(plan_monthly.calculate_next_billing_date(date(2026, 4, 15)), date(2026, 5, 15))
+        self.assertEqual(plan_monthly.calculate_next_billing_date(date(2026, 1, 31)), date(2026, 2, 28))
+        self.assertEqual(plan_monthly.calculate_next_billing_date(date(2028, 1, 31)), date(2028, 2, 29))
+        self.assertEqual(plan_monthly.calculate_next_billing_date(date(2026, 3, 31)), date(2026, 4, 30))
+
+        # D. Yearly & Leap Year
+        plan_yearly = MockSubscriptionPlan("Yearly Plan", "PLAN-Y", price=1000.0, billing_interval_unit='yearly', billing_interval_count=1)
+        self.assertEqual(plan_yearly.calculate_next_billing_date(date(2026, 8, 20)), date(2027, 8, 20))
+        self.assertEqual(plan_yearly.calculate_next_billing_date(date(2028, 2, 29)), date(2029, 2, 28))
+
+        # E. Boundary Dates & Inactive
+        plan_avail = MockSubscriptionPlan("Window Plan", "PLAN-WIN", price=50.0, start_date=date(2026, 6, 1), end_date=date(2026, 8, 31))
+        self.assertFalse(plan_avail.is_available_on(date(2026, 5, 31)))
+        self.assertTrue(plan_avail.is_available_on(date(2026, 6, 1)))
+        self.assertTrue(plan_avail.is_available_on(date(2026, 7, 15)))
+        self.assertTrue(plan_avail.is_available_on(date(2026, 8, 31)))
+        self.assertFalse(plan_avail.is_available_on(date(2026, 9, 1)))
+
+        plan_avail.active = False
+        self.assertFalse(plan_avail.is_available_on(date(2026, 7, 15)))
+
+        # F. Constraints
+        with self.assertRaises(ValueError):
+            MockSubscriptionPlan("Bad", "B", price=-10.0)
+        with self.assertRaises(ValueError):
+            MockSubscriptionPlan("Bad", "B", price=10.0, min_quantity=0.0)
+        with self.assertRaises(ValueError):
+            MockSubscriptionPlan("Bad", "B", price=10.0, billing_interval_count=0)
+        with self.assertRaises(ValueError):
+            MockSubscriptionPlan("Bad", "B", price=10.0, auto_close_days=-2)
+        with self.assertRaises(ValueError):
+            MockSubscriptionPlan("Bad", "B", price=10.0, start_date=date(2026, 12, 1), end_date=date(2026, 1, 1))
+
 
 if __name__ == '__main__':
     unittest.main()
+
 

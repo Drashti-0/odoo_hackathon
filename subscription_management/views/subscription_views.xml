@@ -36,7 +36,7 @@
                     <group>
                         <group string="Subscriber &amp; Plan Configuration">
                             <field name="partner_id" widget="res_partner_many2one" context="{'show_address': 1}" options="{'always_reload': True}" readonly="state in ('closed', 'expired')"/>
-                            <field name="plan_id" readonly="state in ('closed', 'expired')"/>
+                            <field name="plan_id" domain="[('active', '=', True)]" readonly="state in ('closed', 'expired')"/>
                             <field name="template_id" invisible="state != 'draft'"/>
                             <field name="user_id" widget="many2one_avatar_user"/>
                             <field name="company_id" groups="base.group_multi_company"/>

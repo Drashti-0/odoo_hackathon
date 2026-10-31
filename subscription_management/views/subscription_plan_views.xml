@@ -103,14 +103,20 @@
             <search string="Search Plans">
                 <field name="name"/>
                 <field name="code"/>
+                <filter string="Active" name="filter_active" domain="[('active', '=', True)]"/>
+                <separator/>
                 <filter string="Daily" name="filter_daily" domain="[('billing_interval_unit', '=', 'daily')]"/>
                 <filter string="Weekly" name="filter_weekly" domain="[('billing_interval_unit', '=', 'weekly')]"/>
                 <filter string="Monthly" name="filter_monthly" domain="[('billing_interval_unit', '=', 'monthly')]"/>
                 <filter string="Yearly" name="filter_yearly" domain="[('billing_interval_unit', '=', 'yearly')]"/>
                 <separator/>
+                <filter string="Permit Pause" name="filter_allow_pause" domain="[('allow_pause', '=', True)]"/>
+                <filter string="Auto-Close Enabled" name="filter_auto_close" domain="[('auto_close', '=', True)]"/>
+                <separator/>
                 <filter string="Archived" name="filter_inactive" domain="[('active', '=', False)]"/>
                 <group expand="0" string="Group By">
                     <filter string="Billing Cadence" name="group_cadence" context="{'group_by': 'billing_interval_unit'}"/>
+                    <filter string="Auto-Close Policy" name="group_auto_close" context="{'group_by': 'auto_close'}"/>
                 </group>
             </search>
         </field>
