@@ -28,6 +28,7 @@ Subscription businesses need recurring product/plan pricing, customer contract l
 - Module active in the inspected Odoo 17 local database: **PASS**.
 - Live admin dashboard rendering: **FAIL** in the latest verification. The dashboard KPI compute raised `NameError: name 'inv_domain' is not defined` in monthly invoice aggregation. The post-restart browser capture was blank; no valid current dashboard screenshot is available. The file is Developer 2-owned and was not changed without owner authorization.
 - Odoo runtime configuration: **PASS after repair**. The invalid Odoo CLI master-password argument was replaced with a runtime config approach, and port 8069 was verified on loopback. Odoo/PostgreSQL containers were recreated; database volume and observed record counts were preserved.
+- Current database/schema compatibility: **FAIL / BLOCKED**. Live requests raised `UndefinedColumn` for `subscription_plan.trial_period_days`, indicating the database needs an addon upgrade. No upgrade was run because it would alter the shared database schema without authorization.
 - Native Odoo suite on populated database: **FAIL / inconclusive**, 14 failed and 6 errors out of 132.
 - Authenticated portal visual verification, actual PDF download, actual cron side effects, actual external payment-provider flow, and real email delivery: **NOT TESTED** or unsupported as detailed in [TESTING_REPORT.md](TESTING_REPORT.md).
 
@@ -48,7 +49,7 @@ Subscription businesses need recurring product/plan pricing, customer contract l
 
 The source contains substantial end-to-end subscription functionality and demo fixtures, but the stated verification gaps prevent an unconditional claim of production-grade readiness. Use the synthetic local dataset, avoid claiming payments/emails occurred unless separately demonstrated, and verify portal and invoice output on an isolated local setup before presenting those flows.
 
-**Requirement coverage estimate: 57.5%.** This uses the 20 equally weighted areas in [FINAL_PROJECT_GAP_AUDIT.md](../FINAL_PROJECT_GAP_AUDIT.md): 5 COMPLETE (1 point each), 13 PARTIAL (0.5 point each), and 2 BROKEN (0 points), yielding `(5 + 13 × 0.5) / 20 = 57.5%`. This is a coverage estimate, not a quality score or test pass rate.
+**Requirement coverage estimate: 55%.** This uses the 20 equally weighted areas in [FINAL_PROJECT_GAP_AUDIT.md](../FINAL_PROJECT_GAP_AUDIT.md): 5 COMPLETE (1 point each), 12 PARTIAL (0.5 point each), and 3 BROKEN (0 points), yielding `(5 + 12 × 0.5) / 20 = 55%`. This is a coverage estimate, not a quality score or test pass rate.
 
 ## Final security and integration notes
 

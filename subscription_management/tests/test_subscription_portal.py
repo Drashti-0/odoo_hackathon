@@ -30,6 +30,7 @@ class TestSubscriptionCustomerPortal(HttpCase):
         portal_group = cls.env.ref(
             'subscription_management.group_subscription_portal'
         )
+        base_portal = cls.env.ref('base.group_portal')
         cls.login = 'portal.customer@example.test'
         cls.password = 'PortalSecure!2026'
         cls.portal_user = cls.env['res.users'].sudo().with_context(
@@ -39,19 +40,13 @@ class TestSubscriptionCustomerPortal(HttpCase):
             'login': cls.login,
             'email': cls.login,
             'partner_id': cls.customer.id,
-            'groups_id': [(6, 0, portal_groups)],
+            'groups_id': [(6, 0, [base_portal.id, portal_group.id])],
         })
         cls.portal_user.write({'password': cls.password})
         cls.plan = cls.env['subscription.plan'].create({
             'name': 'Portal Test Monthly Plan',
             'code': 'PORTAL-MONTHLY-TEST',
             'sequence': -999,
-            'password': cls.password,
-            'groups_id': [(6, 0, [portal_group.id])],
-        })
-        cls.plan = cls.env['subscription.plan'].create({
-            'name': 'Portal Test Monthly Plan',
-            'code': 'PORTAL-MONTHLY-TEST',
             'price': 49.0,
             'billing_interval_unit': 'monthly',
             'billing_interval_count': 1,
@@ -149,6 +144,7 @@ class TestSubscriptionCustomerPortal(HttpCase):
             'min_quantity': self.plan.min_quantity,
             'description': self.plan.description,
         })
+        self.env.cr.commit()
         self.assertTrue(self.authenticate(self.login, self.password))
 
         plans = self.url_open('/my/plans')
@@ -163,6 +159,7 @@ class TestSubscriptionCustomerPortal(HttpCase):
             'price': 99.0,
             'active': False,
         })
+        self.env.cr.commit()
         self.assertTrue(self.authenticate(self.login, self.password))
 
         available = self.url_open('/my/plans/%s' % self.plan.id)

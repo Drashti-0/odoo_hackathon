@@ -47,6 +47,7 @@ These are repository/configuration checks only. They do not prove the local deve
 4. **Payment provider security:** no actual provider credentials, webhook signing, or gateway transaction was tested. Payment method labels do not imply an operational gateway integration.
 5. **Native Odoo test suite:** a previous run against the populated database had failures/errors and was not an isolated security regression run.
 6. **Dashboard runtime error:** the latest dashboard request raised `NameError: name 'inv_domain' is not defined`; do not present the dashboard as verified. This module is assigned to Developer 2 by the integration contract and was not edited without owner authorization.
+7. **Database/source mismatch:** live requests raised `UndefinedColumn` for `subscription_plan.trial_period_days`, indicating the shared database schema does not match the mounted addon. A module upgrade was not run because that would change the shared schema.
 
 ## Live checks
 
