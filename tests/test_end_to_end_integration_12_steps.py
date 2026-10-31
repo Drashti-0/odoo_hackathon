@@ -165,8 +165,8 @@ class TestComplete12StepIntegration(unittest.TestCase):
             price=200.0,
             billing_interval_unit='monthly',
             billing_interval_count=1,
-            trial_period_days=14,
-            grace_period_days=5,
+            auto_close=True,
+            auto_close_days=5,
             allow_pause=True,
             allow_renewal=True
         )
