@@ -42,13 +42,4 @@ Enterprise Subscription Management System built for Brightloop Software as part 
 
 ---
 
-## Quick Start & Verification
 
-### Running Standalone Verification Tests
-Verify all 8 test suites directly (zero external dependencies required):
-```bash
-python3 tests/run_standalone_verification.py -v
-```
-
-### Installation in Odoo
-See [`INSTALLATION.md`](INSTALLATION.md) for full deployment instructions, configuration file setup, and Odoo native test execution.
