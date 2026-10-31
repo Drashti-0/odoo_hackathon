@@ -214,7 +214,10 @@ class SubscriptionInvoice(models.Model):
         for vals in vals_list:
             if not vals.get('name') or vals.get('name') == _('New'):
                 vals['name'] = self.env['ir.sequence'].next_by_code('subscription.invoice') or _('INV-NEW')
-        return super(SubscriptionInvoice, self).create(vals_list)
+        invoices = super(SubscriptionInvoice, self).create(vals_list)
+        for inv in invoices:
+            inv._compute_amounts()
+        return invoices
 
     def write(self, vals):
         if 'state' in vals and not self.env.context.get('bypass_state_validation'):
@@ -783,6 +786,7 @@ class SubscriptionSubscriptionBillingExtension(models.Model):
                 'state': 'confirmed',  # Auto-confirm generated recurring invoices
                 'line_ids': invoice_lines,
             })
+            invoice._compute_amounts()
 
             # Update subscription milestones
             self.last_billing_date = period_start

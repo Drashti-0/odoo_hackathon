@@ -578,6 +578,10 @@ class TestBillingEngine(TransactionCase):
         # Total untaxed = 200 plan + 1000 line = 1200. Total = 1200
         self.assertEqual(invoice.amount_total, 1200.0)
 
+        # Reset to draft for coupon application per Developer 2 discount contract
+        invoice.action_draft()
+        self.assertEqual(invoice.state, 'draft')
+
         # Apply 10% coupon
         invoice.apply_discount_code(self.coupon_pct.code)
         self.assertEqual(invoice.discount_code, self.coupon_pct.code)
@@ -585,9 +589,18 @@ class TestBillingEngine(TransactionCase):
         self.assertEqual(invoice.amount_total, 1080.0)
         self.assertEqual(invoice.amount_residual, 1080.0)
 
-        # Re-applying same coupon raises UserError
+        # Re-applying same coupon is idempotent safe no-op
+        res = invoice.apply_discount_code(self.coupon_pct.code)
+        self.assertTrue(res)
+
+        # Invalid coupon code raises UserError
         with self.assertRaises(UserError):
-            invoice.apply_discount_code(self.coupon_pct.code)
+            invoice.apply_discount_code("NONEXISTENT_COUPON")
+
+        # Confirm invoice with discount applied
+        invoice.action_confirm()
+        self.assertEqual(invoice.state, 'confirmed')
+        self.assertEqual(invoice.amount_total, 1080.0)
 
     def test_19_payment_hook_integration(self):
         """19. Payment hook integration: partial payment, balance due, overpayment check, and settlement."""
