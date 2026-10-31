@@ -691,12 +691,12 @@
                         <div class="glass-panel p-5 rounded-2xl border border-slate-200">
                             <div class="text-xs text-slate-500 font-bold uppercase mb-1">Active Services</div>
                             <div class="text-3xl font-extrabold text-slate-800">1 Contract</div>
-                            <div class="text-xs text-emerald-600 font-semibold mt-2"><i class="fa-solid fa-check mr-1"></i> Next billing: Nov 30, 2026</div>
+                            <div id="customer_next_billing" class="text-xs text-slate-500 font-semibold mt-2">Billing dates are illustrative in this demo.</div>
                         </div>
                         <div class="glass-panel p-5 rounded-2xl border border-slate-200">
-                            <div class="text-xs text-slate-500 font-bold uppercase mb-1">Outstanding Balance</div>
+                            <div id="customer_balance_label" class="text-xs text-slate-500 font-bold uppercase mb-1">Outstanding Demo Balance</div>
                             <div class="text-3xl font-extrabold text-slate-800" id="alice_balance">$0.00</div>
-                            <div class="text-xs text-emerald-600 font-semibold mt-2"><i class="fa-solid fa-circle-check mr-1"></i> All invoices fully settled</div>
+                            <div id="customer_balance_message" class="text-xs text-emerald-600 font-semibold mt-2">No outstanding demo invoices.</div>
                         </div>
                         <div class="glass-panel p-5 rounded-2xl border border-slate-200">
                             <div class="text-xs text-slate-500 font-bold uppercase mb-1">Lifetime Savings (Promo)</div>
@@ -709,7 +709,7 @@
                     <div class="glass-panel rounded-2xl border border-slate-200 overflow-hidden">
                         <div class="p-5 border-b border-slate-200 flex items-center justify-between">
                             <h3 class="font-bold text-slate-800">Your Subscription Contract</h3>
-                            <span class="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
+                            <span id="customer_contract_status" class="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
                                 Status: Active Contract
                             </span>
                         </div>
@@ -718,7 +718,7 @@
                                 <div>
                                     <div class="flex items-center space-x-2">
                                         <span class="font-bold text-slate-800 text-base">Enterprise Monthly Cloud SaaS</span>
-                                        <span class="px-2 py-0.5 bg-emerald-100 text-emerald-800 text-xs font-bold rounded-full">ACTIVE</span>
+                                        <span id="customer_contract_state" class="px-2 py-0.5 bg-emerald-100 text-emerald-800 text-xs font-bold rounded-full">ACTIVE</span>
                                     </div>
                                     <div class="text-xs text-slate-500 mt-1">Contract ID: <span class="font-mono font-bold text-slate-700">SUB-2026-001</span> | Included: 2x Cloud ERP Hosting (Odoo Variant)</div>
                                 </div>
