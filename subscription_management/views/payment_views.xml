@@ -155,7 +155,7 @@
         <field name="inherit_id" ref="subscription_management.view_subscription_invoice_form"/>
         <field name="arch" type="xml">
             <!-- Add Overdue Ribbon -->
-            <xpath expr="//widget[@name='web_ribbon'][@title='Paid']" position="after">
+            <xpath expr="//widget[@name='web_ribbon' and @bg_color='bg-success']" position="after">
                 <widget name="web_ribbon" title="Overdue" bg_color="bg-danger" invisible="not is_overdue"/>
             </xpath>
 

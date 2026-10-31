@@ -90,12 +90,43 @@ class SubscriptionInvoice(models.Model):
         default='not_paid',
         required=True,
         tracking=True,
+        compute='_compute_amounts',
+        store=True,
+        readonly=False,
         help="Maintained by Developer 2 Payment Gateway Module."
     )
     payment_reference = fields.Char(
         string="Payment Reference / Transaction ID",
         tracking=True,
         help="External transaction reference populated upon settlement."
+    )
+    payment_ids = fields.One2many(
+        comodel_name='subscription.payment',
+        inverse_name='invoice_id',
+        string="Payment Transactions"
+    )
+
+    # Developer 2 Discount Integration Interface
+    discount_id = fields.Many2one(
+        comodel_name='subscription.discount',
+        string="Applied Coupon",
+        ondelete='set null',
+        tracking=True
+    )
+    discount_code = fields.Char(
+        string="Discount Code",
+        tracking=True
+    )
+    discount_type = fields.Selection(
+        selection=[
+            ('percentage', 'Percentage (%)'),
+            ('fixed', 'Fixed Amount'),
+        ],
+        string="Discount Type"
+    )
+    discount_value = fields.Float(
+        string="Discount Value",
+        default=0.0
     )
 
     # Lines & Financials
@@ -154,6 +185,18 @@ class SubscriptionInvoice(models.Model):
         store=True,
         tracking=True
     )
+    amount_paid = fields.Monetary(
+        string="Amount Paid",
+        compute="_compute_amounts",
+        store=True,
+        tracking=True
+    )
+    amount_residual = fields.Monetary(
+        string="Outstanding Balance",
+        compute="_compute_amounts",
+        store=True,
+        tracking=True
+    )
 
     # SQL Constraint for Idempotency: Prevents duplicate invoices for the same period
     _sql_constraints = [
@@ -171,19 +214,80 @@ class SubscriptionInvoice(models.Model):
         for vals in vals_list:
             if not vals.get('name') or vals.get('name') == _('New'):
                 vals['name'] = self.env['ir.sequence'].next_by_code('subscription.invoice') or _('INV-NEW')
-        return super(SubscriptionInvoice, self).create(vals_list)
+        invoices = super(SubscriptionInvoice, self).create(vals_list)
+        for inv in invoices:
+            inv._compute_amounts()
+        return invoices
 
-    @api.depends('line_ids.price_subtotal', 'line_ids.price_tax', 'line_ids.discount_amount')
+    def write(self, vals):
+        if 'state' in vals and not self.env.context.get('bypass_state_validation'):
+            new_state = vals['state']
+            valid_transitions = {
+                'draft': {'confirmed', 'cancel'},
+                'confirmed': {'draft', 'paid', 'cancel'},
+                'paid': set(),  # Paid invoices cannot transition directly without refund/credit note
+                'cancel': {'draft'},
+            }
+            for inv in self:
+                if inv.state != new_state:
+                    allowed = valid_transitions.get(inv.state, set())
+                    if new_state not in allowed:
+                        raise UserError(_("Direct transition from '%s' to '%s' is not permitted for invoice %s.") % (
+                            inv.state, new_state, inv.name
+                        ))
+                    if new_state == 'paid' and inv.amount_residual > 0.001 and inv.amount_total > 0.001:
+                        raise UserError(_("Cannot mark invoice %s as paid when outstanding balance is %s.") % (
+                            inv.name, inv.amount_residual
+                        ))
+        return super(SubscriptionInvoice, self).write(vals)
+
+    @api.depends(
+        'line_ids.price_subtotal', 'line_ids.price_tax', 'line_ids.discount_amount',
+        'discount_value', 'discount_type', 'discount_id',
+        'payment_ids.amount', 'payment_ids.state'
+    )
     def _compute_amounts(self):
         for inv in self:
             untaxed = sum(inv.line_ids.mapped('price_subtotal'))
             tax = sum(inv.line_ids.mapped('price_tax'))
-            discount = sum(inv.line_ids.mapped('discount_amount'))
-            
+            line_discount = sum(inv.line_ids.mapped('discount_amount'))
+
+            inv_discount = 0.0
+            if inv.discount_id or inv.discount_value > 0.0:
+                if inv.discount_type == 'percentage':
+                    if line_discount == 0.0:
+                        inv_discount = (untaxed * (inv.discount_value or 0.0)) / 100.0
+                elif inv.discount_type == 'fixed':
+                    inv_discount = min(untaxed, inv.discount_value or 0.0)
+
+            total_discount = line_discount + inv_discount
+            net_total = max(0.0, untaxed + tax - inv_discount)
+
             inv.amount_untaxed = untaxed
             inv.amount_tax = tax
-            inv.amount_discount = discount
-            inv.amount_total = max(0.0, untaxed + tax)
+            inv.amount_discount = total_discount
+            inv.amount_total = net_total
+
+            successful_payments = inv.payment_ids.filtered(lambda p: p.state == 'success')
+            total_paid = sum(successful_payments.mapped('amount'))
+            inv.amount_paid = total_paid
+            residual = max(0.0, net_total - total_paid)
+            inv.amount_residual = residual
+
+            if inv.state == 'draft':
+                inv.payment_state = 'not_paid'
+            elif total_paid <= 0.001 and net_total > 0.001:
+                inv.payment_state = 'not_paid'
+            elif 0.001 < total_paid < net_total - 0.001:
+                inv.payment_state = 'partial'
+            elif residual <= 0.001 and (total_paid > 0.001 or net_total <= 0.001):
+                inv.payment_state = 'paid'
+            else:
+                inv.payment_state = 'not_paid'
+
+    def _compute_payment_and_residual(self):
+        """Deprecated: retained for backwards compatibility; delegates to _compute_amounts."""
+        self._compute_amounts()
 
     # ------------------------------------------------------------
     # ACTIONS
@@ -197,36 +301,115 @@ class SubscriptionInvoice(models.Model):
             if not inv.line_ids:
                 raise UserError(_("Cannot confirm an invoice without lines."))
             inv.state = 'confirmed'
+            # Trigger residual and payment status computation upon confirmation
+            inv._compute_payment_and_residual()
             inv.message_post(body=_("Invoice %s confirmed and posted for billing period %s to %s.") % (
                 inv.name, inv.billing_period_start, inv.billing_period_end
             ))
         return True
 
+    def action_draft(self):
+        """Transitions: Confirmed (unpaid) / Cancel -> Draft"""
+        for inv in self:
+            if inv.state == 'paid' or inv.payment_state == 'paid':
+                raise UserError(_("Cannot reset a paid invoice to draft."))
+            if inv.amount_paid > 0.0:
+                raise UserError(_("Cannot reset an invoice with registered payments to draft. Cancel or unlink payments first."))
+            inv.state = 'draft'
+            inv.payment_state = 'not_paid'
+            inv.message_post(body=_("Invoice %s was reset to draft.") % inv.name)
+        return True
+
     def action_cancel(self):
         """Transitions: Draft / Confirmed -> Cancelled"""
         for inv in self:
-            if inv.state == 'paid':
+            if inv.state == 'paid' or inv.payment_state == 'paid':
                 raise UserError(_("Cannot cancel a paid invoice. Please process a refund or credit note."))
+            if inv.amount_paid > 0.0:
+                raise UserError(_("Cannot cancel an invoice with registered payments. Cancel or refund payments first."))
             inv.state = 'cancel'
             inv.payment_state = 'not_paid'
             inv.message_post(body=_("Invoice %s was cancelled.") % inv.name)
         return True
 
-    def action_register_payment(self, amount=None, ref=None):
+    def action_register_payment(self, amount=None, ref=None, payment_method='card'):
         """
         Public Developer 2 Hook for Payment Settlement.
-        Marks invoice as paid and triggers notification.
+        Reconciles payment against outstanding balance, records payment transaction,
+        updates payment_state ('partial' or 'paid'), and marks invoice 'paid' once fully settled.
         """
         for inv in self:
             if inv.state != 'confirmed':
                 raise UserError(_("Invoices must be confirmed before registering payment."))
-            inv.state = 'paid'
-            inv.payment_state = 'paid'
-            if ref:
-                inv.payment_reference = ref
-            inv.message_post(body=_("Payment received and reconciled. Reference: %s, Amount: %s") % (
-                ref or "Direct Settlement", amount or inv.amount_total
+            if inv.payment_state == 'paid' or inv.amount_residual <= 0.001:
+                raise UserError(_("Invoice %s is already fully paid.") % inv.name)
+
+            settle_amount = amount if amount is not None else inv.amount_residual
+            if settle_amount <= 0.0:
+                raise UserError(_("Payment amount must be strictly positive."))
+            if settle_amount > inv.amount_residual + 0.001:
+                raise UserError(_("Payment amount (%s) exceeds outstanding balance (%s).") % (
+                    settle_amount, inv.amount_residual
+                ))
+
+            pay_ref = ref or f"PAY-{inv.name}-{len(inv.payment_ids) + 1:02d}"
+            existing_pay = inv.payment_ids.filtered(lambda p: p.name == pay_ref and p.state == 'success')
+            if not existing_pay:
+                self.env['subscription.payment'].create({
+                    'name': pay_ref,
+                    'invoice_id': inv.id,
+                    'amount': settle_amount,
+                    'payment_method': payment_method,
+                    'state': 'success',
+                })
+
+            inv._compute_amounts()
+            if inv.amount_residual <= 0.001:
+                inv.state = 'paid'
+
+            inv.message_post(body=_(
+                "Payment registered. Reference: %s, Amount: %s %s. Remaining Balance: %s %s."
+            ) % (
+                pay_ref, settle_amount, inv.currency_id.symbol or '',
+                inv.amount_residual, inv.currency_id.symbol or ''
             ))
+        return True
+
+    def apply_discount_code(self, code):
+        """
+        Public Developer 2 Hook for Invoice Discount / Coupon Redemption.
+        Finds valid subscription.discount, applies it to invoice without double-counting.
+        """
+        self.ensure_one()
+        if self.state not in ('draft', 'confirmed'):
+            raise UserError(_("Discounts can only be applied to draft or confirmed unpaid invoices."))
+        if self.payment_state == 'paid':
+            raise UserError(_("Cannot apply discount to a paid invoice."))
+        if self.discount_code and self.discount_code == code:
+            raise UserError(_("Coupon code '%s' is already applied to this invoice.") % code)
+
+        discount_rec = self.env['subscription.discount'].search([('code', '=', code), ('active', '=', True)], limit=1)
+        if not discount_rec:
+            raise UserError(_("Invalid or inactive coupon code: %s") % code)
+
+        today = fields.Date.today()
+        if discount_rec.start_date and today < discount_rec.start_date:
+            raise UserError(_("Coupon '%s' is not yet active.") % code)
+        if discount_rec.end_date and today > discount_rec.end_date:
+            raise UserError(_("Coupon '%s' has expired.") % code)
+
+        self.discount_id = discount_rec.id
+        self.discount_code = discount_rec.code
+        self.discount_type = discount_rec.discount_type
+        self.discount_value = discount_rec.value
+
+        self._compute_amounts()
+        self._compute_payment_and_residual()
+
+        self.message_post(body=_("Discount coupon '%s' applied: %s (%s).") % (
+            code, discount_rec.name,
+            f"{discount_rec.value}%" if discount_rec.discount_type == 'percentage' else f"{discount_rec.value} {self.currency_id.symbol or ''}"
+        ))
         return True
 
     def action_send_email(self):
@@ -259,6 +442,8 @@ class SubscriptionInvoiceLine(models.Model):
     )
     product_id = fields.Many2one(
         comodel_name='product.product',
+        string="Product",
+        required=False
         string="Product"
     )
     name = fields.Text(
@@ -314,12 +499,11 @@ class SubscriptionInvoiceLine(models.Model):
     @api.depends('quantity', 'unit_price', 'discount_rate', 'tax_ids', 'currency_id', 'invoice_id.currency_id')
     def _compute_line_totals(self):
         for line in self:
+            price = line.unit_price * (1.0 - (line.discount_rate or 0.0) / 100.0)
+            subtotal = line.quantity * price
+
             gross = line.quantity * line.unit_price
-            disc = (gross * (line.discount_rate or 0.0)) / 100.0
-            net = gross - disc
-            
-            line.discount_amount = disc
-            line.price_subtotal = net
+            line.discount_amount = (gross * (line.discount_rate or 0.0)) / 100.0
 
             if line.tax_ids:
                 currency = (
@@ -329,19 +513,20 @@ class SubscriptionInvoiceLine(models.Model):
                     or self.env.company.currency_id
                 )
                 partner = line.invoice_id.partner_id if line.invoice_id else False
-                unit_tax_base = net / (line.quantity or 1.0) if line.quantity else 0.0
                 taxes = line.tax_ids.compute_all(
-                    unit_tax_base,
+                    price,
                     currency=currency,
                     quantity=line.quantity,
                     product=line.product_id,
                     partner=partner
                 )
+                line.price_subtotal = taxes['total_excluded']
                 line.price_tax = taxes['total_included'] - taxes['total_excluded']
                 line.price_total = taxes['total_included']
             else:
+                line.price_subtotal = subtotal
                 line.price_tax = 0.0
-                line.price_total = net
+                line.price_total = subtotal
 
 
 # ------------------------------------------------------------
@@ -371,7 +556,8 @@ class SubscriptionSubscriptionBillingExtension(models.Model):
         _logger.info("STARTING RECURRING BILLING CRON ENGINE FOR DATE: %s", today)
         _logger.info("==================================================")
 
-        # First, run automatic expiry evaluation
+        # Renew eligible contracts before expiry evaluation can transition them.
+        self.cron_automatic_renewal(today)
         self.action_check_expiry()
 
         # Query candidate subscriptions: active, started, and billing date due or unassigned
@@ -441,6 +627,10 @@ class SubscriptionSubscriptionBillingExtension(models.Model):
             })
             return
 
+        # Safeguard: Ensure customer is assigned
+        if not self.partner_id:
+            raise ValidationError(_("Subscription %s has no customer assigned.") % self.name)
+
         # Safeguard: Ensure plan is assigned
         if not self.plan_id:
             log_obj.create({
@@ -471,9 +661,25 @@ class SubscriptionSubscriptionBillingExtension(models.Model):
             })
             return
 
-        # Safeguard: Check contractual expiration
+        # Safeguard: Check contractual expiration and honor the configured grace period.
         if self.expiry_date and self.next_billing_date > self.expiry_date:
-            if self.plan_id.auto_close:
+            close_threshold = self.expiry_date + relativedelta(
+                days=self.plan_id.auto_close_days or 0
+            )
+            if today < close_threshold:
+                log_obj.create({
+                    'execution_date': fields.Datetime.now(),
+                    'subscription_id': self.id,
+                    'status': 'skipped',
+                    'message': _(
+                        "Subscription %s has reached its expiry date (%s) and is "
+                        "within its configured grace period until %s."
+                    ) % (self.name, self.expiry_date, close_threshold)
+                })
+                return
+            if self.plan_id.allow_renewal:
+                self.state = 'expired'
+            elif self.plan_id.auto_close:
                 self.state = 'closed'
                 self.close_date = today
                 self.close_reason = _("Contract reached expiry date (%s). Auto-closed.") % self.expiry_date
@@ -518,6 +724,8 @@ class SubscriptionSubscriptionBillingExtension(models.Model):
 
             period_start = self.next_billing_date
             period_end = self.plan_id.calculate_next_billing_date(period_start) - relativedelta(days=1)
+            if self.expiry_date and period_end > self.expiry_date:
+                period_end = self.expiry_date
 
             # Do not invoice past contractual expiry
             if self.expiry_date and period_start > self.expiry_date:
@@ -529,7 +737,6 @@ class SubscriptionSubscriptionBillingExtension(models.Model):
                 ('subscription_id', '=', self.id),
                 ('billing_period_start', '=', period_start),
                 ('billing_period_end', '=', period_end),
-                ('state', '!=', 'cancel')
             ], limit=1)
 
             if existing_invoice:
@@ -557,8 +764,12 @@ class SubscriptionSubscriptionBillingExtension(models.Model):
             
             # If plan has a base fee, add base plan line
             if self.plan_id.price > 0.0:
+                base_prod = self.line_ids[0].product_id if self.line_ids else (
+                    self.env['product.product'].search([('is_subscription', '=', True)], limit=1)
+                    or self.env['product.product'].search([], limit=1)
+                )
                 invoice_lines.append((0, 0, {
-                    'product_id': self.line_ids[0].product_id.id if self.line_ids else False,
+                    'product_id': base_prod.id if base_prod else False,
                     'name': _("Subscription Plan Fee: %s (%s to %s)") % (self.plan_id.name, period_start, period_end),
                     'quantity': 1.0,
                     'unit_price': self.plan_id.price,
@@ -593,6 +804,7 @@ class SubscriptionSubscriptionBillingExtension(models.Model):
                 'state': 'confirmed',  # Auto-confirm generated recurring invoices
                 'line_ids': invoice_lines,
             })
+            invoice._compute_amounts()
 
             # Update subscription milestones
             self.last_billing_date = period_start

@@ -10,9 +10,10 @@
                 <header>
                     <button name="action_confirm" string="Confirm / Post" type="object" class="oe_highlight" invisible="state != 'draft'"/>
                     <button name="action_register_payment" string="Register Payment" type="object" class="btn-success" invisible="state != 'confirmed' or payment_state == 'paid'"/>
+                    <button name="action_draft" string="Reset to Draft" type="object" invisible="state not in ('confirmed', 'cancel') or payment_state == 'paid'"/>
                     <button name="action_send_email" string="Send by Email" type="object" class="btn-outline-primary" invisible="state == 'cancel'"/>
                     <button name="action_print" string="Print Invoice" type="object" class="btn-outline-secondary" invisible="state == 'draft'"/>
-                    <button name="action_cancel" string="Cancel Invoice" type="object" class="btn-outline-danger" invisible="state in ('paid', 'cancel')"/>
+                    <button name="action_cancel" string="Cancel Invoice" type="object" class="btn-outline-danger" invisible="state in ('paid', 'cancel') or payment_state == 'paid'"/>
 
                     <field name="state" widget="statusbar" statusbar_visible="draft,confirmed,paid"/>
                 </header>
@@ -44,6 +45,7 @@
                                 <field name="billing_period_end" readonly="state != 'draft'"/>
                             </div>
                             <field name="payment_terms"/>
+                            <field name="discount_code" readonly="state != 'draft' and payment_state == 'paid'"/>
                             <field name="payment_state" widget="badge" decoration-success="payment_state == 'paid'" decoration-info="payment_state == 'partial'" decoration-warning="payment_state == 'not_paid'"/>
                             <field name="payment_reference" invisible="not payment_reference"/>
                             <field name="currency_id" invisible="1"/>
@@ -69,8 +71,8 @@
                             </field>
 
                             <group col="12" class="oe_invoice_amount_total">
-                                <group colspan="8"/>
-                                <group colspan="4">
+                                <group colspan="7"/>
+                                <group colspan="5">
                                     <field name="amount_untaxed" widget="monetary" options="{'currency_field': 'currency_id'}"/>
                                     <field name="amount_discount" widget="monetary" options="{'currency_field': 'currency_id'}" invisible="amount_discount == 0.0"/>
                                     <field name="amount_tax" widget="monetary" options="{'currency_field': 'currency_id'}"/>
@@ -78,8 +80,26 @@
                                         <label for="amount_total"/>
                                     </div>
                                     <field name="amount_total" nolabel="1" class="oe_subtotal_footer_separator" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                                    <field name="amount_paid" widget="monetary" options="{'currency_field': 'currency_id'}" invisible="amount_paid == 0.0"/>
+                                    <div class="oe_subtotal_footer_separator oe_inline o_td_label" invisible="amount_paid == 0.0">
+                                        <label for="amount_residual"/>
+                                    </div>
+                                    <field name="amount_residual" nolabel="1" class="oe_subtotal_footer_separator" widget="monetary" options="{'currency_field': 'currency_id'}" invisible="amount_paid == 0.0"/>
                                 </group>
                             </group>
+                        </page>
+
+                        <page name="payments" string="Payments &amp; Transactions" invisible="not payment_ids">
+                            <field name="payment_ids" readonly="1">
+                                <tree>
+                                    <field name="name"/>
+                                    <field name="payment_date"/>
+                                    <field name="payment_method"/>
+                                    <field name="amount" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                                    <field name="state" widget="badge" decoration-success="state == 'success'" decoration-danger="state == 'failed'"/>
+                                    <field name="currency_id" column_invisible="True"/>
+                                </tree>
+                            </field>
                         </page>
                     </notebook>
                 </sheet>
@@ -102,11 +122,15 @@
                 <field name="partner_id"/>
                 <field name="subscription_id"/>
                 <field name="invoice_date"/>
+                <field name="due_date" optional="show"/>
                 <field name="billing_period_start"/>
                 <field name="billing_period_end"/>
+                <field name="days_overdue" string="Days Overdue" optional="hide" decoration-danger="days_overdue &gt; 0"/>
                 <field name="amount_untaxed" widget="monetary" options="{'currency_field': 'currency_id'}" optional="hide"/>
                 <field name="amount_total" widget="monetary" options="{'currency_field': 'currency_id'}"/>
-                <field name="payment_state" widget="badge" decoration-success="payment_state == 'paid'" decoration-warning="payment_state == 'not_paid'"/>
+                <field name="amount_paid" widget="monetary" options="{'currency_field': 'currency_id'}" optional="show"/>
+                <field name="amount_residual" widget="monetary" options="{'currency_field': 'currency_id'}" optional="show"/>
+                <field name="payment_state" widget="badge" decoration-success="payment_state == 'paid'" decoration-info="payment_state == 'partial'" decoration-warning="payment_state == 'not_paid'"/>
                 <field name="state" widget="badge" decoration-info="state == 'draft'" decoration-primary="state == 'confirmed'" decoration-success="state == 'paid'" decoration-danger="state == 'cancel'"/>
                 <field name="currency_id" column_invisible="True"/>
             </tree>
@@ -125,13 +149,17 @@
                 <filter string="Draft" name="filter_draft" domain="[('state', '=', 'draft')]"/>
                 <filter string="Posted / Confirmed" name="filter_confirmed" domain="[('state', '=', 'confirmed')]"/>
                 <filter string="Paid" name="filter_paid" domain="[('state', '=', 'paid')]"/>
+                <filter string="Partially Paid" name="filter_partial" domain="[('payment_state', '=', 'partial')]"/>
                 <filter string="Unpaid" name="filter_unpaid" domain="[('state', '=', 'confirmed'), ('payment_state', '!=', 'paid')]"/>
+                <filter string="Overdue" name="filter_overdue" domain="[('is_overdue', '=', True)]"/>
+                <filter string="Cancelled" name="filter_cancelled" domain="[('state', '=', 'cancel')]"/>
                 <separator/>
                 <group expand="0" string="Group By">
                     <filter string="Customer" name="group_partner" context="{'group_by': 'partner_id'}"/>
                     <filter string="Subscription" name="group_subscription" context="{'group_by': 'subscription_id'}"/>
                     <filter string="Status" name="group_state" context="{'group_by': 'state'}"/>
                     <filter string="Invoice Date" name="group_invoice_date" context="{'group_by': 'invoice_date:month'}"/>
+                    <filter string="Due Date" name="group_due_date" context="{'group_by': 'due_date:month'}"/>
                 </group>
             </search>
         </field>
@@ -143,7 +171,14 @@
         <field name="res_model">subscription.invoice</field>
         <field name="view_mode">tree,form</field>
         <field name="search_view_id" ref="view_subscription_invoice_search"/>
-        <field name="context">{'search_default_filter_confirmed': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Invoices appear here when generated from an active subscription.
+            </p>
+            <p>
+                Review billing periods, payment status, outstanding balances, and overdue invoices from this list.
+            </p>
+        </field>
     </record>
 
 </odoo>

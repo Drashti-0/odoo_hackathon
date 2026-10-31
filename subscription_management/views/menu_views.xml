@@ -5,6 +5,7 @@
     <menuitem id="menu_subscription_root"
               name="Brightloop Subscriptions"
               web_icon="subscription_management,static/description/icon.png"
+              action="action_subscriptions_all"
               sequence="15"/>
 
     <!-- ============================================== -->
@@ -87,17 +88,5 @@
               parent="menu_subscription_root"
               groups="subscription_management.group_subscription_manager"
               sequence="100"/>
-
-    <menuitem id="menu_subscription_config_plans"
-              name="Plans"
-              parent="menu_subscription_config"
-              action="action_subscription_plans"
-              sequence="10"/>
-
-    <menuitem id="menu_subscription_config_templates"
-              name="Quotation Templates"
-              parent="menu_subscription_config"
-              action="action_subscription_quotation_templates"
-              sequence="20"/>
 
 </odoo>
