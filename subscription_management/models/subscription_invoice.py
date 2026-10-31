@@ -27,7 +27,7 @@ class SubscriptionInvoice(models.Model):
     subscription_id = fields.Many2one(
         comodel_name='subscription.subscription',
         string="Subscription Contract",
-        required=True,
+        required=False,
         ondelete='restrict',
         index=True,
         tracking=True

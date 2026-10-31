@@ -1,161 +1,59 @@
-# Security & Access Control Documentation
-## Brightloop Subscription Management System
+# Security and Access Review
 
-**Project:** Subscription Management System – Brightloop Software  
-**Team:** AuraMinds  
-**Target Version:** Odoo 17.0 / 18.0  
-**Branch:** `developer-2-operations`  
+**Review date:** 2026-10-31  
+**Scope:** Source/configuration review of the current Odoo 17 checkout and bounded live route checks. This is not a penetration test or a formal security certification.
 
----
+## Role model
 
-## 1. Security Architecture & Principles
+The current security definitions in `subscription_management/security/security.xml` declare:
 
-The **Brightloop Subscription Management System** enforces defense-in-depth security across three distinct layers:
-1. **Model-Level Permissions (Access Control Lists - ACLs)**: Governs which security groups can Create, Read, Write, or Unlink records in each table.
-2. **Row-Level Security (Record Rules)**: Injects dynamic SQL filtering (`WHERE partner_id = ?`) to isolate customers so they can only see their own records.
-3. **Server-Side Method Protection**: Python methods inspect `self.env.user.has_group()` and raise `AccessError` before executing sensitive business logic (e.g. confirming payments, viewing global financial dashboards, modifying discount rules).
+| Group | Intended access |
+|---|---|
+| `group_subscription_manager` — Administrator | Subscription administration, including configuration and reporting privileges. |
+| `group_subscription_user` — Officer / Staff | Internal subscription operations. |
+| `group_subscription_portal` — Portal Customer | Customer-facing portal and read access constrained by record ownership. |
 
----
+ACLs are in `subscription_management/security/ir.model.access.csv`. Portal users are not granted internal dashboard access. Do not assign a portal user the internal staff/manager groups to make a demonstration work.
 
-## 2. Security Roles & Group Definitions
+## Customer record isolation
 
-All security groups are defined in `subscription_management/security/security.xml`:
+- Portal HTTP routes use authenticated Odoo users and partner-scoped searches before returning subscription/invoice detail.
+- Subscription and invoice record rules restrict records by the user's partner/commercial-partner hierarchy in the current security definitions.
+- The invoice-PDF route resolves the invoice through the customer ownership lookup before using elevated privileges to render the report.
+- Portal cancellation/renewal controls create staff-review activities; they do not let the customer directly write lifecycle state.
+- The payment settlement methods check that the caller is staff/manager or superuser.
 
-| Group Technical XML ID | Display Name | Inherits | Description & Intended Role |
-|---|---|---|---|
-| `group_subscription_portal` | Subscription Portal Customer | `base.group_portal` | External enterprise customers. Limited strictly to viewing their own quotations, subscriptions, invoices, and payments. |
-| `group_subscription_user` | Subscription Officer / Internal Staff | `base.group_user` | Internal operational staff. Can manage contracts, quotations, invoices, and payments, but cannot modify plans, discounts, or cron configurations. |
-| `group_subscription_manager` | Subscription Administrator | `group_subscription_user` | Full operational and system configuration authority over pricing plans, discount rules, automated crons, staff users, and financial reports. |
+**Verification limit:** No separate authorized portal account was available for two-customer adversarial access tests in the final run. Source inspection is evidence of intended enforcement, not a dynamic proof that all routes are isolated.
 
----
+## `sudo()` review
 
-## 3. Access Control Lists Matrix (`ir.model.access.csv`)
+Targeted source inspection found elevated calls in registration/onboarding, background billing/audit/activity handling, invoice report rendering, and staff-request creation. The reviewed PDF/request paths first scope the target invoice or subscription to the authenticated customer. This review did not prove every `sudo()` call safe under all contexts, and should not be represented as a complete security audit.
 
-The model access matrix located in `subscription_management/security/ir.model.access.csv` defines CRUD permissions:
+## Configuration and secrets
 
-| Model ID | Model Name | Group XML ID | Read | Write | Create | Unlink |
-|---|---|---|:---:|:---:|:---:|:---:|
-| `model_subscription_plan` | Subscription Plan | `group_subscription_user` | 1 | 0 | 0 | 0 |
-| `model_subscription_plan` | Subscription Plan | `group_subscription_manager` | 1 | 1 | 1 | 1 |
-| `model_subscription_subscription` | Subscription Contract | `group_subscription_user` | 1 | 1 | 1 | 0 |
-| `model_subscription_subscription` | Subscription Contract | `group_subscription_manager` | 1 | 1 | 1 | 1 |
-| `model_subscription_subscription` | Subscription Contract | `group_subscription_portal` | 1 | 0 | 0 | 0 |
-| `model_subscription_line` | Subscription Line | `group_subscription_user` | 1 | 1 | 1 | 0 |
-| `model_subscription_line` | Subscription Line | `group_subscription_manager` | 1 | 1 | 1 | 1 |
-| `model_subscription_line` | Subscription Line | `group_subscription_portal` | 1 | 0 | 0 | 0 |
-| `model_subscription_invoice` | Recurring Invoice | `group_subscription_user` | 1 | 1 | 1 | 0 |
-| `model_subscription_invoice` | Recurring Invoice | `group_subscription_manager` | 1 | 1 | 1 | 1 |
-| `model_subscription_invoice` | Recurring Invoice | `group_subscription_portal` | 1 | 0 | 0 | 0 |
-| `model_subscription_invoice_line` | Invoice Line | `group_subscription_user` | 1 | 1 | 1 | 0 |
-| `model_subscription_invoice_line` | Invoice Line | `group_subscription_manager` | 1 | 1 | 1 | 1 |
-| `model_subscription_invoice_line` | Invoice Line | `group_subscription_portal` | 1 | 0 | 0 | 0 |
-| `model_subscription_billing_log` | Billing Engine Audit Log | `group_subscription_user` | 1 | 0 | 0 | 0 |
-| `model_subscription_billing_log` | Billing Engine Audit Log | `group_subscription_manager` | 1 | 1 | 1 | 1 |
-| `model_subscription_discount` | Promotional Discount Rule | `group_subscription_user` | 1 | 1 | 1 | 0 |
-| `model_subscription_discount` | Promotional Discount Rule | `group_subscription_manager` | 1 | 1 | 1 | 1 |
-| `model_subscription_payment` | Payment Transaction | `group_subscription_user` | 1 | 1 | 1 | 0 |
-| `model_subscription_payment` | Payment Transaction | `group_subscription_manager` | 1 | 1 | 1 | 1 |
-| `model_subscription_customer_register_wizard` | Customer Register Wizard | `group_subscription_user` | 1 | 1 | 1 | 1 |
-| `model_subscription_customer_register_wizard` | Customer Register Wizard | `group_subscription_manager` | 1 | 1 | 1 | 1 |
-| `model_subscription_payment_register_wizard` | Payment Register Wizard | `group_subscription_user` | 1 | 1 | 1 | 1 |
-| `model_subscription_payment_register_wizard` | Payment Register Wizard | `group_subscription_manager` | 1 | 1 | 1 | 1 |
-| `model_subscription_dashboard_console` | Dashboard Console | `group_subscription_user` | 1 | 1 | 1 | 1 |
-| `model_subscription_dashboard_console` | Dashboard Console | `group_subscription_manager` | 1 | 1 | 1 | 1 |
+- `.env` is ignored by Git and was not tracked in the checked repository state.
+- `.env.example` contains blank password fields rather than working credentials.
+- Compose requires password values via local environment configuration and binds the published Odoo port to loopback. The first inspected running container did not match that binding and used an invalid CLI option; it was recreated from the corrected Compose configuration. The actual binding was then confirmed as `127.0.0.1:8069`.
+- Do not paste local secrets into docs, source control, issue comments, screenshots, or presentation material.
+- The Odoo master password is supplied at runtime from local environment configuration; rotate it before hosting outside a development workstation.
 
-> [!NOTE]
-> `group_subscription_portal` is explicitly omitted from `model_subscription_payment`, `model_subscription_discount`, `model_subscription_billing_log`, and `model_subscription_dashboard_console`, completely barring portal customers from accessing these models.
+These are repository/configuration checks only. They do not prove the local developer's environment variables or database credentials are safe.
 
----
+## Current gaps and risks
 
-## 4. Multi-Tenant Record Isolation Rules (`user_security.xml`)
+1. **Duplicate portal endpoint:** both `controllers/portal_auth.py` and `controllers/subscription_portal.py` declare `/my/subscriptions`. The live request rendered a subscription list, but duplicate route registration should be consolidated by the portal owner to remove order-dependent ambiguity.
+2. **Public registration/reset endpoints:** the auth controller declares public JSON routes. Input validation and generic reset responses are present in code, but this review did not test abuse throttling; no rate-limit behavior was verified. Apply suitable proxy/application throttling before public exposure.
+3. **Portal verification:** no authenticated customer with a known synthetic subscription was available for cross-customer testing.
+4. **Payment provider security:** no actual provider credentials, webhook signing, or gateway transaction was tested. Payment method labels do not imply an operational gateway integration.
+5. **Native Odoo test suite:** a previous run against the populated database had failures/errors and was not an isolated security regression run.
+6. **Dashboard runtime error:** the latest dashboard request raised `NameError: name 'inv_domain' is not defined`; do not present the dashboard as verified. This module is assigned to Developer 2 by the integration contract and was not edited without owner authorization.
+7. **Database/source mismatch:** live requests raised `UndefinedColumn` for `subscription_plan.trial_period_days`, indicating the shared database schema does not match the mounted addon. A module upgrade was not run because that would change the shared schema.
 
-Located in `subscription_management/security/user_security.xml`:
+## Live checks
 
-### 1. Subscription Contract Customer Rule
-```xml
-<record id="subscription_portal_rule" model="ir.rule">
-    <field name="name">Portal Customer: Own Subscriptions Only</field>
-    <field name="model_id" ref="model_subscription_subscription"/>
-    <field name="domain_force">[('partner_id', '=', user.partner_id.id)]</field>
-    <field name="groups" eval="[(4, ref('group_subscription_portal'))]"/>
-    <field name="perm_read" eval="True"/>
-    <field name="perm_write" eval="False"/>
-    <field name="perm_create" eval="False"/>
-    <field name="perm_unlink" eval="False"/>
-</record>
-```
+- Odoo 17 runtime was available.
+- Anonymous `/web`, `/my`, `/my/subscriptions`, `/my/plans`, `/my/invoices`, and `/my/billing-history` requests redirected to login.
+- Odoo HTTP startup and loopback binding were checked after container recreation; this does not establish full application correctness.
+- No ACLs or record rules were modified during this final work.
 
-### 2. Invoice Customer Rule
-```xml
-<record id="subscription_invoice_portal_rule" model="ir.rule">
-    <field name="name">Portal Customer: Own Invoices Only</field>
-    <field name="model_id" ref="model_subscription_invoice"/>
-    <field name="domain_force">[('partner_id', '=', user.partner_id.id)]</field>
-    <field name="groups" eval="[(4, ref('group_subscription_portal'))]"/>
-    <field name="perm_read" eval="True"/>
-    <field name="perm_write" eval="False"/>
-    <field name="perm_create" eval="False"/>
-    <field name="perm_unlink" eval="False"/>
-</record>
-```
-
-### 3. Payment Customer Rule
-```xml
-<record id="subscription_payment_portal_rule" model="ir.rule">
-    <field name="name">Portal Customer: Own Payments Only</field>
-    <field name="model_id" ref="model_subscription_payment"/>
-    <field name="domain_force">[('partner_id', '=', user.partner_id.id)]</field>
-    <field name="groups" eval="[(4, ref('group_subscription_portal'))]"/>
-    <field name="perm_read" eval="True"/>
-    <field name="perm_write" eval="False"/>
-    <field name="perm_create" eval="False"/>
-    <field name="perm_unlink" eval="False"/>
-</record>
-```
-
----
-
-## 5. Password Security & Cryptography
-
-1. **Complexity Validation (`validate_password_complexity`)**:
-   - Minimum length: $> 8$ characters (enforces 9 or more).
-   - Uppercase requirement: At least 1 character in `A-Z`.
-   - Lowercase requirement: At least 1 character in `a-z`.
-   - Numeric requirement: At least 1 digit in `0-9`.
-   - Special symbol requirement: At least 1 character in `!@#$%^&*(),.?":{}|<>_-`.
-2. **Native Cryptographic Storage**:
-   - Plaintext passwords are never persisted.
-   - Odoo's native `_set_password()` hashes passwords using salted PBKDF2-SHA512 or bcrypt algorithms before writing to the PostgreSQL `res_users` table.
-3. **Anti-Enumeration Password Reset Flow**:
-   - In `request_password_reset()`, the method returns a generic success message regardless of whether the email exists in the database.
-   - Prevents attackers from harvesting valid customer or employee email addresses.
-
----
-
-## 6. Server-Side Method Access Enforcement
-
-To prevent malicious RPC tampering via XML-RPC or JSON-RPC, sensitive actions enforce security checks in Python:
-
-```python
-# Payment Settlement Protection
-def action_confirm_payment(self):
-    is_staff_or_admin = (
-        self.env.user.has_group('subscription_management.group_subscription_user')
-        or self.env.user.has_group('subscription_management.group_subscription_manager')
-        or self.env.is_superuser()
-    )
-    if not is_staff_or_admin:
-        raise AccessError(_("Security Violation: Portal customers cannot confirm or alter payment settlements."))
-    ...
-
-# Dashboard Analytics Protection
-def _check_dashboard_access(self):
-    user = self.env.user
-    is_staff_or_admin = (
-        user.has_group('subscription_management.group_subscription_user')
-        or user.has_group('subscription_management.group_subscription_manager')
-        or self.env.is_superuser()
-    )
-    if not is_staff_or_admin:
-        raise AccessError(_("Security Violation: Portal customers are not permitted to view global financial metrics."))
-```
+For general test status, see [TESTING_REPORT.md](TESTING_REPORT.md). For the exact demo boundary, see [FINAL_HACKATHON_DEMO.md](FINAL_HACKATHON_DEMO.md).

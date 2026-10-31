@@ -145,6 +145,10 @@
                     <div class="o_portal_category" id="portal_vendor_category"/>
                     <div class="o_portal_category" id="portal_common_category"/>
                 </div>
+            </div>
+        </xpath>
+    </template>
+
     <template id="web_login_signup_link" inherit_id="web.login" priority="30">
         <xpath expr="//form[hasclass('oe_login_form')]" position="after">
             <div class="bl-login-signup">
@@ -239,6 +243,11 @@
                     </dl>
                     <p class="text-muted mb-0">To start a subscription on this plan, contact your Brightloop account manager.</p>
                     <a href="/my/plans" class="bl-button bl-button-outline mt-3">Back to plans</a>
+                </section>
+            </main>
+        </t>
+    </template>
+
     <template id="portal_signup" name="Brightloop Customer Registration">
         <t t-call="website.layout">
             <main id="wrap" class="bl-portal-shell">
@@ -550,6 +559,10 @@
                     <a href="/my/invoices" class="bl-button bl-button-primary">View invoices</a>
                 </div>
                 <t t-call="portal.pager"/>
+            </main>
+        </t>
+    </template>
+
     <template id="portal_subscriptions" name="My Brightloop Subscriptions">
         <t t-call="portal.portal_layout">
             <t t-set="title">My subscriptions</t>

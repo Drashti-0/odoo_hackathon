@@ -30,14 +30,17 @@ services:
       PORT: 5432
       USER: ${POSTGRES_USER:-odoo}
       PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      ODOO_ADMIN_PASSWORD: ${ODOO_ADMIN_PASSWORD:?Set ODOO_ADMIN_PASSWORD in .env}
     volumes:
       - odoo_data:/var/lib/odoo
       - ./odoo.conf:/etc/odoo/odoo.conf
       - ./subscription_management:/mnt/extra-addons/subscription_management
     command:
-      - odoo
-      - --config=/etc/odoo/odoo.conf
-      - --admin-passwd=${ODOO_ADMIN_PASSWORD:?Set ODOO_ADMIN_PASSWORD in .env}
+      - /bin/sh
+      - -c
+      - |
+        { cat /etc/odoo/odoo.conf; printf '\nadmin_passwd = %s\n' "$$ODOO_ADMIN_PASSWORD"; } > /tmp/odoo.conf
+        exec /entrypoint.sh odoo --config=/tmp/odoo.conf
 
 volumes:
   postgres_data:
