@@ -99,7 +99,7 @@ The demo loader creates synthetic quotations, a subscription, and an unpaid invo
 
 ## Slide 10 — Demo evidence
 
-The local admin dashboard screenshot is available at [screenshots/admin-dashboard.png](screenshots/admin-dashboard.png) when captured in the current submission. It is a live dashboard snapshot, not a mockup.
+The live admin dashboard was opened and inspected in the browser. The browser screenshot output did not export correctly to a repository image file; the existing tracked screenshot shows only the Odoo form toolbar. No valid dashboard screenshot attachment is included in this document set. Do not treat this text as a screenshot or image evidence.
 
 Additional product/plan, quotation, invoice, payment, and customer portal screenshots were not captured for this submission. Do not present them as verified visual evidence without performing a fresh authenticated walkthrough.
 

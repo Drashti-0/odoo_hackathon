@@ -18,7 +18,7 @@ Do not reuse development defaults on a public host. Keep `.env` private; rotate 
 Run from the repository root:
 
 ```bash
-cp .env.example .env
+test -f .env || cp .env.example .env
 # Edit .env locally; do not commit it.
 docker compose up -d
 docker compose ps

@@ -45,4 +45,4 @@ XML parsing was performed over all addon XML files. Database state was read from
 
 ## Evidence image
 
-The captured live admin dashboard is [screenshots/admin-dashboard.png](screenshots/admin-dashboard.png) when available. It represents the app state at capture time and should not be used as evidence for unrelated workflows or as a fixed KPI baseline.
+A screenshot of the live admin dashboard was displayed by the integrated browser tool during inspection. The browser's file-export attempt saved only the Odoo form toolbar, not the dashboard. The repository also contains a pre-existing tracked image at `screenshots/admin-dashboard.png`, which likewise shows only the toolbar and is not valid dashboard evidence. No valid dashboard screenshot file is included in this delivery.

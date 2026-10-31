@@ -23,7 +23,12 @@ See [docs/PROJECT_ARCHITECTURE.md](docs/PROJECT_ARCHITECTURE.md), [docs/DATABASE
 The repository includes Docker Compose for Odoo 17 and PostgreSQL. Before exposing this setup beyond a local development machine, replace development-only configuration with private local settings and rotate any default administration secrets. Do not commit `.env` files or credentials.
 
 1. Install Docker Desktop with Docker Compose.
-2. From the repository root, copy `.env.example` to `.env` and replace its development values with local-only values.
+2. From the repository root, create `.env` from `.env.example` only if you do not already have a private local `.env`, then replace development values with local-only values:
+
+   ```bash
+   test -f .env || cp .env.example .env
+   ```
+
 3. Start the services:
 
    ```bash
@@ -41,7 +46,7 @@ Detailed installation, upgrade, demo data, and stop commands are in [docs/INSTAL
 
 At the 2026-10-31 verification snapshot, the standalone regression runner passed **92 tests** and all **16 addon XML files** parsed. A native Odoo suite run against the already-populated local database reported **14 failures and 6 errors out of 132 tests**; see [docs/TESTING_REPORT.md](docs/TESTING_REPORT.md). Do not interpret that database run as a clean isolated test pass.
 
-Actual demo evidence and known verification gaps are recorded in [docs/FINAL_PROJECT_REPORT.md](docs/FINAL_PROJECT_REPORT.md). A live screenshot is included only when present under [docs/screenshots/](docs/screenshots/).
+Actual demo evidence and known verification gaps are recorded in [docs/FINAL_PROJECT_REPORT.md](docs/FINAL_PROJECT_REPORT.md). Screenshot capture/export limitations are documented in [docs/screenshots/README.md](docs/screenshots/README.md).
 
 ## Project and submission documents
 
