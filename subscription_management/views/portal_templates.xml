@@ -206,7 +206,7 @@
                         </div>
                         <div>
                             <dt>Minimum quantity</dt>
-                            <dd t-field="plan.min_quantity"/>
+                            <dd><span t-field="plan.min_quantity"/></dd>
                         </div>
                         <div>
                             <dt>Renewal</dt>
