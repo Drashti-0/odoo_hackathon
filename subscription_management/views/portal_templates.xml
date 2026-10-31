@@ -11,6 +11,7 @@
                     <div class="bl-portal-links">
                         <a href="/my" t-att-class="'is-active' if page_name == 'home' else ''">Dashboard</a>
                         <a href="/my/subscriptions" t-att-class="'is-active' if page_name in ('subscription', 'subscription_detail') else ''">Subscriptions</a>
+                        <a href="/my/quotations" t-att-class="'is-active' if page_name == 'quotation' else ''">Quotations</a>
                         <a href="/my/plans" t-att-class="'is-active' if page_name == 'subscription_plans' else ''">Plans</a>
                         <a href="/my/invoices" t-att-class="'is-active' if page_name in ('subscription_invoice', 'subscription_invoice_detail') else ''">Invoices</a>
                         <a href="/my/billing-history">Billing history</a>
