@@ -386,7 +386,11 @@
         const html = rows.length ? rows.map(subscription => {
             const customer = customerFor(subscription.customerId);
             const actions = currentRole === 'customer'
-                ? '<span class="text-slate-500">Contact support to request changes</span>'
+                ? (subscription.status === 'Active'
+                    ? '<button onclick="toggleSubscriptionState(\'' + escapeHtml(subscription.id) + '\', \'Paused\')" class="px-2 py-1 bg-amber-50 text-amber-700 rounded">Pause</button>'
+                    : subscription.status === 'Paused'
+                        ? '<button onclick="toggleSubscriptionState(\'' + escapeHtml(subscription.id) + '\', \'Active\')" class="px-2 py-1 bg-emerald-50 text-emerald-700 rounded">Resume</button>'
+                        : '<span class="text-slate-500">No customer action available</span>')
                 : (subscription.status === 'Active'
                     ? '<button onclick="triggerManualInvoice(\'' + escapeHtml(subscription.id) + '\')" class="px-2 py-1 bg-brand-50 text-brand-700 rounded">Invoice</button> <button onclick="toggleSubscriptionState(\'' + escapeHtml(subscription.id) + '\', \'Paused\')" class="px-2 py-1 bg-amber-50 text-amber-700 rounded">Pause</button> <button onclick="toggleSubscriptionState(\'' + escapeHtml(subscription.id) + '\', \'Closed\')" class="px-2 py-1 bg-rose-50 text-rose-700 rounded">Close</button>'
                     : subscription.status === 'Paused'
@@ -569,26 +573,43 @@
         const balance = ownInvoices.reduce((total, invoice) => total + residual(invoice), 0);
         const balanceNode = document.getElementById('alice_balance');
         if (balanceNode) balanceNode.textContent = money(balance);
-        const balanceMessage = balanceNode && balanceNode.parentElement ? balanceNode.parentElement.querySelector('.text-xs') : null;
-        if (balanceMessage) balanceMessage.textContent = balance > 0 ? 'Demo balance only — no payment is due to Odoo.' : 'No outstanding demo invoices.';
+        const balanceMessage = document.getElementById('customer_balance_message');
+        if (balanceMessage) balanceMessage.textContent = balance > 0 ? 'Outstanding demo amount only; no real payment is due.' : 'No outstanding demo invoices.';
+        const nextBilling = document.getElementById('customer_next_billing');
+        if (nextBilling) nextBilling.textContent = ownSubs.length ? 'Billing cadence: ' + ownSubs[0].cadence + ' (demo)' : 'No billing cycle is configured.';
+        const firstSubscription = ownSubs[0];
         const contractTitle = dashboard.querySelector('.glass-panel .p-6 .font-bold.text-slate-800.text-base');
-        if (contractTitle) contractTitle.textContent = activeSubs[0] ? activeSubs[0].planName : 'No active subscription';
+        if (contractTitle) contractTitle.textContent = firstSubscription ? firstSubscription.planName : 'No subscription';
         const contractId = dashboard.querySelector('.glass-panel .p-6 .font-mono.font-bold.text-slate-700');
-        if (contractId) contractId.textContent = activeSubs[0] ? activeSubs[0].id : '—';
+        if (contractId) contractId.textContent = firstSubscription ? firstSubscription.id : '—';
         const contractPrice = dashboard.querySelector('.glass-panel .p-6 .text-lg.font-extrabold');
-        if (contractPrice) contractPrice.textContent = activeSubs[0] ? money(activeSubs[0].amount) + ' / ' + activeSubs[0].cadence : '—';
+        if (contractPrice) contractPrice.textContent = firstSubscription ? money(firstSubscription.amount) + ' / ' + firstSubscription.cadence : '—';
+        const contractStatus = document.getElementById('customer_contract_status');
+        if (contractStatus) contractStatus.textContent = firstSubscription ? 'Status: ' + firstSubscription.status : 'No subscription';
+        const contractState = document.getElementById('customer_contract_state');
+        if (contractState) {
+            contractState.textContent = firstSubscription ? firstSubscription.status.toUpperCase() : 'NONE';
+            contractState.className = 'px-2 py-0.5 text-xs font-bold rounded-full ' +
+                (firstSubscription && firstSubscription.status === 'Active' ? 'bg-emerald-100 text-emerald-800' :
+                    firstSubscription && firstSubscription.status === 'Paused' ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-700');
+        }
         const savings = document.getElementById('customer_savings');
         if (savings) savings.textContent = money(ownSubs.reduce((total, subscription) => total + (Number(subscription.discountAmount) || 0), 0));
-        const actionButtons = dashboard.querySelectorAll('button[onclick^="toggleSubscriptionState"], button[onclick^="renewSubscription"]');
-        actionButtons.forEach(button => {
-            const subscription = activeSubs[0];
-            button.classList.toggle('hidden', !subscription);
-            if (subscription && button.getAttribute('onclick').startsWith('toggleSubscriptionState')) {
-                button.setAttribute('onclick', "toggleSubscriptionState('" + subscription.id + "', 'Paused')");
-            } else if (subscription) {
-                button.setAttribute('onclick', "renewSubscription('" + subscription.id + "')");
+        const pauseButton = dashboard.querySelector('button[onclick^="toggleSubscriptionState"]');
+        const renewButton = dashboard.querySelector('button[onclick^="renewSubscription"]');
+        if (pauseButton) {
+            const canChange = firstSubscription && ['Active', 'Paused'].includes(firstSubscription.status);
+            pauseButton.classList.toggle('hidden', !canChange);
+            if (canChange) {
+                const nextStatus = firstSubscription.status === 'Active' ? 'Paused' : 'Active';
+                pauseButton.textContent = nextStatus === 'Paused' ? 'Pause' : 'Resume';
+                pauseButton.setAttribute('onclick', "toggleSubscriptionState('" + firstSubscription.id + "', '" + nextStatus + "')");
             }
-        });
+        }
+        if (renewButton) {
+            renewButton.classList.toggle('hidden', !activeSubs.length);
+            if (activeSubs.length) renewButton.setAttribute('onclick', "renewSubscription('" + activeSubs[0].id + "')");
+        }
 
         const portal = document.getElementById('screen_customer_portal');
         const portalGrid = portal && portal.querySelector('.grid');
