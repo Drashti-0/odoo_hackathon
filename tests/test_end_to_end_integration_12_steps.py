@@ -162,6 +162,7 @@ class TestComplete12StepIntegration(unittest.TestCase):
         # Plan: Monthly SaaS
         plan_monthly = MockSubscriptionPlan(
             name="Monthly Professional Tier",
+            code="PLAN-M-PRO",
             price=200.0,
             billing_interval_unit='monthly',
             billing_interval_count=1,
@@ -179,11 +180,12 @@ class TestComplete12StepIntegration(unittest.TestCase):
         # STEP 5: Subscription Creation, Quotation, and Confirmation
         # ---------------------------------------------------------
         print("\n[Step 5] Subscription Contract Lifecycle Machine")
-        sub = MockSubscription("Alice Customer", plan_monthly, partner_id=alice_partner.id)
+        sub = MockSubscription("Alice Customer", plan_monthly)
+        sub.partner_id = alice_partner
         self.assertEqual(sub.state, 'draft')
 
         # Add line item
-        line = MockSubscriptionLine("Cloud ERP Hosting", 2.0, prod_odoo.subscription_price)
+        line = MockSubscriptionLine(prod_odoo, 2.0, prod_odoo.subscription_price)
         sub.line_ids.append(line)
         sub._compute_amounts()
         # Untaxed = Plan 200 + Line (2 * 1560) = 3320.0
