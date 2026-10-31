@@ -8,7 +8,7 @@
 This project is developed for the hackathon.
 
 ## Technologies Used
-To be decided.
+Pyhtone,HTML,CSS,API Calls,many more...
 
-## Features
+## Features 
 To be decided.
