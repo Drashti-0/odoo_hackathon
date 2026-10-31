@@ -8,6 +8,45 @@ from werkzeug.exceptions import InternalServerError, NotFound
 class SubscriptionCustomerPortal(CustomerPortal):
     _items_per_page = 20
 
+    @http.route(['/my', '/my/home'], type='http', auth='user', website=True)
+    def home(self, **kwargs):
+        values = self._prepare_portal_layout_values()
+        partner = request.env.user.partner_id
+        subscriptions = request.env['subscription.subscription'].search([
+            ('partner_id', '=', partner.id),
+        ], order='create_date desc, id desc')
+        invoices = request.env['subscription.invoice'].search([
+            ('partner_id', '=', partner.id),
+        ], order='invoice_date desc, id desc')
+        upcoming = request.env['subscription.subscription'].search([
+            ('partner_id', '=', partner.id),
+            ('state', '=', 'active'),
+            ('next_billing_date', '!=', False),
+        ], order='next_billing_date, id', limit=1)
+        today = fields.Date.today()
+        plans = request.env['subscription.plan'].search([
+            ('active', '=', True),
+            '|', ('start_date', '=', False), ('start_date', '<=', today),
+            '|', ('end_date', '=', False), ('end_date', '>=', today),
+        ], order='sequence, name', limit=3)
+        values.update({
+            'page_name': 'home',
+            'portal_subscriptions': subscriptions,
+            'portal_active_subscriptions': subscriptions.filtered(
+                lambda subscription: subscription.state == 'active'
+            ),
+            'portal_invoices': invoices[:5],
+            'portal_invoice_count': len(invoices),
+            'portal_pending_invoice_count': len(invoices.filtered(
+                lambda invoice: invoice.payment_state != 'paid'
+                and invoice.amount_residual > 0
+                and invoice.state not in ('cancel', 'paid')
+            )),
+            'portal_upcoming_subscription': upcoming,
+            'portal_plans': plans,
+        })
+        return request.render('portal.portal_my_home', values)
+
     def _prepare_home_portal_values(self, counters):
         values = super()._prepare_home_portal_values(counters)
         partner = request.env.user.partner_id
@@ -27,6 +66,42 @@ class SubscriptionCustomerPortal(CustomerPortal):
                 'subscription.invoice'
             ].search_count([('partner_id', '=', partner.id)])
         return values
+
+    @http.route(
+        ['/my/plans', '/my/plans/page/<int:page>'],
+        type='http',
+        auth='user',
+        website=True,
+    )
+    def portal_subscription_plans(self, page=1, **kwargs):
+        today = fields.Date.today()
+        plans_model = request.env['subscription.plan']
+        domain = [
+            ('active', '=', True),
+            '|', ('start_date', '=', False), ('start_date', '<=', today),
+            '|', ('end_date', '=', False), ('end_date', '>=', today),
+        ]
+        total = plans_model.search_count(domain)
+        pager = portal_pager(
+            url='/my/plans',
+            total=total,
+            page=page,
+            step=self._items_per_page,
+        )
+        values = self._prepare_portal_layout_values()
+        values.update({
+            'page_name': 'subscription_plans',
+            'plans': plans_model.search(
+                domain,
+                order='sequence, name',
+                limit=self._items_per_page,
+                offset=pager['offset'],
+            ),
+            'pager': pager,
+        })
+        return request.render(
+            'subscription_management.portal_subscription_plans', values
+        )
 
     def _get_customer_subscription(self, subscription_id):
         subscription = request.env['subscription.subscription'].search([
@@ -156,6 +231,15 @@ class SubscriptionCustomerPortal(CustomerPortal):
         return request.render(
             'subscription_management.portal_my_invoices', values
         )
+
+    @http.route(
+        ['/my/billing-history', '/my/billing-history/page/<int:page>'],
+        type='http',
+        auth='user',
+        website=True,
+    )
+    def portal_billing_history(self, page=1, **kwargs):
+        return self.portal_my_invoices(page=page, **kwargs)
 
     @http.route(
         ['/my/invoices/<int:invoice_id>'],

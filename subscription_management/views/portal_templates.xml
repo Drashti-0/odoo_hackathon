@@ -1,29 +1,168 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <template id="portal_my_home_subscription" inherit_id="portal.portal_my_home" name="Subscription Portal Home">
-        <xpath expr="//div[@id='portal_common_category']" position="inside">
-            <t t-call="portal.portal_docs_entry">
-                <t t-set="title">My Subscriptions</t>
-                <t t-set="text">Review plans, billing dates, and contract history.</t>
-                <t t-set="url" t-value="'/my/subscriptions'"/>
-                <t t-set="placeholder_count" t-value="'subscription_count'"/>
-                <t t-set="show_count" t-value="True"/>
-            </t>
-            <t t-call="portal.portal_docs_entry">
-                <t t-set="title">My Quotations</t>
-                <t t-set="text">Review subscription quotations and their current status.</t>
-                <t t-set="url" t-value="'/my/quotations'"/>
-                <t t-set="placeholder_count" t-value="'quotation_count'"/>
-                <t t-set="show_count" t-value="True"/>
-            </t>
-            <t t-call="portal.portal_docs_entry">
-                <t t-set="title">Subscription Invoices</t>
-                <t t-set="text">View billing history and download invoice documents.</t>
-                <t t-set="url" t-value="'/my/invoices'"/>
-                <t t-set="placeholder_count" t-value="'subscription_invoice_count'"/>
-                <t t-set="show_count" t-value="True"/>
-            </t>
+    <template id="portal_brightloop_navigation" inherit_id="portal.portal_layout" name="Brightloop Portal Navigation">
+        <xpath expr="//div[@id='wrap']" position="before">
+            <nav t-if="request.env.user.share" class="bl-portal-nav" aria-label="Brightloop customer navigation">
+                <div class="bl-portal-nav-inner">
+                    <a class="bl-portal-brand" href="/my" aria-label="Brightloop dashboard">
+                        <span class="bl-brand-mark">B</span>
+                        <span>brightloop<span class="bl-brand-subtitle">CUSTOMER PORTAL</span></span>
+                    </a>
+                    <div class="bl-portal-links">
+                        <a href="/my" t-att-class="'is-active' if page_name == 'home' else ''">Dashboard</a>
+                        <a href="/my/subscriptions" t-att-class="'is-active' if page_name in ('subscription', 'subscription_detail') else ''">Subscriptions</a>
+                        <a href="/my/plans" t-att-class="'is-active' if page_name == 'subscription_plans' else ''">Plans</a>
+                        <a href="/my/invoices" t-att-class="'is-active' if page_name in ('subscription_invoice', 'subscription_invoice_detail') else ''">Invoices</a>
+                        <a href="/my/billing-history">Billing history</a>
+                    </div>
+                    <div class="bl-portal-account">
+                        <a href="/my/account">My profile</a>
+                        <a href="/web/session/logout?redirect=/web/login">Log out</a>
+                    </div>
+                </div>
+            </nav>
         </xpath>
+    </template>
+
+    <template id="portal_my_home_subscription" inherit_id="portal.portal_my_home" name="Subscription Portal Home">
+        <xpath expr="//t[@t-set='my_details']" position="attributes">
+            <attribute name="t-value">False</attribute>
+        </xpath>
+        <xpath expr="//div[hasclass('o_portal_my_home')]" position="replace">
+            <main class="bl-portal-dashboard">
+                <section class="bl-portal-hero">
+                    <div>
+                        <span class="bl-eyebrow">YOUR BRIGHTLOOP ACCOUNT</span>
+                        <h1>Welcome back, <t t-out="request.env.user.partner_id.name"/>.</h1>
+                        <p>Manage your subscriptions, review upcoming billing, and find your invoices in one place.</p>
+                    </div>
+                    <a href="/my/plans" class="bl-button bl-button-light">Explore plans <span aria-hidden="true">→</span></a>
+                </section>
+
+                <section class="bl-kpi-grid" aria-label="Account overview">
+                    <article class="bl-kpi-card">
+                        <span class="bl-kpi-label">Active subscriptions</span>
+                        <strong t-out="len(portal_active_subscriptions)"/>
+                        <a href="/my/subscriptions">View subscriptions <span aria-hidden="true">→</span></a>
+                    </article>
+                    <article class="bl-kpi-card">
+                        <span class="bl-kpi-label">Total invoices</span>
+                        <strong t-out="portal_invoice_count"/>
+                        <a href="/my/invoices">Open invoices <span aria-hidden="true">→</span></a>
+                    </article>
+                    <article class="bl-kpi-card">
+                        <span class="bl-kpi-label">Pending invoices</span>
+                        <strong t-out="portal_pending_invoice_count"/>
+                        <a href="/my/billing-history">Review billing history <span aria-hidden="true">→</span></a>
+                    </article>
+                    <article class="bl-kpi-card bl-kpi-next">
+                        <span class="bl-kpi-label">Next billing</span>
+                        <strong t-if="portal_upcoming_subscription" t-field="portal_upcoming_subscription.next_billing_date"/>
+                        <strong t-else="">—</strong>
+                        <a t-if="portal_upcoming_subscription" t-att-href="'/my/subscriptions/%s' % portal_upcoming_subscription.id">View billing details <span aria-hidden="true">→</span></a>
+                        <span t-else="" class="bl-kpi-empty">No upcoming billing scheduled</span>
+                    </article>
+                </section>
+
+                <section class="bl-section">
+                    <div class="bl-section-heading">
+                        <div><span class="bl-eyebrow">YOUR SERVICES</span><h2>My subscriptions</h2></div>
+                        <a href="/my/subscriptions" class="bl-text-link">View all <span aria-hidden="true">→</span></a>
+                    </div>
+                    <div t-if="portal_subscriptions" class="bl-subscription-grid">
+                        <article t-foreach="portal_subscriptions[:3]" t-as="subscription" class="bl-subscription-card">
+                            <div class="bl-card-topline">
+                                <span class="bl-plan-mark" aria-hidden="true">B</span>
+                                <span t-attf-class="bl-status bl-status-#{subscription.state}" t-field="subscription.state"/>
+                            </div>
+                            <h3 t-field="subscription.name"/>
+                            <p class="bl-plan-name" t-field="subscription.plan_id.name"/>
+                            <div class="bl-subscription-price">
+                                <strong t-field="subscription.amount_total" t-options="{'widget': 'monetary', 'display_currency': subscription.currency_id}"/>
+                                <span>per <t t-out="subscription.plan_id.billing_interval_unit"/></span>
+                            </div>
+                            <dl class="bl-subscription-meta">
+                                <div><dt>Started</dt><dd><span t-field="subscription.start_date"/></dd></div>
+                                <div><dt>Next billing</dt><dd><span t-field="subscription.next_billing_date"/></dd></div>
+                            </dl>
+                            <a t-att-href="'/my/subscriptions/%s' % subscription.id" class="bl-button bl-button-outline">View details</a>
+                        </article>
+                    </div>
+                    <div t-else="" class="bl-empty-state">
+                        <h3>No subscriptions yet</h3>
+                        <p>Your active services and billing details will appear here once a subscription is linked to your account.</p>
+                        <a href="/my/plans" class="bl-button bl-button-primary">Browse available plans</a>
+                    </div>
+                </section>
+
+                <section class="bl-section">
+                    <div class="bl-section-heading">
+                        <div><span class="bl-eyebrow">BILLING</span><h2>Recent invoices</h2></div>
+                        <a href="/my/invoices" class="bl-text-link">View all invoices <span aria-hidden="true">→</span></a>
+                    </div>
+                    <div t-if="portal_invoices" class="bl-invoice-list">
+                        <a t-foreach="portal_invoices" t-as="invoice" t-att-href="'/my/invoices/%s' % invoice.id" class="bl-invoice-row">
+                            <span class="bl-invoice-icon" aria-hidden="true">↗</span>
+                            <span class="bl-invoice-main"><strong t-field="invoice.name"/><small t-field="invoice.invoice_date"/></span>
+                            <span t-attf-class="bl-status bl-status-#{invoice.payment_state}" t-field="invoice.payment_state"/>
+                            <strong class="bl-invoice-amount" t-field="invoice.amount_total" t-options="{'widget': 'monetary', 'display_currency': invoice.currency_id}"/>
+                            <span class="bl-row-arrow" aria-hidden="true">→</span>
+                        </a>
+                    </div>
+                    <div t-else="" class="bl-empty-state bl-empty-compact">
+                        <h3>No invoices yet</h3>
+                        <p>New invoices and billing documents will appear here.</p>
+                    </div>
+                </section>
+
+                <section class="bl-section bl-plans-section">
+                    <div class="bl-section-heading">
+                        <div><span class="bl-eyebrow">GROW WITH BRIGHTLOOP</span><h2>Available plans</h2></div>
+                        <a href="/my/plans" class="bl-text-link">Explore all plans <span aria-hidden="true">→</span></a>
+                    </div>
+                    <div t-if="portal_plans" class="bl-plan-grid">
+                        <article t-foreach="portal_plans" t-as="plan" class="bl-plan-card">
+                            <span class="bl-plan-frequency" t-out="plan.billing_interval_unit"/>
+                            <h3 t-field="plan.name"/>
+                            <div class="bl-plan-price"><strong t-field="plan.price" t-options="{'widget': 'monetary', 'display_currency': plan.currency_id}"/><span> / <t t-out="plan.billing_interval_count"/> <t t-out="plan.billing_interval_unit"/></span></div>
+                            <div t-if="plan.description" class="bl-plan-description" t-field="plan.description"/>
+                            <a href="/my/plans" class="bl-button bl-button-outline">View plan details</a>
+                        </article>
+                    </div>
+                    <div t-else="" class="bl-empty-state bl-empty-compact">
+                        <h3>No plans are currently available</h3>
+                        <p>Please check back later or contact your Brightloop account manager.</p>
+                    </div>
+                </section>
+            </main>
+        </xpath>
+    </template>
+
+    <template id="portal_subscription_plans" name="Available Subscription Plans">
+        <t t-call="portal.portal_layout">
+            <t t-set="page_name" t-value="'subscription_plans'"/>
+            <main class="bl-portal-page">
+                <header class="bl-page-heading">
+                    <span class="bl-eyebrow">BRIGHTLOOP SERVICES</span>
+                    <h1>Subscription plans</h1>
+                    <p>Review the currently available billing plans. To start a subscription, contact your Brightloop account manager.</p>
+                </header>
+                <div t-if="plans" class="bl-plan-grid bl-plan-grid-page">
+                    <article t-foreach="plans" t-as="plan" class="bl-plan-card">
+                        <span class="bl-plan-frequency" t-out="plan.billing_interval_unit"/>
+                        <h2 t-field="plan.name"/>
+                        <div class="bl-plan-price"><strong t-field="plan.price" t-options="{'widget': 'monetary', 'display_currency': plan.currency_id}"/><span> / <t t-out="plan.billing_interval_count"/> <t t-out="plan.billing_interval_unit"/></span></div>
+                        <div t-if="plan.description" class="bl-plan-description" t-field="plan.description"/>
+                        <p class="bl-plan-note">Plan base fee per billing interval.</p>
+                    </article>
+                </div>
+                <div t-else="" class="bl-empty-state">
+                    <h2>No plans are currently available</h2>
+                    <p>Please check back later or contact your Brightloop account manager.</p>
+                </div>
+                <t t-call="portal.pager"/>
+            </main>
+        </t>
     </template>
 
     <template id="portal_my_subscriptions" name="My Subscriptions">

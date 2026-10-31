@@ -44,6 +44,11 @@ Integration Ready:
         'security/user_security.xml',
         'views/portal_templates.xml',
     ],
+    'assets': {
+        'web.assets_frontend': [
+            'subscription_management/static/src/css/portal.css',
+        ],
+    },
     'demo': [],
     'installable': True,
     'application': True,
