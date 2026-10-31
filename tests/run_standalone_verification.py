@@ -422,7 +422,7 @@ class MockSubscription:
 class MockInvoice:
     _inv_counter = 1
 
-    def __init__(self, subscription, period_start, period_end, invoice_date=None):
+    def __init__(self, subscription, period_start, period_end, invoice_date=None, state='confirmed'):
         self.id = MockInvoice._inv_counter
         MockInvoice._inv_counter += 1
         self.name = f"INV-{self.id:05d}"
@@ -432,16 +432,99 @@ class MockInvoice:
         self.billing_period_end = period_end
         self.invoice_date = invoice_date or date.today()
         self.due_date = self.invoice_date + relativedelta(days=15)
-        self.state = 'confirmed'
+        self.state = state
         self.payment_state = 'not_paid'
         self.amount_untaxed = subscription.amount_untaxed
         self.amount_tax = subscription.amount_tax
+        self.amount_discount = 0.0
         self.amount_total = subscription.amount_total
+        self.amount_paid = 0.0
+        self.amount_residual = self.amount_total
+        self.discount_code = None
+        self.payment_ids = []
 
-    def register_payment(self, ref="PAY-001"):
-        self.state = 'paid'
-        self.payment_state = 'paid'
-        self.payment_ref = ref
+    def action_confirm(self):
+        if self.state != 'draft':
+            raise RuntimeError("Only draft invoices can be confirmed.")
+        self.state = 'confirmed'
+
+    def action_draft(self):
+        if self.state not in ('confirmed', 'cancel'):
+            raise RuntimeError("Cannot reset to draft.")
+        if self.amount_paid > 0:
+            raise RuntimeError("Cannot reset invoice with payments to draft.")
+        self.state = 'draft'
+        self.payment_state = 'not_paid'
+
+    def action_cancel(self):
+        if self.state == 'paid' or self.payment_state == 'paid':
+            raise RuntimeError("Cannot cancel paid invoice.")
+        if self.amount_paid > 0:
+            raise RuntimeError("Cannot cancel invoice with payments.")
+        self.state = 'cancel'
+        self.payment_state = 'not_paid'
+
+    def write(self, vals):
+        if 'state' in vals:
+            new_state = vals['state']
+            valid_transitions = {
+                'draft': {'confirmed', 'cancel'},
+                'confirmed': {'draft', 'paid', 'cancel'},
+                'paid': set(),
+                'cancel': {'draft'},
+            }
+            if new_state not in valid_transitions.get(self.state, set()):
+                raise RuntimeError(f"Direct transition from '{self.state}' to '{new_state}' is not permitted.")
+            if new_state == 'paid' and self.amount_residual > 0.001 and self.amount_total > 0.001:
+                raise RuntimeError(f"Cannot mark invoice as paid with remaining balance {self.amount_residual}.")
+            self.state = new_state
+
+    def register_payment(self, amount=None, ref=None, payment_method='card'):
+        if self.state != 'confirmed':
+            raise RuntimeError("Invoices must be confirmed before registering payment.")
+        if self.payment_state == 'paid' or self.amount_residual <= 0.001:
+            raise RuntimeError("Invoice is already fully paid.")
+
+        settle_amount = amount if amount is not None else self.amount_residual
+        if settle_amount <= 0.0:
+            raise ValueError("Payment amount must be positive.")
+        if settle_amount > self.amount_residual + 0.001:
+            raise ValueError(f"Payment amount {settle_amount} exceeds balance {self.amount_residual}.")
+
+        pay_ref = ref or f"PAY-{self.name}-{len(self.payment_ids) + 1:02d}"
+        self.payment_ids.append({
+            'name': pay_ref,
+            'amount': settle_amount,
+            'payment_method': payment_method,
+            'state': 'success',
+        })
+        self.amount_paid = sum(p['amount'] for p in self.payment_ids if p['state'] == 'success')
+        self.amount_residual = max(0.0, self.amount_total - self.amount_paid)
+
+        if self.amount_residual <= 0.001:
+            self.payment_state = 'paid'
+            self.state = 'paid'
+        elif self.amount_paid > 0:
+            self.payment_state = 'partial'
+        else:
+            self.payment_state = 'not_paid'
+
+    def apply_discount_code(self, code, discount_type='percentage', value=10.0):
+        if self.state not in ('draft', 'confirmed'):
+            raise RuntimeError("Cannot apply discount.")
+        if self.payment_state == 'paid':
+            raise RuntimeError("Cannot apply discount to paid invoice.")
+        if self.discount_code == code:
+            raise ValueError("Coupon code already applied.")
+
+        self.discount_code = code
+        if discount_type == 'percentage':
+            disc = (self.amount_untaxed * value) / 100.0
+        else:
+            disc = min(self.amount_untaxed, value)
+        self.amount_discount += disc
+        self.amount_total = max(0.0, self.amount_untaxed + self.amount_tax - self.amount_discount)
+        self.amount_residual = max(0.0, self.amount_total - self.amount_paid)
 
 
 class MockBillingEngine:
@@ -1084,8 +1167,84 @@ class TestSubscriptionModules(unittest.TestCase):
         sub_quote.action_cancel()
         self.assertEqual(sub_quote.state, 'closed')
 
+    def test_15_invoice_management_and_billing_engine(self):
+        """Module 4: Complete Invoice Management & Intelligent Automated Billing Engine."""
+        today = date.today()
+        sub = MockSubscription("Cloud Services Ltd", self.plan_monthly, start_date=today)
+        tmpl = MockProductTemplate("Database Cluster", list_price=800.0, brand_name='standard')
+        prod = MockProductProduct(tmpl)
+        sub.add_line(prod, quantity=2.0, tax_rate=10.0)
+        sub.action_confirm()
+        sub.action_activate()
+
+        # 1. Invoice creation and lines
+        # Untaxed = plan 100 + lines (2 * 800) = 1700. Tax = 160. Total = 1860.
+        inv = MockInvoice(sub, today, today + relativedelta(months=1) - relativedelta(days=1), invoice_date=today, state='draft')
+        self.assertEqual(inv.state, 'draft')
+        self.assertEqual(inv.amount_untaxed, 1700.0)
+        self.assertEqual(inv.amount_tax, 160.0)
+        self.assertEqual(inv.amount_total, 1860.0)
+        self.assertEqual(inv.amount_residual, 1860.0)
+        self.assertEqual(inv.amount_paid, 0.0)
+
+        # 2. Lifecycle transitions
+        # Cannot register payment on draft invoice
+        with self.assertRaises(RuntimeError):
+            inv.register_payment(500.0)
+
+        inv.action_confirm()
+        self.assertEqual(inv.state, 'confirmed')
+
+        # Invalid transition: confirmed cannot jump to draft if payments exist
+        inv.action_draft()
+        self.assertEqual(inv.state, 'draft')
+        inv.action_confirm()
+
+        # Invalid transition: cannot jump directly to paid via write if balance remains
+        with self.assertRaises(RuntimeError):
+            inv.write({'state': 'paid'})
+
+        # 3. Partial Payment settlement
+        inv.register_payment(amount=860.0, ref="PAY-PARTIAL-01")
+        self.assertEqual(inv.payment_state, 'partial')
+        self.assertEqual(inv.state, 'confirmed')
+        self.assertEqual(inv.amount_paid, 860.0)
+        self.assertEqual(inv.amount_residual, 1000.0)
+
+        # Cannot cancel invoice with payments
+        with self.assertRaises(RuntimeError):
+            inv.action_cancel()
+
+        # Overpayment rejection
+        with self.assertRaises(ValueError):
+            inv.register_payment(amount=1500.0)  # exceeds residual 1000.0
+
+        # Full Payment settlement
+        inv.register_payment(amount=1000.0, ref="PAY-FINAL-02")
+        self.assertEqual(inv.payment_state, 'paid')
+        self.assertEqual(inv.state, 'paid')
+        self.assertEqual(inv.amount_paid, 1860.0)
+        self.assertEqual(inv.amount_residual, 0.0)
+
+        # Cannot register payment on already paid invoice
+        with self.assertRaises(RuntimeError):
+            inv.register_payment(100.0)
+
+        # 4. Coupon discount application
+        inv_disc = MockInvoice(sub, today, today + relativedelta(days=30), invoice_date=today, state='confirmed')
+        inv_disc.apply_discount_code("PROMO10", discount_type='percentage', value=10.0)
+        self.assertEqual(inv_disc.discount_code, "PROMO10")
+        self.assertEqual(inv_disc.amount_discount, 170.0)  # 10% of 1700
+        self.assertEqual(inv_disc.amount_total, 1690.0)
+        self.assertEqual(inv_disc.amount_residual, 1690.0)
+
+        # Duplicate discount rejection
+        with self.assertRaises(ValueError):
+            inv_disc.apply_discount_code("PROMO10")
+
 
 if __name__ == '__main__':
     unittest.main()
+
 
 
