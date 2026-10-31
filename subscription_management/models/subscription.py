@@ -186,13 +186,23 @@ class SubscriptionSubscription(models.Model):
     currency_id = fields.Many2one(
         comodel_name='res.currency',
         string="Currency",
-        default=lambda self: self.env.company.currency_id
+        default=lambda self: self.env.company.currency_id,
+        compute='_compute_currency_id',
+        store=True,
+        readonly=False,
+        precompute=True
     )
     company_id = fields.Many2one(
         comodel_name='res.company',
         string="Company",
         default=lambda self: self.env.company
     )
+
+    @api.depends('company_id')
+    def _compute_currency_id(self):
+        for sub in self:
+            if not sub.currency_id:
+                sub.currency_id = sub.company_id.currency_id or self.env.company.currency_id
     user_id = fields.Many2one(
         comodel_name='res.users',
         string="Salesperson / Rep",
@@ -572,7 +582,8 @@ class SubscriptionLine(models.Model):
     currency_id = fields.Many2one(
         related='subscription_id.currency_id',
         string="Currency",
-        readonly=True
+        readonly=True,
+        depends=['subscription_id.currency_id']
     )
 
     @api.onchange('product_id')
@@ -584,7 +595,7 @@ class SubscriptionLine(models.Model):
             if self.subscription_id.plan_id and self.quantity < self.subscription_id.plan_id.min_quantity:
                 self.quantity = self.subscription_id.plan_id.min_quantity
 
-    @api.depends('quantity', 'unit_price', 'discount_rate', 'tax_ids')
+    @api.depends('quantity', 'unit_price', 'discount_rate', 'tax_ids', 'currency_id', 'subscription_id.currency_id')
     def _compute_line_totals(self):
         for line in self:
             price = line.unit_price * (1.0 - (line.discount_rate or 0.0) / 100.0)
@@ -592,12 +603,19 @@ class SubscriptionLine(models.Model):
             line.price_subtotal = subtotal
 
             if line.tax_ids:
+                currency = (
+                    line.currency_id
+                    or line.subscription_id.currency_id
+                    or line.subscription_id.company_id.currency_id
+                    or self.env.company.currency_id
+                )
+                partner = line.subscription_id.partner_id if line.subscription_id else False
                 taxes = line.tax_ids.compute_all(
                     price,
-                    currency=line.currency_id,
+                    currency=currency,
                     quantity=line.quantity,
                     product=line.product_id,
-                    partner=line.subscription_id.partner_id
+                    partner=partner
                 )
                 line.price_tax = taxes['total_included'] - taxes['total_excluded']
                 line.price_total = taxes['total_included']

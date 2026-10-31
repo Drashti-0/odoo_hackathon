@@ -108,13 +108,27 @@ class SubscriptionInvoice(models.Model):
     currency_id = fields.Many2one(
         comodel_name='res.currency',
         string="Currency",
-        default=lambda self: self.env.company.currency_id
+        default=lambda self: self.env.company.currency_id,
+        compute='_compute_currency_id',
+        store=True,
+        readonly=False,
+        precompute=True
     )
     company_id = fields.Many2one(
         comodel_name='res.company',
         string="Company",
         default=lambda self: self.env.company
     )
+
+    @api.depends('company_id', 'subscription_id.currency_id')
+    def _compute_currency_id(self):
+        for inv in self:
+            if not inv.currency_id:
+                inv.currency_id = (
+                    inv.subscription_id.currency_id
+                    or inv.company_id.currency_id
+                    or self.env.company.currency_id
+                )
 
     amount_untaxed = fields.Monetary(
         string="Subtotal (Untaxed)",
@@ -291,10 +305,11 @@ class SubscriptionInvoiceLine(models.Model):
     currency_id = fields.Many2one(
         related='invoice_id.currency_id',
         string="Currency",
-        readonly=True
+        readonly=True,
+        depends=['invoice_id.currency_id']
     )
 
-    @api.depends('quantity', 'unit_price', 'discount_rate', 'tax_ids')
+    @api.depends('quantity', 'unit_price', 'discount_rate', 'tax_ids', 'currency_id', 'invoice_id.currency_id')
     def _compute_line_totals(self):
         for line in self:
             gross = line.quantity * line.unit_price
@@ -305,12 +320,20 @@ class SubscriptionInvoiceLine(models.Model):
             line.price_subtotal = net
 
             if line.tax_ids:
+                currency = (
+                    line.currency_id
+                    or line.invoice_id.currency_id
+                    or line.invoice_id.company_id.currency_id
+                    or self.env.company.currency_id
+                )
+                partner = line.invoice_id.partner_id if line.invoice_id else False
+                unit_tax_base = net / (line.quantity or 1.0) if line.quantity else 0.0
                 taxes = line.tax_ids.compute_all(
-                    net / (line.quantity or 1.0),
-                    currency=line.currency_id,
+                    unit_tax_base,
+                    currency=currency,
                     quantity=line.quantity,
                     product=line.product_id,
-                    partner=line.invoice_id.partner_id
+                    partner=partner
                 )
                 line.price_tax = taxes['total_included'] - taxes['total_excluded']
                 line.price_total = taxes['total_included']
@@ -349,11 +372,13 @@ class SubscriptionSubscriptionBillingExtension(models.Model):
         # First, run automatic expiry evaluation
         self.action_check_expiry()
 
-        # Query candidate subscriptions
+        # Query candidate subscriptions: active, started, and billing date due or unassigned
         candidate_ids = self.search([
             ('state', '=', 'active'),
-            ('next_billing_date', '<=', today),
             ('start_date', '<=', today),
+            '|',
+            ('next_billing_date', '<=', today),
+            ('next_billing_date', '=', False),
         ]).ids
 
         if not candidate_ids:
@@ -414,14 +439,49 @@ class SubscriptionSubscriptionBillingExtension(models.Model):
             })
             return
 
-        # Safeguard: Check contractual expiration
-        if self.expiry_date and self.next_billing_date > self.expiry_date:
-            self.state = 'expired'
+        # Safeguard: Ensure plan is assigned
+        if not self.plan_id:
+            log_obj.create({
+                'execution_date': fields.Datetime.now(),
+                'subscription_id': self.id,
+                'status': 'failed',
+                'message': _("Subscription %s has no subscription plan assigned; billing skipped.") % self.name
+            })
+            return
+
+        # Safeguard: Initialize next_billing_date if empty
+        if not self.next_billing_date:
+            if self.last_billing_date:
+                self.next_billing_date = self.plan_id.calculate_next_billing_date(self.last_billing_date)
+            else:
+                self.next_billing_date = self.start_date or today
+            _logger.info("Subscription %s had empty next_billing_date; initialized to %s", self.name, self.next_billing_date)
+
+        # Safeguard: If initialized billing date is in the future, skip gracefully
+        if self.next_billing_date > today:
             log_obj.create({
                 'execution_date': fields.Datetime.now(),
                 'subscription_id': self.id,
                 'status': 'skipped',
-                'message': _("Subscription %s reached expiry date (%s). Contract marked expired.") % (self.name, self.expiry_date)
+                'message': _("Subscription %s next billing date (%s) is in the future; billing skipped.") % (
+                    self.name, self.next_billing_date
+                )
+            })
+            return
+
+        # Safeguard: Check contractual expiration
+        if self.expiry_date and self.next_billing_date > self.expiry_date:
+            if self.plan_id.auto_close:
+                self.state = 'closed'
+                self.close_date = today
+                self.close_reason = _("Contract reached expiry date (%s). Auto-closed.") % self.expiry_date
+            else:
+                self.state = 'expired'
+            log_obj.create({
+                'execution_date': fields.Datetime.now(),
+                'subscription_id': self.id,
+                'status': 'skipped',
+                'message': _("Subscription %s reached expiry date (%s). Contract marked expired/closed.") % (self.name, self.expiry_date)
             })
             return
 
@@ -440,10 +500,18 @@ class SubscriptionSubscriptionBillingExtension(models.Model):
         iteration_count = 0
         max_catchup_iterations = 365  # Circuit breaker preventing infinite loop
 
-        while self.next_billing_date <= today and self.state == 'active':
+        while self.next_billing_date and self.next_billing_date <= today and self.state == 'active':
             iteration_count += 1
             if iteration_count > max_catchup_iterations:
                 _logger.warning("Max catchup iterations reached for subscription %s", self.name)
+                log_obj.create({
+                    'execution_date': fields.Datetime.now(),
+                    'subscription_id': self.id,
+                    'status': 'failed',
+                    'message': _("Max catchup iterations (%s) reached for subscription %s. Terminating catch-up loop safely.") % (
+                        max_catchup_iterations, self.name
+                    )
+                })
                 break
 
             period_start = self.next_billing_date
@@ -518,8 +586,8 @@ class SubscriptionSubscriptionBillingExtension(models.Model):
                 'billing_period_start': period_start,
                 'billing_period_end': period_end,
                 'payment_terms': self.payment_terms,
-                'currency_id': self.currency_id.id,
-                'company_id': self.company_id.id,
+                'currency_id': (self.currency_id or self.company_id.currency_id or self.env.company.currency_id).id,
+                'company_id': (self.company_id or self.env.company).id,
                 'state': 'confirmed',  # Auto-confirm generated recurring invoices
                 'line_ids': invoice_lines,
             })
@@ -529,6 +597,7 @@ class SubscriptionSubscriptionBillingExtension(models.Model):
             self.next_billing_date = self.plan_id.calculate_next_billing_date(period_start)
 
             # Write Success Audit Log
+            log_currency = invoice.currency_id or self.currency_id or self.env.company.currency_id
             log_obj.create({
                 'execution_date': fields.Datetime.now(),
                 'subscription_id': self.id,
@@ -538,7 +607,7 @@ class SubscriptionSubscriptionBillingExtension(models.Model):
                 'billing_period_end': period_end,
                 'amount': invoice.amount_total,
                 'message': _("Successfully generated invoice %s for period %s to %s. Total: %s %s") % (
-                    invoice.name, period_start, period_end, invoice.amount_total, invoice.currency_id.symbol or ''
+                    invoice.name, period_start, period_end, invoice.amount_total, log_currency.symbol or ''
                 )
             })
 
