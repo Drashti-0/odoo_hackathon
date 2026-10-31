@@ -51,9 +51,11 @@ Integration Ready:
     'assets': {
         'web.assets_backend': [
             'subscription_management/static/src/css/brightloop_backend.css',
+            'subscription_management/static/src/js/brightloop_backend.js',
         ],
         'web.assets_frontend': [
             'subscription_management/static/src/css/brightloop_portal.css',
+            'subscription_management/static/src/js/brightloop_portal.js',
         ],
     },
     'installable': True,
