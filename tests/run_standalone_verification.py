@@ -707,6 +707,15 @@ class TestSubscriptionModules(unittest.TestCase):
         self.assertEqual(sub.amount_total, 426.0)
 
 
+# Import Developer 2 User Management Verification Suite
+try:
+    from test_user_management_standalone import TestUserManagementAuthentication
+except ImportError:
+    try:
+        from tests.test_user_management_standalone import TestUserManagementAuthentication
+    except ImportError:
+        pass
+
 
 if __name__ == '__main__':
     unittest.main()
