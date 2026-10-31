@@ -1,6 +1,6 @@
 # Brightloop Subscription Management System - Installation & Deployment Guide
 
-> **Current setup:** This earlier manual guide contains historical Odoo-version/path assumptions. Use the repository-specific [docs/INSTALLATION_GUIDE.md](docs/INSTALLATION_GUIDE.md) and [README.md](README.md) for the current Odoo 17 Docker commands and addon mount.
+> **Use the repository-root [README.md](README.md) for current deployment steps.** This guide contains historical host paths/branch references and has not been validated against the current Docker Compose deployment. Docker and Odoo were unavailable during the 2026-10-31 audit.
 
 **Target ERP Platform:** Odoo 17.0 / 18.0 (Community & Enterprise)  
 **Module Name:** `subscription_management`  

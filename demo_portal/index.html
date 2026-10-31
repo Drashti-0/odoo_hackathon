@@ -52,7 +52,8 @@
         }
         .toast-animate { animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
         @media (max-width: 760px) {
-            body { overflow: auto !important; height: auto !important; min-height: 100vh; }
+            body { width: 100% !important; overflow: auto !important; height: auto !important; min-height: 100vh; }
+            #auth_container { width: 100%; height: auto; min-height: 100vh; }
             #app_shell { width: 100%; min-height: 100vh; height: auto; flex-direction: column; overflow: visible; }
             #app_shell > aside { width: 100%; max-height: 150px; }
             #app_shell > aside > .h-16, #app_shell > aside > .p-4 { display: none; }
