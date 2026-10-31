@@ -67,6 +67,12 @@
               action="action_subscription_products"
               sequence="20"/>
 
+    <menuitem id="menu_subscription_product_variants_act"
+              name="Product Variants"
+              parent="menu_subscription_catalog"
+              action="action_subscription_product_variants"
+              sequence="25"/>
+
     <menuitem id="menu_subscription_templates_act"
               name="Quotation Templates"
               parent="menu_subscription_catalog"

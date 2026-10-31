@@ -54,27 +54,56 @@ except ImportError:
 # ============================================================================
 
 class MockProductTemplate:
-    def __init__(self, name, list_price, standard_price=0.0, brand_name='standard', is_subscription=True):
+    def __init__(self, name, list_price=100.0, standard_price=0.0,
+                 brand_name='standard', is_subscription=True, brand_surcharge=None):
         if list_price < 0.0:
             raise ValueError("Sales price cannot be negative.")
         if standard_price < 0.0:
             raise ValueError("Cost price cannot be negative.")
+        if brand_surcharge is not None and brand_surcharge < 0.0:
+            raise ValueError("Brand surcharge cannot be negative.")
         self.name = name
         self.list_price = float(list_price)
         self.standard_price = float(standard_price)
-        self.brand_name = brand_name
+        self._brand_name = brand_name
         self.is_subscription = is_subscription
-        self.brand_surcharge = 560.0 if self.brand_name == 'odoo' else 0.0
+        self._recompute_surcharge()
+
+    @property
+    def brand_name(self):
+        return self._brand_name
+
+    @brand_name.setter
+    def brand_name(self, value):
+        self._brand_name = value
+        self._recompute_surcharge()
+
+    def _recompute_surcharge(self):
+        self.brand_surcharge = 560.0 if self._brand_name == 'odoo' else 0.0
         self.subscription_price = self.list_price + self.brand_surcharge
+
+    def get_subscription_price(self, plan=None, partner=None):
+        return self.subscription_price
 
 
 class MockProductProduct:
     def __init__(self, template, variant_extra=0.0, variant_attr_name=None):
         self.template = template
         self.name = template.name
-        self.brand_name = template.brand_name
         self.variant_extra = float(variant_extra)
         self.variant_attr_name = variant_attr_name
+
+    @property
+    def brand_name(self):
+        return self.template.brand_name
+
+    @property
+    def brand_surcharge(self):
+        return self.template.brand_surcharge
+
+    @property
+    def subscription_price(self):
+        return self.get_subscription_price()
 
     def get_subscription_price(self, plan=None, partner=None):
         base = self.template.list_price
@@ -796,7 +825,49 @@ class TestSubscriptionModules(unittest.TestCase):
         self.assertEqual(sub.amount_total, 430.0)
         self.assertEqual(sub.currency_symbol, "$")
 
+    def test_12_brand_surcharge_tests_a_b_c_d(self):
+        """Step 3: Test A, B, C, D Brand Surcharge Validation in Standalone Suite."""
+        # Test A: Base 1,000, Brand Odoo -> Surcharge 560, Price 1,560
+        tmpl_a = MockProductTemplate("ERP Suite", list_price=1000.0, brand_name='odoo')
+        prod_a = MockProductProduct(tmpl_a)
+        self.assertEqual(tmpl_a.brand_surcharge, 560.0)
+        self.assertEqual(tmpl_a.subscription_price, 1560.0)
+        self.assertEqual(prod_a.subscription_price, 1560.0)
+
+        # Test B: Base 1,000, Brand Brightloop -> Surcharge 0, Price 1,000
+        tmpl_b = MockProductTemplate("Workflow App", list_price=1000.0, brand_name='brightloop')
+        prod_b = MockProductProduct(tmpl_b)
+        self.assertEqual(tmpl_b.brand_surcharge, 0.0)
+        self.assertEqual(tmpl_b.subscription_price, 1000.0)
+        self.assertEqual(prod_b.subscription_price, 1000.0)
+
+        # Test C: Change Brand from Odoo to Brightloop -> Surcharge removed
+        tmpl_a.brand_name = 'brightloop'
+        self.assertEqual(tmpl_a.brand_surcharge, 0.0)
+        self.assertEqual(tmpl_a.subscription_price, 1000.0)
+        self.assertEqual(prod_a.subscription_price, 1000.0)
+
+        # Switch back to Odoo
+        tmpl_a.brand_name = 'odoo'
+        self.assertEqual(tmpl_a.brand_surcharge, 560.0)
+        self.assertEqual(tmpl_a.subscription_price, 1560.0)
+        self.assertEqual(prod_a.subscription_price, 1560.0)
+
+        # Test D: Multiple Variants with extra pricing (no duplicate surcharge)
+        var_shared = MockProductProduct(tmpl_a, variant_extra=0.0)
+        var_dedicated = MockProductProduct(tmpl_a, variant_extra=500.0)
+        self.assertEqual(var_shared.subscription_price, 1560.0)
+        self.assertEqual(var_dedicated.subscription_price, 2060.0)
+
+        # Negative price validations
+        with self.assertRaises(ValueError):
+            MockProductTemplate("Invalid", list_price=-50.0)
+        with self.assertRaises(ValueError):
+            MockProductTemplate("Invalid", list_price=100.0, standard_price=-10.0)
+        with self.assertRaises(ValueError):
+            MockProductTemplate("Invalid", list_price=100.0, brand_surcharge=-5.0)
 
 
 if __name__ == '__main__':
     unittest.main()
+

@@ -1,3 +1,4 @@
 # -*- coding: utf-8 -*-
 from . import test_subscription_lifecycle
 from . import test_billing_engine
+from . import test_product_management
