@@ -200,6 +200,7 @@ class SubscriptionInvoice(models.Model):
             inv.message_post(body=_("Invoice %s confirmed and posted for billing period %s to %s.") % (
                 inv.name, inv.billing_period_start, inv.billing_period_end
             ))
+        return True
 
     def action_cancel(self):
         """Transitions: Draft / Confirmed -> Cancelled"""
@@ -209,6 +210,7 @@ class SubscriptionInvoice(models.Model):
             inv.state = 'cancel'
             inv.payment_state = 'not_paid'
             inv.message_post(body=_("Invoice %s was cancelled.") % inv.name)
+        return True
 
     def action_register_payment(self, amount=None, ref=None):
         """
@@ -225,6 +227,7 @@ class SubscriptionInvoice(models.Model):
             inv.message_post(body=_("Payment received and reconciled. Reference: %s, Amount: %s") % (
                 ref or "Direct Settlement", amount or inv.amount_total
             ))
+        return True
 
     def action_send_email(self):
         """Dispatches invoice details via email / chatter."""
@@ -621,6 +624,8 @@ class SubscriptionSubscriptionBillingExtension(models.Model):
     def action_generate_invoice_manual(self):
         """Manual trigger for billing engine from subscription form view."""
         self.ensure_one()
+        if self.state != 'active':
+            raise UserError(_("Invoices can only be generated for active subscriptions. Current state is '%s'.") % self.state)
         today = fields.Date.today()
         self._process_recurring_billing_catchup(today)
         return True

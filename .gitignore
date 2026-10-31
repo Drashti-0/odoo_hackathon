@@ -1,9 +1,23 @@
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
-*.swp
-*.swo
-*~
+*.so
+.Python
+env/
+venv/
+ENV/
+
+# macOS
 .DS_Store
-.vscode/
-.idea/
+
+# Environment & Secrets
+.env
+.env.local
+
+# Docker & Database Volumes
+postgres_data/
+odoo_data/
+
+# Odoo
+*.log

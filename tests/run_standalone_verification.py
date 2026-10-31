@@ -54,30 +54,70 @@ except ImportError:
 # ============================================================================
 
 class MockProductTemplate:
-    def __init__(self, name, list_price, standard_price=0.0, brand_name='standard', is_subscription=True):
+    def __init__(self, name, list_price=100.0, standard_price=0.0,
+                 brand_name='standard', is_subscription=True, brand_surcharge=None):
         if list_price < 0.0:
             raise ValueError("Sales price cannot be negative.")
         if standard_price < 0.0:
             raise ValueError("Cost price cannot be negative.")
+        if brand_surcharge is not None and brand_surcharge < 0.0:
+            raise ValueError("Brand surcharge cannot be negative.")
         self.name = name
         self.list_price = float(list_price)
         self.standard_price = float(standard_price)
-        self.brand_name = brand_name
+        self._brand_name = brand_name
         self.is_subscription = is_subscription
-        self.brand_surcharge = 560.0 if self.brand_name == 'odoo' else 0.0
+        self._recompute_surcharge()
+
+    @property
+    def brand_name(self):
+        return self._brand_name
+
+    @brand_name.setter
+    def brand_name(self, value):
+        self._brand_name = value
+        self._recompute_surcharge()
+
+    def _recompute_surcharge(self):
+        self.brand_surcharge = 560.0 if self._brand_name == 'odoo' else 0.0
         self.subscription_price = self.list_price + self.brand_surcharge
+
+    def get_subscription_price(self, plan=None, partner=None):
+        return self.subscription_price
 
 
 class MockProductProduct:
-    def __init__(self, template, variant_extra=0.0):
+    def __init__(self, template, variant_extra=0.0, variant_attr_name=None):
         self.template = template
         self.name = template.name
-        self.brand_name = template.brand_name
         self.variant_extra = float(variant_extra)
+        self.variant_attr_name = variant_attr_name
+
+    @property
+    def brand_name(self):
+        return self.template.brand_name
+
+    @property
+    def brand_surcharge(self):
+        return self.template.brand_surcharge
+
+    @property
+    def subscription_price(self):
+        return self.get_subscription_price()
 
     def get_subscription_price(self, plan=None, partner=None):
         base = self.template.list_price
-        brand_extra = 560.0 if self.brand_name == 'odoo' else 0.0
+        is_odoo_template = (self.brand_name == 'odoo')
+        has_odoo_attr = (self.variant_attr_name and self.variant_attr_name.strip().lower() == 'odoo')
+
+        if is_odoo_template or has_odoo_attr:
+            if has_odoo_attr and self.variant_extra >= 560.0:
+                brand_extra = 0.0
+            else:
+                brand_extra = 560.0
+        else:
+            brand_extra = self.template.brand_surcharge
+
         return base + brand_extra + self.variant_extra
 
 
@@ -92,6 +132,8 @@ class MockSubscriptionPlan:
             raise ValueError("Minimum quantity must be at least 1.0.")
         if billing_interval_count < 1:
             raise ValueError("Billing interval count must be at least 1.")
+        if auto_close_days < 0:
+            raise ValueError("Auto-close grace period cannot be negative.")
         if start_date and end_date and end_date < start_date:
             raise ValueError(f"Availability end date ({end_date}) cannot precede start date ({start_date}).")
 
@@ -111,12 +153,14 @@ class MockSubscriptionPlan:
         self.active = True
 
     def is_available_on(self, check_date=None):
+        if not self.active:
+            return False
         target = check_date or date.today()
         if self.start_date and target < self.start_date:
             return False
         if self.end_date and target > self.end_date:
             return False
-        return self.active
+        return True
 
     def calculate_next_billing_date(self, current_date):
         if not current_date:
@@ -134,27 +178,54 @@ class MockSubscriptionPlan:
         return current_date + relativedelta(months=1)
 
 
+class MockQuotationTemplate:
+    def __init__(self, name, plan, validity_days=30, terms_and_conditions=""):
+        if validity_days < 0:
+            raise ValueError("Quotation validity days cannot be negative.")
+        self.name = name
+        self.plan = plan
+        self.validity_days = int(validity_days)
+        self.terms_and_conditions = terms_and_conditions
+        self.line_ids = []
+
+    def add_line(self, product, quantity=1.0, unit_price=None):
+        if quantity <= 0:
+            raise ValueError("Template line quantity must be strictly greater than 0.")
+        price = unit_price if unit_price is not None else product.get_subscription_price(self.plan)
+        line = {'product': product, 'quantity': float(quantity), 'unit_price': float(price)}
+        self.line_ids.append(line)
+        return line
+
+
 class MockSubscriptionLine:
-    def __init__(self, product, quantity, unit_price, tax_rate=0.0, discount_rate=0.0):
+    def __init__(self, product, quantity, unit_price, tax_rate=0.0, price_include=False, discount_rate=0.0):
         self.product = product
         self.name = product.name
         self.quantity = float(quantity)
         self.unit_price = float(unit_price)
         self.tax_rate = float(tax_rate)
+        self.price_include = bool(price_include)
         self.discount_rate = float(discount_rate)
 
     @property
     def price_subtotal(self):
         gross = self.quantity * self.unit_price
-        return gross * (1.0 - (self.discount_rate / 100.0))
+        disc_price = gross * (1.0 - (self.discount_rate / 100.0))
+        if self.tax_rate and self.price_include:
+            return round(disc_price / (1.0 + (self.tax_rate / 100.0)), 2)
+        return disc_price
 
     @property
     def price_tax(self):
-        return self.price_subtotal * (self.tax_rate / 100.0)
+        if self.price_include and self.tax_rate:
+            gross = self.quantity * self.unit_price
+            disc_price = gross * (1.0 - (self.discount_rate / 100.0))
+            return round(disc_price - self.price_subtotal, 2)
+        return round(self.price_subtotal * (self.tax_rate / 100.0), 2)
 
     @property
     def price_total(self):
-        return self.price_subtotal + self.price_tax
+        return round(self.price_subtotal + self.price_tax, 2)
 
 
 class MockSubscription:
@@ -169,6 +240,8 @@ class MockSubscription:
         self.state = 'draft'
         self.start_date = start_date or date.today()
         self.expiry_date = expiry_date
+        self.quotation_validity_date = date.today() + relativedelta(days=30)
+        self.terms_and_conditions = ""
         self.next_billing_date = None
         self.last_billing_date = None
         self.pause_date = None
@@ -182,11 +255,21 @@ class MockSubscription:
         if self.start_date and self.expiry_date and self.expiry_date < self.start_date:
             raise ValueError("Expiry date cannot be earlier than start date.")
 
-    def add_line(self, product, quantity, unit_price=None, tax_rate=0.0, discount_rate=0.0):
+    def apply_template(self, template):
+        self.plan = template.plan
+        if template.validity_days:
+            self.quotation_validity_date = date.today() + relativedelta(days=template.validity_days)
+        if template.terms_and_conditions:
+            self.terms_and_conditions = template.terms_and_conditions
+        self.line_ids = []
+        for tl in template.line_ids:
+            self.add_line(tl['product'], tl['quantity'], tl['unit_price'])
+
+    def add_line(self, product, quantity, unit_price=None, tax_rate=0.0, price_include=False, discount_rate=0.0):
         if quantity < self.plan.min_quantity:
             raise ValueError(f"Quantity {quantity} is below plan minimum {self.plan.min_quantity}.")
         price = unit_price if unit_price is not None else product.get_subscription_price(self.plan)
-        line = MockSubscriptionLine(product, quantity, price, tax_rate, discount_rate)
+        line = MockSubscriptionLine(product, quantity, price, tax_rate, price_include, discount_rate)
         self.line_ids.append(line)
         return line
 
@@ -205,6 +288,13 @@ class MockSubscription:
     @property
     def amount_total(self):
         return self.amount_untaxed + self.amount_tax
+
+    @property
+    def currency_symbol(self):
+        """Currency fallback safety: returns currency symbol or default company fallback."""
+        if getattr(self, 'currency_id', None) and hasattr(self.currency_id, 'symbol'):
+            return self.currency_id.symbol
+        return "$"
 
     @property
     def mrr(self):
@@ -233,9 +323,23 @@ class MockSubscription:
             raise RuntimeError("Only draft subscriptions can be sent as quotation.")
         self.state = 'quotation'
 
+    def action_draft(self):
+        if self.state not in ('quotation', 'closed'):
+            raise RuntimeError("Only quotation or closed subscriptions can be reset to draft.")
+        self.state = 'draft'
+
+    def action_cancel(self):
+        if self.state not in ('draft', 'quotation'):
+            raise RuntimeError("Only draft or quotation can be cancelled.")
+        self.state = 'closed'
+        self.close_date = date.today()
+        self.close_reason = "Quotation was cancelled."
+
     def action_confirm(self):
         if self.state not in ('draft', 'quotation'):
             raise RuntimeError("Only draft or quotation can be confirmed.")
+        if not self.line_ids and not (self.plan and self.plan.price > 0):
+            raise ValueError("Cannot confirm a subscription with no lines and zero plan price.")
         if not self.plan.is_available_on(self.start_date):
             raise ValueError(f"Plan {self.plan.name} is not available on {self.start_date}.")
         self.name = f"SUB-{self.id:05d}"
@@ -247,6 +351,22 @@ class MockSubscription:
         self.state = 'active'
         if not self.next_billing_date:
             self.next_billing_date = self.start_date
+
+    def write(self, vals):
+        if 'state' in vals:
+            new_state = vals['state']
+            valid_transitions = {
+                'draft': {'quotation', 'confirmed', 'closed'},
+                'quotation': {'draft', 'confirmed', 'closed'},
+                'confirmed': {'active', 'closed'},
+                'active': {'paused', 'closed', 'expired'},
+                'paused': {'active', 'closed'},
+                'expired': {'active', 'closed'},
+                'closed': {'active', 'draft'},
+            }
+            if new_state not in valid_transitions.get(self.state, set()):
+                raise RuntimeError(f"Direct transition from '{self.state}' to '{new_state}' is not permitted.")
+            self.state = new_state
 
     def action_pause(self):
         if self.state != 'active':
@@ -260,7 +380,7 @@ class MockSubscription:
         if self.state != 'paused':
             raise RuntimeError("Only paused subscriptions can be resumed.")
         today = date.today()
-        if self.pause_date and self.next_billing_date and self.next_billing_date >= self.pause_date:
+        if self.pause_date and self.next_billing_date:
             days = (today - self.pause_date).days
             if days > 0:
                 self.next_billing_date = self.next_billing_date + relativedelta(days=days)
@@ -339,7 +459,29 @@ class MockBillingEngine:
             })
             return 0
 
-        # 2. Check contract expiry
+        # 2. Check plan assignment
+        if not sub.plan:
+            sub.billing_logs.append({
+                'status': 'failed',
+                'message': f"Subscription {sub.name} has no plan assigned."
+            })
+            return 0
+
+        # 3. Handle empty next_billing_date safely
+        if not sub.next_billing_date:
+            if sub.last_billing_date:
+                sub.next_billing_date = sub.plan.calculate_next_billing_date(sub.last_billing_date)
+            else:
+                sub.next_billing_date = sub.start_date or today
+
+        if sub.next_billing_date > today:
+            sub.billing_logs.append({
+                'status': 'skipped',
+                'message': f"Subscription {sub.name} next billing date {sub.next_billing_date} in future; skipped."
+            })
+            return 0
+
+        # 4. Check contract expiry
         if sub.expiry_date and sub.next_billing_date > sub.expiry_date:
             sub.state = 'expired'
             sub.billing_logs.append({
@@ -348,7 +490,7 @@ class MockBillingEngine:
             })
             return 0
 
-        # 3. Check plan availability
+        # 5. Check plan availability
         if not sub.plan.is_available_on(sub.next_billing_date):
             sub.billing_logs.append({
                 'status': 'failed',
@@ -706,6 +848,241 @@ class TestSubscriptionModules(unittest.TestCase):
         self.assertEqual(sub.amount_tax, 48.0)
         self.assertEqual(sub.amount_total, 426.0)
 
+    def test_09_duplicate_surcharge_prevention(self):
+        """Test Product ORM logic: Odoo +560 surcharge must not be double applied."""
+        tmpl_odoo = MockProductTemplate("Odoo Cloud Host", list_price=1000.0, brand_name='odoo')
+        self.assertEqual(tmpl_odoo.brand_surcharge, 560.0)
+        self.assertEqual(tmpl_odoo.subscription_price, 1560.0)
+
+        # Standard variant inherits 560 surcharge
+        prod_standard = MockProductProduct(tmpl_odoo)
+        self.assertEqual(prod_standard.get_subscription_price(), 1560.0)
+
+        # If a variant attribute already configured 560 surcharge, do not double-add to 2120
+        prod_with_odoo_attr = MockProductProduct(tmpl_odoo, variant_extra=560.0, variant_attr_name='Odoo')
+        self.assertEqual(prod_with_odoo_attr.get_subscription_price(), 1560.0)
+
+    def test_10_empty_next_billing_date_safety(self):
+        """Test Recurring Billing Cron: Active subscription with empty next_billing_date is safely initialized and billed."""
+        today = date(2026, 6, 1)
+        sub = MockSubscription("Unset Date Client", self.plan_monthly, start_date=today)
+        prod = MockProductProduct(MockProductTemplate("Service A", list_price=200.0))
+        sub.add_line(prod, quantity=2.0)
+        sub.action_confirm()
+        sub.action_activate()
+
+        # Explicitly simulate missing/empty next_billing_date
+        sub.next_billing_date = None
+
+        # Run cron billing engine
+        invoices_count = MockBillingEngine.process_subscription_catchup(sub, target_date=today)
+        self.assertEqual(invoices_count, 1, "Should generate exactly 1 invoice")
+        self.assertEqual(len(sub.invoice_ids), 1)
+        self.assertEqual(sub.next_billing_date, today + relativedelta(months=1))
+
+        # Re-run same day (idempotent duplicate defense)
+        sub.next_billing_date = today  # force date back
+        retry_count = MockBillingEngine.process_subscription_catchup(sub, target_date=today)
+        self.assertEqual(retry_count, 0, "Retry must not create duplicate invoice")
+        self.assertEqual(len(sub.invoice_ids), 1)
+
+    def test_11_currency_fallback_safety(self):
+        """Test Currency Fallback Safety: Records with missing/unset currency do not crash tax/total computations."""
+        sub = MockSubscription("Currency Test Client", self.plan_monthly, start_date=date(2026, 1, 1))
+        prod = MockProductProduct(MockProductTemplate("Test Service", list_price=150.0))
+        sub.add_line(prod, quantity=2.0, tax_rate=10.0)
+
+        # Confirm calculation worked without errors
+        # plan 100 + 2 * 150 = 400 untaxed. Tax 10% on 300 = 30. Total = 430
+        self.assertEqual(sub.amount_tax, 30.0)
+        self.assertEqual(sub.amount_total, 430.0)
+        self.assertEqual(sub.currency_symbol, "$")
+
+    def test_12_brand_surcharge_tests_a_b_c_d(self):
+        """Step 3: Test A, B, C, D Brand Surcharge Validation in Standalone Suite."""
+        # Test A: Base 1,000, Brand Odoo -> Surcharge 560, Price 1,560
+        tmpl_a = MockProductTemplate("ERP Suite", list_price=1000.0, brand_name='odoo')
+        prod_a = MockProductProduct(tmpl_a)
+        self.assertEqual(tmpl_a.brand_surcharge, 560.0)
+        self.assertEqual(tmpl_a.subscription_price, 1560.0)
+        self.assertEqual(prod_a.subscription_price, 1560.0)
+
+        # Test B: Base 1,000, Brand Brightloop -> Surcharge 0, Price 1,000
+        tmpl_b = MockProductTemplate("Workflow App", list_price=1000.0, brand_name='brightloop')
+        prod_b = MockProductProduct(tmpl_b)
+        self.assertEqual(tmpl_b.brand_surcharge, 0.0)
+        self.assertEqual(tmpl_b.subscription_price, 1000.0)
+        self.assertEqual(prod_b.subscription_price, 1000.0)
+
+        # Test C: Change Brand from Odoo to Brightloop -> Surcharge removed
+        tmpl_a.brand_name = 'brightloop'
+        self.assertEqual(tmpl_a.brand_surcharge, 0.0)
+        self.assertEqual(tmpl_a.subscription_price, 1000.0)
+        self.assertEqual(prod_a.subscription_price, 1000.0)
+
+        # Switch back to Odoo
+        tmpl_a.brand_name = 'odoo'
+        self.assertEqual(tmpl_a.brand_surcharge, 560.0)
+        self.assertEqual(tmpl_a.subscription_price, 1560.0)
+        self.assertEqual(prod_a.subscription_price, 1560.0)
+
+        # Test D: Multiple Variants with extra pricing (no duplicate surcharge)
+        var_shared = MockProductProduct(tmpl_a, variant_extra=0.0)
+        var_dedicated = MockProductProduct(tmpl_a, variant_extra=500.0)
+        self.assertEqual(var_shared.subscription_price, 1560.0)
+        self.assertEqual(var_dedicated.subscription_price, 2060.0)
+
+        # Negative price validations
+        with self.assertRaises(ValueError):
+            MockProductTemplate("Invalid", list_price=-50.0)
+        with self.assertRaises(ValueError):
+            MockProductTemplate("Invalid", list_price=100.0, standard_price=-10.0)
+        with self.assertRaises(ValueError):
+            MockProductTemplate("Invalid", list_price=100.0, brand_surcharge=-5.0)
+
+    def test_13_plan_cadence_clamping_and_policies(self):
+        """Step 3, 4, 5, 6: Test Cadences, Clamping, Leap Years, and Policies in Standalone Suite."""
+        # A. Daily
+        plan_daily = MockSubscriptionPlan("Daily Plan", "PLAN-D", price=10.0, billing_interval_unit='daily', billing_interval_count=1)
+        self.assertEqual(plan_daily.calculate_next_billing_date(date(2026, 5, 1)), date(2026, 5, 2))
+        plan_daily.billing_interval_count = 14
+        self.assertEqual(plan_daily.calculate_next_billing_date(date(2026, 5, 1)), date(2026, 5, 15))
+
+        # B. Weekly
+        plan_weekly = MockSubscriptionPlan("Weekly Plan", "PLAN-W", price=40.0, billing_interval_unit='weekly', billing_interval_count=1)
+        self.assertEqual(plan_weekly.calculate_next_billing_date(date(2026, 6, 1)), date(2026, 6, 8))
+        plan_weekly.billing_interval_count = 4
+        self.assertEqual(plan_weekly.calculate_next_billing_date(date(2026, 6, 1)), date(2026, 6, 29))
+
+        # C. Monthly & Clamping
+        plan_monthly = MockSubscriptionPlan("Monthly Plan", "PLAN-M", price=100.0, billing_interval_unit='monthly', billing_interval_count=1)
+        self.assertEqual(plan_monthly.calculate_next_billing_date(date(2026, 4, 15)), date(2026, 5, 15))
+        self.assertEqual(plan_monthly.calculate_next_billing_date(date(2026, 1, 31)), date(2026, 2, 28))
+        self.assertEqual(plan_monthly.calculate_next_billing_date(date(2028, 1, 31)), date(2028, 2, 29))
+        self.assertEqual(plan_monthly.calculate_next_billing_date(date(2026, 3, 31)), date(2026, 4, 30))
+
+        # D. Yearly & Leap Year
+        plan_yearly = MockSubscriptionPlan("Yearly Plan", "PLAN-Y", price=1000.0, billing_interval_unit='yearly', billing_interval_count=1)
+        self.assertEqual(plan_yearly.calculate_next_billing_date(date(2026, 8, 20)), date(2027, 8, 20))
+        self.assertEqual(plan_yearly.calculate_next_billing_date(date(2028, 2, 29)), date(2029, 2, 28))
+
+        # E. Boundary Dates & Inactive
+        plan_avail = MockSubscriptionPlan("Window Plan", "PLAN-WIN", price=50.0, start_date=date(2026, 6, 1), end_date=date(2026, 8, 31))
+        self.assertFalse(plan_avail.is_available_on(date(2026, 5, 31)))
+        self.assertTrue(plan_avail.is_available_on(date(2026, 6, 1)))
+        self.assertTrue(plan_avail.is_available_on(date(2026, 7, 15)))
+        self.assertTrue(plan_avail.is_available_on(date(2026, 8, 31)))
+        self.assertFalse(plan_avail.is_available_on(date(2026, 9, 1)))
+
+        plan_avail.active = False
+        self.assertFalse(plan_avail.is_available_on(date(2026, 7, 15)))
+
+        # F. Constraints
+        with self.assertRaises(ValueError):
+            MockSubscriptionPlan("Bad", "B", price=-10.0)
+        with self.assertRaises(ValueError):
+            MockSubscriptionPlan("Bad", "B", price=10.0, min_quantity=0.0)
+        with self.assertRaises(ValueError):
+            MockSubscriptionPlan("Bad", "B", price=10.0, billing_interval_count=0)
+        with self.assertRaises(ValueError):
+            MockSubscriptionPlan("Bad", "B", price=10.0, auto_close_days=-2)
+        with self.assertRaises(ValueError):
+            MockSubscriptionPlan("Bad", "B", price=10.0, start_date=date(2026, 12, 1), end_date=date(2026, 1, 1))
+
+    def test_14_quotation_and_subscription_management(self):
+        """Module 3: Complete Quotation & Subscription Management verification in Standalone Suite."""
+        tmpl_hosting = MockProductTemplate("Cloud Hosting", list_price=1000.0, brand_name='standard')
+        prod_hosting = MockProductProduct(tmpl_hosting)
+        tmpl_support = MockProductTemplate("Priority Support", list_price=200.0, brand_name='standard')
+        prod_support = MockProductProduct(tmpl_support)
+
+        # 1. Quotation Template and constraints
+        tmpl = MockQuotationTemplate("Cloud Bundle", self.plan_monthly, validity_days=45, terms_and_conditions="Net 30")
+        tmpl.add_line(prod_hosting, quantity=2.0)
+        self.assertEqual(len(tmpl.line_ids), 1)
+
+        with self.assertRaises(ValueError):
+            MockQuotationTemplate("Bad", self.plan_monthly, validity_days=-1)
+        with self.assertRaises(ValueError):
+            tmpl.add_line(prod_hosting, quantity=0.0)
+
+        # 2. Quotation Creation and Template Application
+        sub = MockSubscription("Enterprise Client", self.plan_monthly)
+        self.assertTrue(sub.name.startswith("SQ-"))
+        self.assertEqual(sub.state, 'draft')
+
+        sub.apply_template(tmpl)
+        self.assertEqual(len(sub.line_ids), 1)
+        self.assertEqual(sub.terms_and_conditions, "Net 30")
+        self.assertEqual(sub.quotation_validity_date, date.today() + relativedelta(days=45))
+
+        # 3. Tax-inclusive vs Tax-exclusive Line Calculations
+        # Line 1: prod_hosting 2 qty @ 1000 = 2000 untaxed, 10% tax = 200
+        line1 = sub.line_ids[0]
+        line1.tax_rate = 10.0
+        line1.price_include = False
+        self.assertEqual(line1.price_subtotal, 2000.0)
+        self.assertEqual(line1.price_tax, 200.0)
+        self.assertEqual(line1.price_total, 2200.0)
+
+        # Line 2: 2 qty @ 110 with 10% tax-included -> 200 untaxed, 20 tax, 220 total
+        line2 = sub.add_line(prod_support, quantity=2.0, unit_price=110.0, tax_rate=10.0, price_include=True)
+        self.assertEqual(line2.price_subtotal, 200.0)
+        self.assertEqual(line2.price_tax, 20.0)
+        self.assertEqual(line2.price_total, 220.0)
+
+        # Header totals: plan (100) + line1 (2000) + line2 (200) = 2300 untaxed; tax = 220; total = 2520
+        self.assertEqual(sub.amount_untaxed, 2300.0)
+        self.assertEqual(sub.amount_tax, 220.0)
+        self.assertEqual(sub.amount_total, 2520.0)
+
+        # 4. Confirmation & Sequence
+        sub.action_send_quotation()
+        self.assertEqual(sub.state, 'quotation')
+
+        sub.action_confirm()
+        self.assertEqual(sub.state, 'confirmed')
+        self.assertTrue(sub.name.startswith("SUB-"))
+
+        # Price immutability
+        initial_subtotal = sub.amount_untaxed
+        tmpl_hosting.list_price = 9999.0
+        self.assertEqual(sub.amount_untaxed, initial_subtotal)
+
+        # 5. Invalid State Transitions
+        with self.assertRaises(RuntimeError):
+            sub.write({'state': 'draft'})  # confirmed cannot jump back to draft
+        with self.assertRaises(RuntimeError):
+            sub.write({'state': 'paused'})  # must be active first
+
+        sub.action_activate()
+        self.assertEqual(sub.state, 'active')
+
+        # 6. Pause / Resume Schedule Shifting
+        initial_next_billing = date(2026, 6, 1)
+        sub.next_billing_date = initial_next_billing
+        sub.action_pause()
+        self.assertEqual(sub.state, 'paused')
+
+        # Simulate 10 days paused
+        sub.pause_date = date.today() - relativedelta(days=10)
+        sub.action_resume()
+        self.assertEqual(sub.state, 'active')
+        self.assertEqual(sub.next_billing_date, initial_next_billing + relativedelta(days=10))
+
+        # 7. Renewal
+        sub.expiry_date = date(2026, 12, 31)
+        sub.action_renew()
+        self.assertEqual(sub.expiry_date, date(2027, 1, 31))
+
+        # 8. Reset to draft & cancellation on quotation
+        sub_quote = MockSubscription("Prospect Corp", self.plan_monthly)
+        sub_quote.action_send_quotation()
+        self.assertEqual(sub_quote.state, 'quotation')
+        sub_quote.action_draft()
+        self.assertEqual(sub_quote.state, 'draft')
+        sub_quote.action_cancel()
+        self.assertEqual(sub_quote.state, 'closed')
 
 # Import Developer 2 User Management Verification Suite
 try:
@@ -746,3 +1123,5 @@ except ImportError:
 
 if __name__ == '__main__':
     unittest.main()
+
+
