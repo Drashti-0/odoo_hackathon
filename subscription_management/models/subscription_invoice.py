@@ -443,7 +443,7 @@ class SubscriptionInvoiceLine(models.Model):
     product_id = fields.Many2one(
         comodel_name='product.product',
         string="Product",
-        required=False
+        required=False,
     )
     name = fields.Text(
         string="Description",
