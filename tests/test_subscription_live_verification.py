@@ -10,6 +10,7 @@ Executes live against Odoo 17 and PostgreSQL over XML-RPC.
 
 import sys
 import xmlrpc.client
+import time
 from datetime import date, timedelta
 from dateutil.relativedelta import relativedelta
 
@@ -68,17 +69,22 @@ def run_live_verification(url, db, username, password):
     # ------------------------------------------------------------------------
     print("\n--- 2. PREPARING TEST FIXTURES ---")
     # Customer
-    partner_id = call('res.partner', 'create', [{
-        'name': 'Brightwave Enterprise Solutions Inc.',
-        'email': 'procurement@brightwave.io',
-    }])
-    print(f"[PASS] Created customer: Brightwave Enterprise (ID {partner_id})")
+    existing_partners = call('res.partner', 'search', [('email', '=', 'procurement@brightwave.io')])
+    if existing_partners:
+        partner_id = existing_partners[0]
+    else:
+        partner_id = call('res.partner', 'create', [{
+            'name': 'Brightwave Enterprise Solutions Inc.',
+            'email': 'procurement@brightwave.io',
+        }])
+    print(f"[PASS] Customer ready: Brightwave Enterprise (ID {partner_id})")
 
+    tag = int(time.time())
     # Subscription Plans
     # 1. Standard Flexible Plan (Pause=True, Renew=True, EarlyClose=True)
     plan_flex_id = call('subscription.plan', 'create', [{
         'name': 'Live Flexible SaaS Monthly',
-        'code': f'PLAN-FLEX-{partner_id}',
+        'code': f'PLAN-FLEX-{tag}',
         'price': 100.0,
         'billing_interval_unit': 'monthly',
         'billing_interval_count': 1,
@@ -94,7 +100,7 @@ def run_live_verification(url, db, username, password):
     # 2. Strict Fixed Plan (Pause=False, Renew=False, EarlyClose=False)
     plan_strict_id = call('subscription.plan', 'create', [{
         'name': 'Live Strict Annual Lockin',
-        'code': f'PLAN-STR-{partner_id}',
+        'code': f'PLAN-STR-{tag}',
         'price': 1200.0,
         'billing_interval_unit': 'yearly',
         'billing_interval_count': 1,
@@ -109,7 +115,7 @@ def run_live_verification(url, db, username, password):
 
     # Taxes: Exclusive & Inclusive
     tax_excl_id = call('account.tax', 'create', [{
-        'name': f'VAT 10% Exclusive Live Test {partner_id}',
+        'name': f'VAT 10% Exclusive Live Test {tag}',
         'amount': 10.0,
         'amount_type': 'percent',
         'price_include': False,
@@ -117,7 +123,7 @@ def run_live_verification(url, db, username, password):
     }])
 
     tax_incl_id = call('account.tax', 'create', [{
-        'name': f'VAT 10% Inclusive Live Test {partner_id}',
+        'name': f'VAT 10% Inclusive Live Test {tag}',
         'amount': 10.0,
         'amount_type': 'percent',
         'price_include': True,

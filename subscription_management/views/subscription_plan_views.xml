@@ -81,8 +81,10 @@
                 <field name="sequence" widget="handle"/>
                 <field name="name"/>
                 <field name="code"/>
+                <field name="billing_interval_count"/>
                 <field name="billing_interval_unit" widget="badge" decoration-info="billing_interval_unit == 'monthly'" decoration-success="billing_interval_unit == 'yearly'" decoration-warning="billing_interval_unit in ('daily', 'weekly')"/>
                 <field name="price" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                <field name="subscription_count" string="Subscriptions" optional="show"/>
                 <field name="min_quantity"/>
                 <field name="start_date" optional="show"/>
                 <field name="end_date" optional="show"/>
@@ -104,6 +106,7 @@
                 <field name="name"/>
                 <field name="code"/>
                 <filter string="Active" name="filter_active" domain="[('active', '=', True)]"/>
+                <filter string="Ending Soon" name="filter_ending_soon" domain="[('end_date', '&gt;=', context_today()), ('end_date', '&lt;=', (context_today() + relativedelta(days=30)).strftime('%Y-%m-%d'))]"/>
                 <separator/>
                 <filter string="Daily" name="filter_daily" domain="[('billing_interval_unit', '=', 'daily')]"/>
                 <filter string="Weekly" name="filter_weekly" domain="[('billing_interval_unit', '=', 'weekly')]"/>
@@ -130,10 +133,10 @@
         <field name="search_view_id" ref="view_subscription_plan_search"/>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">
-                Create a recurring subscription plan.
+                Create your first subscription plan.
             </p>
             <p>
-                Configure billing intervals (daily, weekly, monthly, yearly), minimum quantities, and lifecycle policies.
+                Set the recurring price and cadence, then choose pause, renewal, and expiry policies before creating a quotation.
             </p>
         </field>
     </record>

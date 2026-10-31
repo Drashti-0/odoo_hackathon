@@ -211,7 +211,11 @@ def run_plan_live_verification(host="http://localhost:8069", db="brightloop_test
     # -------------------------------------------------------------
     print("\n--- 5. VERIFYING LIFECYCLE POLICIES ---")
 
-    partner_id = call('res.partner', 'create', [{'name': 'Global Corp Systems', 'email': 'gcorp@global.com'}])
+    existing_partners = call('res.partner', 'search', [('email', '=', 'gcorp@global.com')])
+    if existing_partners:
+        partner_id = existing_partners[0]
+    else:
+        partner_id = call('res.partner', 'create', [{'name': 'Global Corp Systems', 'email': 'gcorp@global.com'}])
     prod_tmpl_id = call('product.template', 'create', [{
         'name': 'Managed Cloud Backup',
         'list_price': 100.0,

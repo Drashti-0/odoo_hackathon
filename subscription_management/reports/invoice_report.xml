@@ -34,7 +34,11 @@
                                 <div><strong>Payment Terms:</strong> <span t-field="o.payment_terms"/></div>
                                 <div class="mt-2">
                                     <span class="badge bg-success" t-if="o.payment_state == 'paid'">PAID</span>
+                                    <span class="badge bg-info" t-if="o.payment_state == 'partial'">PARTIALLY PAID</span>
                                     <span class="badge bg-warning" t-if="o.payment_state == 'not_paid'">PENDING PAYMENT</span>
+                                </div>
+                                <div t-if="o.discount_code" class="mt-2 text-muted">
+                                    <small><strong>Coupon:</strong> <span t-field="o.discount_code"/></small>
                                 </div>
                             </div>
                         </div>
@@ -100,8 +104,16 @@
                                         <td class="text-end"><span t-field="o.amount_tax" t-options='{"widget": "monetary", "display_currency": o.currency_id}'/></td>
                                     </tr>
                                     <tr class="border-top">
-                                        <td><h5>Total Due</h5></td>
+                                        <td><h5>Total Invoiced</h5></td>
                                         <td class="text-end"><h5><span t-field="o.amount_total" t-options='{"widget": "monetary", "display_currency": o.currency_id}'/></h5></td>
+                                    </tr>
+                                    <tr t-if="o.amount_paid > 0">
+                                        <td><strong>Amount Paid</strong></td>
+                                        <td class="text-end text-success"><span t-field="o.amount_paid" t-options='{"widget": "monetary", "display_currency": o.currency_id}'/></td>
+                                    </tr>
+                                    <tr t-if="o.amount_paid > 0" class="border-top">
+                                        <td><strong>Balance Due</strong></td>
+                                        <td class="text-end fw-bold"><span t-field="o.amount_residual" t-options='{"widget": "monetary", "display_currency": o.currency_id}'/></td>
                                     </tr>
                                 </table>
                             </div>

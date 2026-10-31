@@ -206,10 +206,14 @@ def run_product_live_verification(host="http://localhost:8069", db="brightloop_t
     # 5. SUBSCRIPTION INTEGRATION & CONTRACT PRICE IMMUTABILITY
     # -------------------------------------------------------------
     print("\n--- 5. VERIFYING SUBSCRIPTION INTEGRATION & CONTRACT IMMUTABILITY ---")
-    partner_id = call('res.partner', 'create', [{
-        'name': 'Pinnacle Technologies Ltd',
-        'email': 'accounts@pinnacletech.com',
-    }])
+    existing_partners = call('res.partner', 'search', [('email', '=', 'accounts@pinnacletech.com')])
+    if existing_partners:
+        partner_id = existing_partners[0]
+    else:
+        partner_id = call('res.partner', 'create', [{
+            'name': 'Pinnacle Technologies Ltd',
+            'email': 'accounts@pinnacletech.com',
+        }])
     plan_id = call('subscription.plan', 'create', [{
         'name': 'Enterprise Platinum Plan',
         'price': 300.0,
