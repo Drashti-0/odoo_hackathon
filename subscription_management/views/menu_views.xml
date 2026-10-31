@@ -79,7 +79,7 @@
     <menuitem id="menu_subscription_config"
               name="Configuration"
               parent="menu_subscription_root"
-              groups="group_subscription_manager"
+              groups="subscription_management.group_subscription_manager"
               sequence="100"/>
 
     <menuitem id="menu_subscription_config_plans"
