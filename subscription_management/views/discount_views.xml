@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Subscription Discount Form View -->
+    <record id="view_subscription_discount_form" model="ir.ui.view">
+        <field name="name">subscription.discount.form</field>
+        <field name="model">subscription.discount</field>
+        <field name="arch" type="xml">
+            <form string="Discount Rule &amp; Coupon">
+                <sheet>
+                    <widget name="web_ribbon" title="Archived" bg_color="bg-danger" invisible="active"/>
+                    <widget name="web_ribbon" title="Expired" bg_color="bg-warning" invisible="not is_expired"/>
+
+                    <div class="oe_title">
+                        <label for="name" string="Promotion / Discount Name" class="oe_edit_only"/>
+                        <h1>
+                            <field name="name" placeholder="e.g. Summer Kickoff 2026, Enterprise Loyalty 15%"/>
+                        </h1>
+                        <h3>
+                            <field name="code" placeholder="PROMO-CODE-HERE" class="text-uppercase"/>
+                        </h3>
+                    </div>
+
+                    <group>
+                        <group string="Discount Configuration">
+                            <field name="discount_type" widget="radio"/>
+                            <field name="value" string="Discount Value" widget="float"/>
+                            <field name="apply_to_whole_subscription"/>
+                            <field name="currency_id" invisible="1"/>
+                            <field name="active" widget="boolean_toggle"/>
+                        </group>
+
+                        <group string="Usage &amp; Redemption Metrics">
+                            <field name="usage_count"/>
+                            <field name="usage_limit" placeholder="0 = Unlimited"/>
+                            <field name="is_available" widget="boolean"/>
+                            <field name="is_expired" widget="boolean"/>
+                        </group>
+                    </group>
+
+                    <notebook>
+                        <page name="eligibility" string="Eligibility &amp; Restrictions">
+                            <group>
+                                <group string="Cart / Order Thresholds">
+                                    <field name="min_purchase_amount" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                                    <field name="min_quantity"/>
+                                </group>
+                                <group string="Validity Period">
+                                    <field name="start_date"/>
+                                    <field name="end_date"/>
+                                </group>
+                            </group>
+                            <group string="Product Applicability">
+                                <field name="applicable_product_ids" widget="many2many_tags" placeholder="All products eligible if left unselected"/>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Subscription Discount Tree View -->
+    <record id="view_subscription_discount_tree" model="ir.ui.view">
+        <field name="name">subscription.discount.tree</field>
+        <field name="model">subscription.discount</field>
+        <field name="arch" type="xml">
+            <tree string="Discount Rules" decoration-muted="not active" decoration-danger="is_expired">
+                <field name="name"/>
+                <field name="code"/>
+                <field name="discount_type" widget="badge"/>
+                <field name="value"/>
+                <field name="min_purchase_amount" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                <field name="applicable_product_ids" widget="many2many_tags" optional="show"/>
+                <field name="start_date"/>
+                <field name="end_date"/>
+                <field name="usage_count"/>
+                <field name="usage_limit"/>
+                <field name="active" widget="boolean_toggle"/>
+                <field name="is_available" column_invisible="True"/>
+                <field name="is_expired" column_invisible="True"/>
+                <field name="currency_id" column_invisible="True"/>
+            </tree>
+        </field>
+    </record>
+
+    <!-- Subscription Discount Search View -->
+    <record id="view_subscription_discount_search" model="ir.ui.view">
+        <field name="name">subscription.discount.search</field>
+        <field name="model">subscription.discount</field>
+        <field name="arch" type="xml">
+            <search string="Search Discounts">
+                <field name="name" string="Promotion or Code" filter_domain="['|', ('name', 'ilike', self), ('code', 'ilike', self)]"/>
+                <field name="code"/>
+                <filter string="Active" name="filter_active" domain="[('active', '=', True)]"/>
+                <filter string="Percentage" name="filter_percentage" domain="[('discount_type', '=', 'percentage')]"/>
+                <filter string="Fixed Amount" name="filter_fixed" domain="[('discount_type', '=', 'fixed')]"/>
+                <separator/>
+                <filter string="Expired" name="filter_expired" domain="[('end_date', '&lt;', context_today())]"/>
+                <group expand="0" string="Group By">
+                    <filter string="Discount Type" name="group_type" context="{'group_by': 'discount_type'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Window Action: Discounts & Coupons -->
+    <record id="action_subscription_discounts" model="ir.actions.act_window">
+        <field name="name">Discounts &amp; Promotions</field>
+        <field name="res_model">subscription.discount</field>
+        <field name="view_mode">tree,form</field>
+        <field name="search_view_id" ref="view_subscription_discount_search"/>
+        <field name="context">{'search_default_filter_active': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Create a new discount rule or promotional coupon!
+            </p>
+            <p>
+                Configure fixed or percentage discounts, minimum cart limits, product applicability, and expiration dates.
+            </p>
+        </field>
+    </record>
+
+    <!-- Menu Item: Discounts & Promotions under Products & Plans -->
+    <menuitem id="menu_subscription_discounts_act"
+              name="Discounts &amp; Coupons"
+              parent="menu_subscription_catalog"
+              action="action_subscription_discounts"
+              sequence="25"/>
+
+</odoo>
